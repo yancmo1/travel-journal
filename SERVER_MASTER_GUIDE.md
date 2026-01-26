@@ -1,0 +1,1 @@
+/Users/yancyshepherd/Projects/ubuntumac-server/SERVER_MASTER_GUIDE.md

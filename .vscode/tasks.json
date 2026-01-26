@@ -1,0 +1,25 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Docker: Build & Up (compose)",
+      "type": "shell",
+      "command": "docker-compose up --build -d",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Docker: Restart Web Service",
+      "type": "shell",
+      "command": "docker-compose restart web || docker-compose up -d --force-recreate web",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    }
+  ]
+}

@@ -1,0 +1,67 @@
+-- Travel Memory Tracker Database Schema
+
+-- Users table
+CREATE TABLE IF NOT EXISTS users (
+  id SERIAL PRIMARY KEY,
+  username VARCHAR(50) UNIQUE NOT NULL,
+  password_hash VARCHAR(255) NOT NULL,
+  display_name VARCHAR(100),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Travelers table (family members who go on trips)
+CREATE TABLE IF NOT EXISTS travelers (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(100) NOT NULL,
+  relationship VARCHAR(50) DEFAULT 'other', -- 'husband', 'wife', 'child', 'other'
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Trips table
+CREATE TABLE IF NOT EXISTS trips (
+  id SERIAL PRIMARY KEY,
+  location_name VARCHAR(255) NOT NULL,
+  latitude DECIMAL(10, 8),
+  longitude DECIMAL(11, 8),
+  country VARCHAR(100),
+  state VARCHAR(100),
+  start_date DATE NOT NULL,
+  end_date DATE,
+  trip_type VARCHAR(50) DEFAULT 'Other', -- 'Road Trip', 'Flight', 'Cruise', 'Day Trip', 'Other'
+  notes TEXT,
+  home_distance_miles DECIMAL(10, 2),
+  created_by INT REFERENCES users(id),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Trip-Travelers junction table (many-to-many)
+CREATE TABLE IF NOT EXISTS trip_travelers (
+  trip_id INT REFERENCES trips(id) ON DELETE CASCADE,
+  traveler_id INT REFERENCES travelers(id) ON DELETE CASCADE,
+  PRIMARY KEY (trip_id, traveler_id)
+);
+
+-- Photos table
+CREATE TABLE IF NOT EXISTS photos (
+  id SERIAL PRIMARY KEY,
+  trip_id INT REFERENCES trips(id) ON DELETE CASCADE,
+  filename VARCHAR(255) NOT NULL,
+  file_path VARCHAR(500) NOT NULL,
+  thumbnail_path VARCHAR(500),
+  file_size INT,
+  mime_type VARCHAR(50),
+  date_taken TIMESTAMP,
+  latitude DECIMAL(10, 8),
+  longitude DECIMAL(11, 8),
+  uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Indexes for performance
+CREATE INDEX IF NOT EXISTS idx_trips_start_date ON trips(start_date);
+CREATE INDEX IF NOT EXISTS idx_trips_location ON trips(location_name);
+CREATE INDEX IF NOT EXISTS idx_trips_type ON trips(trip_type);
+CREATE INDEX IF NOT EXISTS idx_photos_trip_id ON photos(trip_id);
+CREATE INDEX IF NOT EXISTS idx_trip_travelers_trip ON trip_travelers(trip_id);
+CREATE INDEX IF NOT EXISTS idx_trip_travelers_traveler ON trip_travelers(traveler_id);
