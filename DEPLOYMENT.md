@@ -86,3 +86,16 @@ Encryption is military-grade. Your passkey is the only way to decrypt.
 
 **Permission denied**
 - Run `chmod +x scripts/secrets-manager.sh`
+
+**Container startup failures**
+- See [CONTAINER_ISSUES.md](CONTAINER_ISSUES.md) for detailed analysis
+- Check logs: `docker-compose logs backend`
+- Verify healthchecks: `docker-compose ps`
+
+**Backend keeps restarting**
+- Backend healthcheck may be failing
+- Check if wget is installed in backend container
+- See [CONTAINER_ISSUES.md](CONTAINER_ISSUES.md) for fixes
+
+**Using GHCR images**
+- See [DEPLOYMENT_GHCR.md](DEPLOYMENT_GHCR.md) for GitHub Container Registry deployment
