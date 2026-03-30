@@ -26,7 +26,7 @@ services:
         condition: service_healthy
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER:-travel_user}:${POSTGRES_PASSWORD:-travel_pass}@postgres:5432/${POSTGRES_DB:-travel_tracker}
-      - JWT_SECRET=${JWT_SECRET:-change_this_to_a_secure_secret_key}
+      - JWT_SECRET=${JWT_SECRET:?JWT_SECRET environment variable must be set}
       - PHOTO_STORAGE_PATH=/app/media/travel-photos
       - HOME_LATITUDE=${HOME_LATITUDE:-35.4676}
       - HOME_LONGITUDE=${HOME_LONGITUDE:-97.5164}
