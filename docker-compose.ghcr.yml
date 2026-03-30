@@ -1,0 +1,67 @@
+# Production docker-compose that pulls pre-built images from GHCR.
+# Replace GITHUB_REPOSITORY below with your actual repository path
+# (e.g. "yancmo1/travel-journal") or set it as an environment variable.
+#
+# Usage:
+#   export GITHUB_REPOSITORY=yancmo1/travel-journal
+#   docker compose -f docker-compose.ghcr.yml up -d
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-travel_tracker}
+      POSTGRES_USER: ${POSTGRES_USER:-travel_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-travel_pass}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+      - ./backend/database/seed.sql:/docker-entrypoint-initdb.d/02-seed.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-travel_user} -d ${POSTGRES_DB:-travel_tracker}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Backend API — pulled from GHCR
+  backend:
+    image: ghcr.io/${GITHUB_REPOSITORY}/backend:latest
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-travel_user}:${POSTGRES_PASSWORD:-travel_pass}@postgres:5432/${POSTGRES_DB:-travel_tracker}
+      - JWT_SECRET=${JWT_SECRET:-change_this_to_a_secure_secret_key}
+      - PHOTO_STORAGE_PATH=/app/media/travel-photos
+      - HOME_LATITUDE=${HOME_LATITUDE:-35.4676}
+      - HOME_LONGITUDE=${HOME_LONGITUDE:-97.5164}
+      - PORT=4000
+      - NODE_ENV=production
+    volumes:
+      - photo_storage:/app/media/travel-photos
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:4000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Frontend (nginx + React build) — pulled from GHCR
+  frontend:
+    image: ghcr.io/${GITHUB_REPOSITORY}/frontend:latest
+    restart: unless-stopped
+    ports:
+      - "3080:80"
+    depends_on:
+      - backend
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  postgres_data:
+  photo_storage:
