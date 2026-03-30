@@ -13,17 +13,19 @@
 
 **Fix:** Install wget in the backend Dockerfile
 
-### 2. ⚠️ No GHCR Configuration
-**Problem:** There's no GitHub Container Registry (ghcr.io) configuration anywhere in the project. If you're trying to pull a pre-built image from GHCR, it won't work because:
-- No GitHub Actions workflow to build and push images
-- No references to ghcr.io in docker-compose.yml
-- Images are built locally only
+### 2. ⚠️ Historical: No GHCR Configuration
+**Problem (original state):** Previously, there was no GitHub Container Registry (ghcr.io) configuration in the project. If you tried to pull a pre-built image from GHCR, it wouldn't work because:
+- There was no GitHub Actions workflow to build and push images
+- There were no references to ghcr.io in the primary `docker-compose.yml`
+- Images were built locally only
 
-**Impact:** If you're trying to use `docker pull ghcr.io/yancmo1/travel-journal:tag`, it won't exist.
+**Current note:** This has since been addressed via `.github/workflows/docker-publish.yml` and `docker-compose.ghcr.yml`, which provide GHCR build/publish support.
+
+**Impact (original state):** If you tried to use `docker pull ghcr.io/yancmo1/travel-journal:tag`, it would not exist.
 
 **Fix:** Either:
 - Option A: Build locally with `docker-compose up --build`
-- Option B: Create GitHub Actions to push to GHCR (workflow provided below)
+- Option B: Use or adapt the GitHub Actions workflow to push to GHCR (workflow provided below)
 
 ### 3. ⚠️ Network Configuration
 **Problem:** The nginx config proxies to `http://backend:4000` which requires Docker Compose networking to resolve the hostname.
