@@ -69,8 +69,8 @@ docker-compose -f docker-compose.ghcr.yml ps
 # Check logs
 docker-compose -f docker-compose.ghcr.yml logs -f
 
-# Test API health
-curl http://localhost:4000/api/health
+# Test API health (via frontend proxy)
+curl http://localhost:3080/api/health
 
 # Access the app
 # Open http://localhost:3080 in your browser
