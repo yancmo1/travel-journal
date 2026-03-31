@@ -152,6 +152,11 @@ docker-compose up --build -d
 # With reverse proxy (nginx/Caddy), point your domain to port 3080
 ```
 
+### Portainer
+
+Deploy Travel Journal as a Portainer stack using the pre-built images from GHCR.  
+See **[PORTAINER.md](PORTAINER.md)** for a full step-by-step guide.
+
 ## License
 
 MIT - Personal use. Built for tracking family travel memories.

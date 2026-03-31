@@ -1,0 +1,74 @@
+# Travel Journal – Portainer Stack
+#
+# Deploy this stack inside Portainer using the "Repository" method:
+#   Repository URL : https://github.com/yancmo1/travel-journal
+#   Compose path   : docker-compose.portainer.yml
+#
+# Set the following Environment Variables in the Portainer UI before deploying:
+#
+#   POSTGRES_PASSWORD   (required) Strong database password
+#   JWT_SECRET          (required) Random secret – run: openssl rand -base64 32
+#   HOME_LATITUDE       (optional) Your home latitude  (default: 35.4676)
+#   HOME_LONGITUDE      (optional) Your home longitude (default: -97.5164)
+#   APP_PORT            (optional) Host port for the UI (default: 3080)
+
+services:
+  # ── PostgreSQL Database ────────────────────────────────────────────────────
+  postgres:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: travel_tracker
+      POSTGRES_USER: travel_user
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in the Portainer environment variables}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+      - ./backend/database/seed.sql:/docker-entrypoint-initdb.d/02-seed.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U travel_user -d travel_tracker"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Backend API ────────────────────────────────────────────────────────────
+  backend:
+    image: ghcr.io/yancmo1/travel-journal/backend:latest
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=postgresql://travel_user:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in the Portainer environment variables}@postgres:5432/travel_tracker
+      - JWT_SECRET=${JWT_SECRET:?Set JWT_SECRET in the Portainer environment variables}
+      - PHOTO_STORAGE_PATH=/app/media/travel-photos
+      - HOME_LATITUDE=${HOME_LATITUDE:-35.4676}
+      - HOME_LONGITUDE=${HOME_LONGITUDE:--97.5164}
+      - PORT=4000
+      - NODE_ENV=production
+    volumes:
+      - photo_storage:/app/media/travel-photos
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:4000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ── Frontend (nginx + React build) ────────────────────────────────────────
+  frontend:
+    image: ghcr.io/yancmo1/travel-journal/frontend:latest
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-3080}:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  postgres_data:
+  photo_storage:
