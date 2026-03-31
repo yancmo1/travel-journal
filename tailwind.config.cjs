@@ -18,6 +18,10 @@ module.exports = {
         'sky-blue': '#3B82F6',
         'sand': '#F5F5F4',
         'ocean-green': '#10B981',
+        // Couple / romantic accents
+        'rose-warm': '#FB7185',
+        'rose-soft': '#FFF1F2',
+        'lavender': '#A78BFA',
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],

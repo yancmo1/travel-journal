@@ -14,8 +14,11 @@ function AppContent() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-sky-100 via-blue-50 to-orange-50 flex items-center justify-center">
-        <div className="text-ocean-blue text-xl">Loading...</div>
+      <div className="min-h-screen bg-gradient-to-br from-ocean-blue via-sky-500 to-sunset-orange flex items-center justify-center">
+        <div className="text-center">
+          <span className="text-5xl block mb-4 animate-pulse">🌅</span>
+          <p className="text-white/80 text-lg font-medium">Loading your adventures…</p>
+        </div>
       </div>
     );
   }
@@ -24,15 +27,22 @@ function AppContent() {
     return <LoginPage />;
   }
 
+  function navigate(newPage) {
+    setPage(newPage);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
   return (
     <DataProvider>
       <div className="min-h-screen bg-gradient-to-br from-sky-100 via-blue-50 to-orange-50">
-        <Header currentPage={page} setPage={setPage} />
+        <Header currentPage={page} setPage={navigate} />
         <main className="container mx-auto px-4 py-6">
-          {page === 'dashboard' && <Dashboard />}
-          {page === 'trips' && <TripsPage />}
-          {page === 'analytics' && <AnalyticsPage />}
-          {page === 'photos' && <PhotoAnalyzerPage setPage={setPage} />}
+          <div key={page} className="page-enter">
+            {page === 'dashboard' && <Dashboard />}
+            {page === 'trips' && <TripsPage />}
+            {page === 'analytics' && <AnalyticsPage />}
+            {page === 'photos' && <PhotoAnalyzerPage setPage={navigate} />}
+          </div>
         </main>
       </div>
     </DataProvider>
