@@ -40,6 +40,24 @@ export async function initDatabase() {
   await query('ALTER TABLE trips ADD COLUMN IF NOT EXISTS journey_id INT REFERENCES journeys(id) ON DELETE SET NULL');
   await query('ALTER TABLE trips ADD COLUMN IF NOT EXISTS journey_order INT');
   await query('CREATE INDEX IF NOT EXISTS idx_trips_journey_id ON trips(journey_id)');
+
+  // Keep the core family list available on both new and existing installations.
+  await query(`
+    INSERT INTO travelers (name, relationship)
+    SELECT family.name, family.relationship
+    FROM (VALUES
+      ('Dawson', 'grandchild'),
+      ('Luke', 'grandchild'),
+      ('Charity', 'grandchild'),
+      ('Adalynn', 'grandchild'),
+      ('Elayna', 'grandchild')
+    ) AS family(name, relationship)
+    WHERE NOT EXISTS (
+      SELECT 1
+      FROM travelers existing
+      WHERE LOWER(existing.name) = LOWER(family.name)
+    )
+  `);
 }
 
 export default pool;
