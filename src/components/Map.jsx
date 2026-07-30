@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { formatDateOnly } from '../utils/format';
 
 // Color mapping for trip types
 const tripTypeColors = {
@@ -207,6 +208,5 @@ export default function MapView({ trips = [], onSelectTrip, showRoutes = false, 
 
 function formatDate(dateStr) {
   if (!dateStr) return '';
-  const d = new Date(dateStr);
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  return formatDateOnly(dateStr, { month: 'short', day: 'numeric', year: 'numeric' });
 }

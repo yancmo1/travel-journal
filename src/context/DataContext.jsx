@@ -91,6 +91,14 @@ export function DataProvider({ children }) {
     loadJourneys();
   }
 
+  async function deleteTrips(ids) {
+    const result = await api.deleteTrips(ids);
+    const deletedIds = new Set(result.deletedIds);
+    setTrips(prev => prev.filter(t => !deletedIds.has(t.id)));
+    await Promise.all([loadAnalytics(), loadJourneys()]);
+    return result;
+  }
+
   async function addTraveler(data) {
     const traveler = await api.createTraveler(data);
     setTravelers(prev => [...prev, traveler]);
@@ -132,7 +140,7 @@ export function DataProvider({ children }) {
     <DataContext.Provider value={{
       trips, travelers, journeys, analytics, loading,
       loadTrips, loadTravelers, loadJourneys, loadAnalytics,
-      addTrip, updateTrip, deleteTrip,
+      addTrip, updateTrip, deleteTrip, deleteTrips,
       addJourney, updateJourney, deleteJourney,
       addTraveler, updateTraveler, deleteTraveler
     }}>

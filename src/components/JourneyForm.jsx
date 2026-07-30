@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useData } from '../context/DataContext';
+import { formatDateOnly } from '../utils/format';
 
 const JOURNEY_TYPES = ['Road Trip', 'Cruise', 'Flight', 'Weekend', 'Vacation', 'Other'];
 
@@ -165,7 +166,7 @@ export default function JourneyForm({ journey, onClose }) {
 
 function formatMemoryDate(memory) {
   if (memory.start_date) {
-    return new Date(memory.start_date).toLocaleDateString('en-US', {
+    return formatDateOnly(memory.start_date, {
       month: 'short', day: 'numeric', year: 'numeric'
     });
   }

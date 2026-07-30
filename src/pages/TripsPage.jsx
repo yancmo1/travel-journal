@@ -3,6 +3,7 @@ import { useData } from '../context/DataContext';
 import TripForm from '../components/TripForm';
 import MemoryPhotosModal from '../components/MemoryPhotosModal';
 import api from '../utils/api';
+import { formatDateOnly } from '../utils/format';
 
 const TRIP_TYPES = ['All', 'Road Trip', 'Flight', 'Cruise', 'Day Trip', 'Other'];
 
@@ -337,8 +338,7 @@ function TripCard({ trip, onEdit, onPhotos, onDelete }) {
 
 function formatDate(dateStr) {
   if (!dateStr) return '';
-  const d = new Date(dateStr);
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  return formatDateOnly(dateStr, { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
 function formatTripDate(trip) {

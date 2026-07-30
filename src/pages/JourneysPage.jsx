@@ -3,6 +3,7 @@ import { useData } from '../context/DataContext';
 import JourneyForm from '../components/JourneyForm';
 import MapView from '../components/Map';
 import MemoryPhotosModal from '../components/MemoryPhotosModal';
+import { formatDateOnly } from '../utils/format';
 
 export default function JourneysPage() {
   const { journeys, deleteJourney } = useData();
@@ -153,15 +154,15 @@ function findCover(journey) {
 
 function formatJourneyDate(journey) {
   if (!journey.start_date) return journey.date_label || 'Dates still being remembered';
-  const start = new Date(journey.start_date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+  const start = formatDateOnly(journey.start_date, { month: 'short', year: 'numeric' });
   if (!journey.end_date || journey.end_date === journey.start_date) return start;
-  const end = new Date(journey.end_date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+  const end = formatDateOnly(journey.end_date, { month: 'short', year: 'numeric' });
   return start === end ? start : `${start} — ${end}`;
 }
 
 function formatMemoryDate(memory) {
   if (!memory.start_date) return memory.date_label || 'Date unknown';
-  return new Date(memory.start_date).toLocaleDateString('en-US', {
+  return formatDateOnly(memory.start_date, {
     weekday: 'short', month: 'short', day: 'numeric', year: 'numeric'
   });
 }

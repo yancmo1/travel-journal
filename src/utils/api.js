@@ -106,6 +106,13 @@ class ApiClient {
     return this.request(`/trips/${id}`, { method: 'DELETE' });
   }
 
+  async deleteTrips(ids) {
+    return this.request('/trips/bulk-delete', {
+      method: 'POST',
+      body: JSON.stringify({ ids }),
+    });
+  }
+
   // Journeys
   async getJourneys() {
     return this.request('/journeys');
