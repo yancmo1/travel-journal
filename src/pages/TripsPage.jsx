@@ -1,17 +1,29 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useData } from '../context/DataContext';
 import TripForm from '../components/TripForm';
+import MemoryPhotosModal from '../components/MemoryPhotosModal';
+import api from '../utils/api';
 
 const TRIP_TYPES = ['All', 'Road Trip', 'Flight', 'Cruise', 'Day Trip', 'Other'];
 
 export default function TripsPage() {
-  const { trips, loading, deleteTrip } = useData();
+  const { trips, loading, deleteTrip, loadTrips, loadJourneys } = useData();
   const [filter, setFilter] = useState('All');
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState('date-desc');
   const [showForm, setShowForm] = useState(false);
   const [editTrip, setEditTrip] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [photoTrip, setPhotoTrip] = useState(null);
+  const [backfillCount, setBackfillCount] = useState(0);
+  const [backfilling, setBackfilling] = useState(false);
+  const [backfillMessage, setBackfillMessage] = useState('');
+
+  useEffect(() => {
+    api.getLocationBackfillCandidates()
+      .then(result => setBackfillCount(result.count))
+      .catch(() => {});
+  }, [trips]);
 
   // Filter and sort trips
   let filteredTrips = [...trips];
@@ -48,12 +60,31 @@ export default function TripsPage() {
     setDeleteConfirm(null);
   }
 
+  async function handleLocationBackfill() {
+    setBackfilling(true);
+    setBackfillMessage('');
+    try {
+      const result = await api.backfillPhotoLocations();
+      await Promise.all([loadTrips(), loadJourneys()]);
+      setBackfillCount(result.skipped.length);
+      setBackfillMessage(
+        result.updated.length
+          ? `Found places for ${result.updated.length} ${result.updated.length === 1 ? 'memory' : 'memories'}.`
+          : 'No additional places could be identified.'
+      );
+    } catch (error) {
+      setBackfillMessage(error.message || 'The location lookup could not finish.');
+    } finally {
+      setBackfilling(false);
+    }
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <h1 className="text-2xl font-bold text-ocean-dark flex items-center gap-2">
-          <span>✈️</span> All Trips
+          <span>✦</span> All Places & Memories
           <span className="text-base font-normal text-gray-500">
             ({filteredTrips.length})
           </span>
@@ -62,9 +93,28 @@ export default function TripsPage() {
           onClick={() => { setEditTrip(null); setShowForm(true); }}
           className="px-5 py-2.5 bg-gradient-to-r from-sunset-orange to-coral-pink text-white font-semibold rounded-lg hover:opacity-90 transition-opacity flex items-center gap-2"
         >
-          <span>+</span> Add Trip
+          <span>+</span> Add Memory
         </button>
       </div>
+
+      {(backfillCount > 0 || backfillMessage) && (
+        <section className="location-backfill-card">
+          <div>
+            <span aria-hidden="true">📍</span>
+            <div>
+              <h2>{backfillCount > 0 ? `${backfillCount} photos know where they were taken` : 'Photo locations updated'}</h2>
+              <p>
+                {backfillMessage || 'Their GPS can fill in memories that still say “Unknown Location.” Confirmed places will never be changed.'}
+              </p>
+            </div>
+          </div>
+          {backfillCount > 0 && (
+            <button type="button" onClick={handleLocationBackfill} disabled={backfilling}>
+              {backfilling ? 'Finding places…' : 'Fill missing places'}
+            </button>
+          )}
+        </section>
+      )}
 
       {/* Filters */}
       <div className="bg-white rounded-xl shadow-lg p-4">
@@ -75,7 +125,7 @@ export default function TripsPage() {
               type="text"
               value={search}
               onChange={e => setSearch(e.target.value)}
-              placeholder="Search trips..."
+              placeholder="Search places and memories..."
               className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-ocean-teal focus:border-transparent"
             />
           </div>
@@ -137,6 +187,7 @@ export default function TripsPage() {
               key={trip.id}
               trip={trip}
               onEdit={() => { setEditTrip(trip); setShowForm(true); }}
+              onPhotos={() => setPhotoTrip(trip)}
               onDelete={() => setDeleteConfirm(trip)}
             />
           ))}
@@ -149,6 +200,10 @@ export default function TripsPage() {
           trip={editTrip}
           onClose={() => { setShowForm(false); setEditTrip(null); }}
         />
+      )}
+
+      {photoTrip && (
+        <MemoryPhotosModal memory={photoTrip} onClose={() => setPhotoTrip(null)} />
       )}
 
       {/* Delete Confirmation */}
@@ -180,7 +235,7 @@ export default function TripsPage() {
   );
 }
 
-function TripCard({ trip, onEdit, onDelete }) {
+function TripCard({ trip, onEdit, onPhotos, onDelete }) {
   const typeColors = {
     'Road Trip': 'bg-green-500',
     'Flight': 'bg-blue-500',
@@ -200,8 +255,13 @@ function TripCard({ trip, onEdit, onDelete }) {
             <h3 className="font-semibold text-ocean-dark truncate text-lg">
               {trip.location_name}
             </h3>
+            {trip.city && (
+              <p className="text-sm text-gray-600">
+                {[trip.city, trip.state, trip.country].filter(Boolean).join(', ')}
+              </p>
+            )}
             <p className="text-sm text-gray-500">
-              {formatDate(trip.start_date)}
+              {formatTripDate(trip)}
               {trip.end_date && trip.end_date !== trip.start_date && 
                 ` - ${formatDate(trip.end_date)}`}
             </p>
@@ -216,6 +276,11 @@ function TripCard({ trip, onEdit, onDelete }) {
         )}
 
         <div className="flex flex-wrap gap-2 mb-4">
+          {trip.journey_title && (
+            <span className="text-xs px-2 py-1 bg-amber-50 text-amber-800 rounded">
+              Part of {trip.journey_title}
+            </span>
+          )}
           {trip.country && (
             <span className="text-xs px-2 py-1 bg-gray-100 rounded text-gray-600">
               {trip.country}
@@ -247,6 +312,12 @@ function TripCard({ trip, onEdit, onDelete }) {
         {/* Actions */}
         <div className="flex gap-2 pt-3 border-t border-gray-100">
           <button
+            onClick={onPhotos}
+            className="flex-1 py-2 text-sm text-ocean-teal hover:bg-ocean-teal/5 rounded-lg transition-colors"
+          >
+            Photos{trip.photos?.length ? ` (${trip.photos.length})` : ''}
+          </button>
+          <button
             onClick={onEdit}
             className="flex-1 py-2 text-sm text-ocean-blue hover:bg-ocean-blue/5 rounded-lg transition-colors"
           >
@@ -268,4 +339,8 @@ function formatDate(dateStr) {
   if (!dateStr) return '';
   const d = new Date(dateStr);
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function formatTripDate(trip) {
+  return trip.start_date ? formatDate(trip.start_date) : trip.date_label || 'Date unknown';
 }

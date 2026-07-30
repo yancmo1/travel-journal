@@ -93,8 +93,7 @@ TRIP_RESPONSE=$(curl -s -X POST "${API_URL}/trips" \
     "startDate":"2024-01-15",
     "endDate":"2024-01-17",
     "tripType":"Road Trip",
-    "notes":"Test trip for smoke test",
-    "travelerIds":[1]
+    "notes":"Test trip for smoke test"
   }')
 if echo "$TRIP_RESPONSE" | grep -q "Test City"; then
   echo -e "${GREEN}✓ PASS${NC}"
@@ -130,8 +129,7 @@ UPDATE_RESPONSE=$(curl -s -X PUT "${API_URL}/trips/${TRIP_ID}" \
     "startDate":"2024-01-15",
     "endDate":"2024-01-17",
     "tripType":"Flight",
-    "notes":"Updated test trip",
-    "travelerIds":[1]
+    "notes":"Updated test trip"
   }')
 if echo "$UPDATE_RESPONSE" | grep -q "Updated City"; then
   echo -e "${GREEN}✓ PASS${NC}"
@@ -151,8 +149,92 @@ else
   exit 1
 fi
 
-# Test 10: Get Analytics
-echo -n "🔟 Testing analytics... "
+# Test 10: Create Journey
+echo -n "🔟 Testing create journey... "
+JOURNEY_RESPONSE=$(curl -s -X POST "${API_URL}/journeys" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer ${TOKEN}" \
+  -d "{
+    \"title\":\"Test Family Journey\",
+    \"startDate\":\"2024-01-15\",
+    \"endDate\":\"2024-01-17\",
+    \"journeyType\":\"Road Trip\",
+    \"summary\":\"Journey smoke test\",
+    \"memoryIds\":[${TRIP_ID}]
+  }")
+if echo "$JOURNEY_RESPONSE" | grep -q "Test Family Journey"; then
+  echo -e "${GREEN}✓ PASS${NC}"
+  JOURNEY_ID=$(echo "$JOURNEY_RESPONSE" | grep -o '"id":[0-9]*' | head -1 | cut -d':' -f2)
+else
+  echo -e "${RED}✗ FAIL${NC}"
+  echo "Response: $JOURNEY_RESPONSE"
+  exit 1
+fi
+
+# Test 11: Get Journeys
+echo -n "1️⃣1️⃣  Testing get journeys... "
+JOURNEYS_RESPONSE=$(curl -s "${API_URL}/journeys" \
+  -H "Authorization: Bearer ${TOKEN}")
+if echo "$JOURNEYS_RESPONSE" | grep -q "Test Family Journey"; then
+  echo -e "${GREEN}✓ PASS${NC}"
+else
+  echo -e "${RED}✗ FAIL${NC}"
+  exit 1
+fi
+
+# Test 12: Update Journey
+echo -n "1️⃣2️⃣  Testing update journey... "
+UPDATE_JOURNEY=$(curl -s -X PUT "${API_URL}/journeys/${JOURNEY_ID}" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer ${TOKEN}" \
+  -d "{
+    \"title\":\"Updated Family Journey\",
+    \"startDate\":\"2024-01-15\",
+    \"journeyType\":\"Road Trip\",
+    \"memoryIds\":[${TRIP_ID}]
+  }")
+if echo "$UPDATE_JOURNEY" | grep -q "Updated Family Journey"; then
+  echo -e "${GREEN}✓ PASS${NC}"
+else
+  echo -e "${RED}✗ FAIL${NC}"
+  exit 1
+fi
+
+# Test 13: Delete Journey
+echo -n "1️⃣3️⃣  Testing delete journey... "
+DELETE_JOURNEY=$(curl -s -X DELETE "${API_URL}/journeys/${JOURNEY_ID}" \
+  -H "Authorization: Bearer ${TOKEN}")
+if echo "$DELETE_JOURNEY" | grep -q "success"; then
+  echo -e "${GREEN}✓ PASS${NC}"
+else
+  echo -e "${RED}✗ FAIL${NC}"
+  exit 1
+fi
+
+# Test 14: Check Photo Location Backfill
+echo -n "1️⃣4️⃣  Testing photo location backfill status... "
+BACKFILL_STATUS=$(curl -s "${API_URL}/photos/location-backfill" \
+  -H "Authorization: Bearer ${TOKEN}")
+if echo "$BACKFILL_STATUS" | grep -q '"count"'; then
+  echo -e "${GREEN}✓ PASS${NC}"
+else
+  echo -e "${RED}✗ FAIL${NC}"
+  exit 1
+fi
+
+# Test 15: Run No-op Photo Location Backfill
+echo -n "1️⃣5️⃣  Testing safe photo location backfill... "
+BACKFILL_RESPONSE=$(curl -s -X POST "${API_URL}/photos/location-backfill" \
+  -H "Authorization: Bearer ${TOKEN}")
+if echo "$BACKFILL_RESPONSE" | grep -q '"updated"'; then
+  echo -e "${GREEN}✓ PASS${NC}"
+else
+  echo -e "${RED}✗ FAIL${NC}"
+  exit 1
+fi
+
+# Test 16: Get Analytics
+echo -n "1️⃣6️⃣  Testing analytics... "
 ANALYTICS_RESPONSE=$(curl -s "${API_URL}/analytics" \
   -H "Authorization: Bearer ${TOKEN}")
 if echo "$ANALYTICS_RESPONSE" | grep -q "totalTrips"; then
@@ -162,8 +244,8 @@ else
   exit 1
 fi
 
-# Test 11: Delete Trip
-echo -n "1️⃣1️⃣  Testing delete trip... "
+# Test 17: Delete Trip
+echo -n "1️⃣7️⃣  Testing delete trip... "
 DELETE_RESPONSE=$(curl -s -X DELETE "${API_URL}/trips/${TRIP_ID}" \
   -H "Authorization: Bearer ${TOKEN}")
 if echo "$DELETE_RESPONSE" | grep -q "deleted"; then
@@ -173,8 +255,8 @@ else
   exit 1
 fi
 
-# Test 12: Delete Traveler
-echo -n "1️⃣2️⃣  Testing delete traveler... "
+# Test 18: Delete Traveler
+echo -n "1️⃣8️⃣  Testing delete traveler... "
 DELETE_TRAVELER=$(curl -s -X DELETE "${API_URL}/travelers/${TRAVELER_ID}" \
   -H "Authorization: Bearer ${TOKEN}")
 if echo "$DELETE_TRAVELER" | grep -q "deleted"; then
@@ -189,18 +271,11 @@ echo "=================================="
 echo -e "${GREEN}✅ All smoke tests passed!${NC}"
 echo "=================================="
 echo ""
-echo -e "${YELLOW}📸 Photo Intelligence Test:${NC}"
-echo "To test photo upload and analysis:"
+echo -e "${YELLOW}✨ Memory experience check:${NC}"
+echo "To try the redesigned site:"
 echo "1. Go to http://localhost:3080"
-echo "2. Click 'Photo Intelligence' tab"
-echo "3. Upload photos with GPS data"
-echo "4. Watch backend logs: docker logs -f travel-journal-backend-1"
-echo ""
-echo "Backend logs will show:"
-echo "  [PHOTO ANALYZE] Starting analysis..."
-echo "  [PHOTO ANALYZE] Files: IMG_001.jpg, IMG_002.jpg"
-echo "  [PHOTO ANALYZE] X of Y photos have GPS and date data"
-echo "  [PHOTO ANALYZE] Clustering X valid photos..."
-echo "  [PHOTO ANALYZE] Suggested X trips"
-echo "  [PHOTO ANALYZE] Analysis complete"
+echo "2. Create the first private account"
+echo "3. Swipe the daily memory card or use the arrow buttons"
+echo "4. Open 'Our journeys' to see the grouped stories"
+echo "5. Open 'All places' to add memories and photos"
 echo ""

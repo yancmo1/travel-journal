@@ -2,72 +2,64 @@ import React from 'react';
 import { useAuth } from '../context/AuthContext';
 
 const navItems = [
-  { id: 'dashboard', label: 'Dashboard', icon: '🗺️' },
-  { id: 'trips', label: 'Trips', icon: '✈️' },
-  { id: 'analytics', label: 'Analytics', icon: '📊' },
-  { id: 'photos', label: 'Photo Intelligence', icon: '📸' },
+  { id: 'dashboard', label: 'Memories', icon: '✦' },
+  { id: 'journeys', label: 'Our journeys', icon: '⌁' },
+  { id: 'trips', label: 'All places', icon: '○' },
 ];
 
 export default function Header({ currentPage, setPage }) {
   const { user, logout } = useAuth();
 
   return (
-    <header className="bg-gradient-to-r from-ocean-blue to-ocean-dark shadow-lg">
-      <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between h-16">
-          {/* Logo */}
-          <div className="flex items-center gap-3">
-            <span className="text-3xl">🌅</span>
-            <h1 className="text-xl font-bold text-white">
-              Travel Memory Tracker
-            </h1>
-          </div>
+    <header className="memory-header">
+      <div className="memory-header-inner">
+        <div className="memory-header-row">
+          <button
+            type="button"
+            className="memory-brand"
+            onClick={() => setPage('dashboard')}
+            aria-label="Go to memories"
+          >
+            <span className="memory-brand-mark" aria-hidden="true">W</span>
+            <span>
+              <span className="memory-brand-title">Where We’ve Been</span>
+              <span className="memory-brand-subtitle">our life, one trip at a time</span>
+            </span>
+          </button>
 
-          {/* Navigation */}
-          <nav className="hidden md:flex items-center gap-1">
+          <nav className="memory-nav hidden md:flex" aria-label="Main navigation">
             {navItems.map(item => (
               <button
                 key={item.id}
+                type="button"
                 onClick={() => setPage(item.id)}
-                className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-all ${
-                  currentPage === item.id
-                    ? 'bg-white/20 text-white'
-                    : 'text-white/80 hover:bg-white/10 hover:text-white'
-                }`}
+                className={currentPage === item.id ? 'is-active' : ''}
+                aria-current={currentPage === item.id ? 'page' : undefined}
               >
-                <span>{item.icon}</span>
+                <span aria-hidden="true">{item.icon}</span>
                 <span>{item.label}</span>
               </button>
             ))}
           </nav>
 
-          {/* User Menu */}
-          <div className="flex items-center gap-4">
-            <span className="text-white/80 text-sm hidden sm:block">
-              Welcome, {user?.display_name || user?.username}
-            </span>
-            <button
-              onClick={logout}
-              className="px-4 py-2 bg-sunset-orange hover:bg-coral-pink text-white rounded-lg transition-colors text-sm font-medium"
-            >
-              Logout
+          <div className="memory-user">
+            <span className="hidden sm:block">{user?.display_name || user?.username}</span>
+            <button type="button" onClick={logout} className="memory-signout">
+              Sign out
             </button>
           </div>
         </div>
 
-        {/* Mobile Navigation */}
-        <nav className="md:hidden flex justify-center gap-2 pb-3">
+        <nav className="memory-nav memory-nav-mobile md:hidden" aria-label="Mobile navigation">
           {navItems.map(item => (
             <button
               key={item.id}
+              type="button"
               onClick={() => setPage(item.id)}
-              className={`px-3 py-2 rounded-lg text-sm flex items-center gap-1 ${
-                currentPage === item.id
-                  ? 'bg-white/20 text-white'
-                  : 'text-white/80 hover:bg-white/10'
-              }`}
+              className={currentPage === item.id ? 'is-active' : ''}
+              aria-current={currentPage === item.id ? 'page' : undefined}
             >
-              <span>{item.icon}</span>
+              <span aria-hidden="true">{item.icon}</span>
               <span>{item.label}</span>
             </button>
           ))}

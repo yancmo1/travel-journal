@@ -8,6 +8,7 @@ export function DataProvider({ children }) {
   const { user } = useAuth();
   const [trips, setTrips] = useState([]);
   const [travelers, setTravelers] = useState([]);
+  const [journeys, setJourneys] = useState([]);
   const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(false);
 
@@ -34,6 +35,16 @@ export function DataProvider({ children }) {
     }
   }, [user]);
 
+  const loadJourneys = useCallback(async () => {
+    if (!user) return;
+    try {
+      const data = await api.getJourneys();
+      setJourneys(data);
+    } catch (err) {
+      console.error('Failed to load journeys:', err);
+    }
+  }, [user]);
+
   const loadAnalytics = useCallback(async () => {
     if (!user) return;
     try {
@@ -48,13 +59,15 @@ export function DataProvider({ children }) {
     if (user) {
       loadTrips();
       loadTravelers();
+      loadJourneys();
       loadAnalytics();
     } else {
       setTrips([]);
       setTravelers([]);
+      setJourneys([]);
       setAnalytics(null);
     }
-  }, [user, loadTrips, loadTravelers, loadAnalytics]);
+  }, [user, loadTrips, loadTravelers, loadJourneys, loadAnalytics]);
 
   async function addTrip(tripData) {
     const trip = await api.createTrip(tripData);
@@ -67,6 +80,7 @@ export function DataProvider({ children }) {
     const trip = await api.updateTrip(id, tripData);
     setTrips(prev => prev.map(t => t.id === id ? trip : t));
     loadAnalytics();
+    loadJourneys();
     return trip;
   }
 
@@ -74,6 +88,7 @@ export function DataProvider({ children }) {
     await api.deleteTrip(id);
     setTrips(prev => prev.filter(t => t.id !== id));
     loadAnalytics();
+    loadJourneys();
   }
 
   async function addTraveler(data) {
@@ -93,11 +108,32 @@ export function DataProvider({ children }) {
     setTravelers(prev => prev.filter(t => t.id !== id));
   }
 
+  async function addJourney(data) {
+    const journey = await api.createJourney(data);
+    setJourneys(prev => [journey, ...prev]);
+    await loadTrips();
+    return journey;
+  }
+
+  async function updateJourney(id, data) {
+    const journey = await api.updateJourney(id, data);
+    setJourneys(prev => prev.map(item => item.id === id ? journey : item));
+    await loadTrips();
+    return journey;
+  }
+
+  async function deleteJourney(id) {
+    await api.deleteJourney(id);
+    setJourneys(prev => prev.filter(item => item.id !== id));
+    await loadTrips();
+  }
+
   return (
     <DataContext.Provider value={{
-      trips, travelers, analytics, loading,
-      loadTrips, loadTravelers, loadAnalytics,
+      trips, travelers, journeys, analytics, loading,
+      loadTrips, loadTravelers, loadJourneys, loadAnalytics,
       addTrip, updateTrip, deleteTrip,
+      addJourney, updateJourney, deleteJourney,
       addTraveler, updateTraveler, deleteTraveler
     }}>
       {children}

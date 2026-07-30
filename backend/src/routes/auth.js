@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 import { query } from '../utils/db.js';
 
 const router = Router();
+const jwtExpiresIn = process.env.JWT_EXPIRES_IN || '7d';
 
 // Register new user
 router.post('/register', async (req, res, next) => {
@@ -33,7 +34,7 @@ router.post('/register', async (req, res, next) => {
     const token = jwt.sign(
       { id: user.id, username: user.username },
       process.env.JWT_SECRET,
-      { expiresIn: '7d' }
+      { expiresIn: jwtExpiresIn }
     );
 
     res.json({ user, token });
@@ -72,11 +73,11 @@ router.post('/login', async (req, res, next) => {
     const token = jwt.sign(
       { id: user.id, username: user.username },
       process.env.JWT_SECRET,
-      { expiresIn: '7d' }
+      { expiresIn: jwtExpiresIn }
     );
 
     res.json({
-      user: { id: user.id, username: user.username, displayName: user.display_name },
+      user: { id: user.id, username: user.username, display_name: user.display_name },
       token
     });
   } catch (err) {

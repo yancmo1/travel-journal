@@ -1,0 +1,56 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+project_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+env_file="${ENV_FILE:-${project_dir}/.env.production}"
+compose_file="${project_dir}/docker-compose.production.yml"
+
+if [[ ! -f "${env_file}" ]]; then
+  echo "Missing ${env_file}."
+  exit 1
+fi
+
+set -a
+# shellcheck disable=SC1090
+source "${env_file}"
+set +a
+
+required=(DATA_ROOT POSTGRES_DB POSTGRES_USER RESTIC_REPOSITORY RESTIC_PASSWORD AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY)
+for name in "${required[@]}"; do
+  if [[ -z "${!name:-}" ]] || [[ "${!name}" == replace_* ]]; then
+    echo "Set ${name} in ${env_file}."
+    exit 1
+  fi
+done
+
+if [[ "${DATA_ROOT}" != /* ]]; then
+  echo "DATA_ROOT must be an absolute host path."
+  exit 1
+fi
+
+dump_dir="${DATA_ROOT}/postgres-dumps"
+stamp="$(date -u +%Y-%m-%dT%H%M%SZ)"
+dump_path="${dump_dir}/travel-journal-${stamp}.sql.gz"
+install -d -m 0750 "${dump_dir}"
+
+docker compose --env-file "${env_file}" -f "${compose_file}" exec -T postgres \
+  pg_dump --clean --if-exists --no-owner --no-privileges \
+  --username "${POSTGRES_USER}" "${POSTGRES_DB}" | gzip -9 > "${dump_path}"
+
+find "${dump_dir}" -type f -name '*.sql.gz' -mtime +14 -delete
+
+restic() {
+  docker run --rm \
+    --env-file "${env_file}" \
+    --volume "${DATA_ROOT}:/data:ro" \
+    restic/restic:latest "$@"
+}
+
+if ! restic snapshots --no-lock >/dev/null 2>&1; then
+  restic init
+fi
+
+restic backup /data/photos /data/postgres-dumps --tag travel-journal
+restic forget --keep-daily 7 --keep-weekly 5 --keep-monthly 12 --prune
+
+echo "R2 backup completed at ${stamp}."

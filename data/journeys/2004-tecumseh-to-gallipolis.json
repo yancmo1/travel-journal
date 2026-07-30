@@ -1,0 +1,47 @@
+{
+  "title": "Tecumseh to Gallipolis Road Trip",
+  "journeyType": "Road Trip",
+  "origin": {
+    "city": "Tecumseh",
+    "state": "Oklahoma",
+    "country": "United States"
+  },
+  "destination": {
+    "city": "Gallipolis",
+    "state": "Ohio",
+    "country": "United States"
+  },
+  "startDate": "2004-07-30",
+  "endDate": null,
+  "datePrecision": "partial",
+  "status": "researching",
+  "stops": [
+    {
+      "name": "Gateway Arch",
+      "city": "St. Louis",
+      "state": "Missouri",
+      "country": "United States",
+      "date": "2004-07-30",
+      "confidence": "confirmed",
+      "notes": "Visited the Gateway Arch."
+    },
+    {
+      "name": "Busler's Truck Stop Giant Santa",
+      "city": "Haubstadt",
+      "state": "Indiana",
+      "country": "United States",
+      "date": "2004-07-31",
+      "confidence": "confirmed",
+      "notes": "Photographed at the former Busler Truck Stop just south of the I-64 and US 41 interchange near Evansville, back before the family camera recorded GPS."
+    },
+    {
+      "name": "Gallipolis",
+      "city": "Gallipolis",
+      "state": "Ohio",
+      "country": "United States",
+      "date": null,
+      "confidence": "confirmed",
+      "notes": "Road-trip destination; arrival date still unknown."
+    }
+  ]
+}

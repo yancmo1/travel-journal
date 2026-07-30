@@ -15,10 +15,31 @@ export async function query(text, params) {
 }
 
 export async function initDatabase() {
-  // Tables will be created via schema.sql on container init
-  // This just tests the connection
   const result = await query('SELECT NOW()');
   console.log('Database connected at:', result.rows[0].now);
+
+  // Small, idempotent upgrades for installations created with the original schema.
+  await query('ALTER TABLE trips ADD COLUMN IF NOT EXISTS city VARCHAR(100)');
+  await query('ALTER TABLE trips ADD COLUMN IF NOT EXISTS date_label VARCHAR(100)');
+  await query("ALTER TABLE trips ADD COLUMN IF NOT EXISTS date_precision VARCHAR(20) DEFAULT 'exact'");
+  await query('ALTER TABLE trips ALTER COLUMN start_date DROP NOT NULL');
+  await query(`
+    CREATE TABLE IF NOT EXISTS journeys (
+      id SERIAL PRIMARY KEY,
+      title VARCHAR(255) NOT NULL,
+      start_date DATE,
+      end_date DATE,
+      date_label VARCHAR(100),
+      journey_type VARCHAR(50) DEFAULT 'Other',
+      summary TEXT,
+      created_by INT REFERENCES users(id),
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+  await query('ALTER TABLE trips ADD COLUMN IF NOT EXISTS journey_id INT REFERENCES journeys(id) ON DELETE SET NULL');
+  await query('ALTER TABLE trips ADD COLUMN IF NOT EXISTS journey_order INT');
+  await query('CREATE INDEX IF NOT EXISTS idx_trips_journey_id ON trips(journey_id)');
 }
 
 export default pool;

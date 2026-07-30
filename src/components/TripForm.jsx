@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useData } from '../context/DataContext';
-import { nominatimSearch, reverseGeocode } from '../utils/geocoding';
+import { nominatimSearch, placeAutocomplete } from '../utils/geocoding';
 
 const TRIP_TYPES = ['Road Trip', 'Flight', 'Cruise', 'Day Trip', 'Other'];
 
@@ -9,12 +9,15 @@ export default function TripForm({ trip, onClose }) {
   
   const [form, setForm] = useState({
     locationName: '',
+    city: '',
     latitude: null,
     longitude: null,
     country: '',
     state: '',
     startDate: '',
     endDate: '',
+    dateLabel: '',
+    datePrecision: 'exact',
     tripType: 'Other',
     notes: '',
     travelerIds: [],
@@ -22,21 +25,26 @@ export default function TripForm({ trip, onClose }) {
   
   const [searchResults, setSearchResults] = useState([]);
   const [searching, setSearching] = useState(false);
+  const [activeSearchField, setActiveSearchField] = useState(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [showNewTraveler, setShowNewTraveler] = useState(false);
   const [newTraveler, setNewTraveler] = useState({ name: '', relationship: 'child' });
+  const skipNextAutocomplete = useRef(false);
 
   useEffect(() => {
     if (trip) {
       setForm({
         locationName: trip.location_name || '',
-        latitude: trip.latitude,
-        longitude: trip.longitude,
+        city: trip.city || '',
+        latitude: trip.latitude == null ? null : Number(trip.latitude),
+        longitude: trip.longitude == null ? null : Number(trip.longitude),
         country: trip.country || '',
         state: trip.state || '',
         startDate: trip.start_date ? trip.start_date.split('T')[0] : '',
         endDate: trip.end_date ? trip.end_date.split('T')[0] : '',
+        dateLabel: trip.date_label || '',
+        datePrecision: trip.date_precision || (trip.start_date ? 'exact' : 'unknown'),
         tripType: trip.trip_type || 'Other',
         notes: trip.notes || '',
         travelerIds: trip.travelers?.map(t => t.id) || [],
@@ -44,9 +52,57 @@ export default function TripForm({ trip, onClose }) {
     }
   }, [trip]);
 
+  useEffect(() => {
+    if (skipNextAutocomplete.current) {
+      skipNextAutocomplete.current = false;
+      return;
+    }
+
+    if (!activeSearchField) {
+      setSearchResults([]);
+      return;
+    }
+
+    const queryParts = activeSearchField === 'city'
+      ? [form.city, form.state, form.country]
+      : activeSearchField === 'state'
+        ? [form.state, form.country]
+        : [form.locationName];
+    const query = queryParts.filter(part => part?.trim()).join(', ').trim();
+
+    if (query.length < 3) {
+      setSearchResults([]);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setSearching(true);
+      try {
+        const results = await placeAutocomplete(query);
+        setSearchResults(results);
+      } catch {
+        setSearchResults([]);
+      } finally {
+        setSearching(false);
+      }
+    }, 450);
+
+    return () => clearTimeout(timer);
+  }, [activeSearchField, form.locationName, form.city, form.state, form.country]);
+
   function handleChange(e) {
     const { name, value } = e.target;
-    setForm(prev => ({ ...prev, [name]: value }));
+    const isSearchField = ['locationName', 'city', 'state'].includes(name);
+
+    if (isSearchField) {
+      setActiveSearchField(name);
+    }
+
+    setForm(prev => ({
+      ...prev,
+      [name]: value,
+      ...(isSearchField ? { latitude: null, longitude: null } : {}),
+    }));
   }
 
   function handleTravelerToggle(id) {
@@ -60,7 +116,8 @@ export default function TripForm({ trip, onClose }) {
 
   async function handleSearch() {
     if (!form.locationName.trim()) return;
-    
+
+    setActiveSearchField('locationName');
     setSearching(true);
     setError('');
     
@@ -74,28 +131,89 @@ export default function TripForm({ trip, onClose }) {
     }
   }
 
-  function selectLocation(result) {
-    // Parse address components
+  function getLocationDetails(result) {
     const parts = result.display_name.split(', ');
-    let country = '';
-    let state = '';
-    
-    if (parts.length > 0) {
-      country = parts[parts.length - 1];
-    }
-    if (parts.length > 2) {
-      state = parts[parts.length - 2];
-    }
+    const address = result.address || {};
+    const country = address.country || parts[parts.length - 1] || '';
+    const state = address.state || address.region || '';
+    const city =
+      address.city ||
+      address.town ||
+      address.village ||
+      address.municipality ||
+      address.county ||
+      parts[0] ||
+      '';
+    const placeName =
+      address.tourism ||
+      address.attraction ||
+      address.amenity ||
+      address.building ||
+      parts[0] ||
+      city;
 
-    setForm(prev => ({
-      ...prev,
-      locationName: parts.slice(0, 2).join(', '),
-      latitude: result.lat,
-      longitude: result.lng,
-      country,
-      state,
-    }));
+    return { city, state, country, placeName };
+  }
+
+  function selectLocation(result, field = activeSearchField) {
+    const { city, state, country, placeName } = getLocationDetails(result);
+
+    skipNextAutocomplete.current = true;
+    setForm(prev => {
+      if (field === 'state') {
+        return {
+          ...prev,
+          state,
+          country,
+          latitude: result.lat,
+          longitude: result.lng,
+        };
+      }
+
+      if (field === 'city') {
+        return {
+          ...prev,
+          locationName: prev.locationName || city,
+          city,
+          state,
+          country,
+          latitude: result.lat,
+          longitude: result.lng,
+        };
+      }
+
+      return {
+        ...prev,
+        locationName: placeName,
+        city,
+        latitude: result.lat,
+        longitude: result.lng,
+        country,
+        state,
+      };
+    });
     setSearchResults([]);
+    setActiveSearchField(null);
+  }
+
+  function renderSearchResults(field, label) {
+    if (activeSearchField !== field || searchResults.length === 0) return null;
+
+    return (
+      <div className="mt-2 border rounded-lg overflow-hidden shadow-lg bg-white relative z-10" role="listbox" aria-label={label}>
+        {searchResults.map((result, i) => (
+          <button
+            key={`${result.lat}-${result.lng}-${i}`}
+            type="button"
+            role="option"
+            onClick={() => selectLocation(result, field)}
+            className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 border-b last:border-b-0"
+          >
+            {result.display_name}
+          </button>
+        ))}
+      </div>
+    );
   }
 
   async function handleAddTraveler() {
@@ -122,22 +240,49 @@ export default function TripForm({ trip, onClose }) {
       setError('Location is required');
       return;
     }
-    if (!form.startDate) {
-      setError('Start date is required');
+    if (form.datePrecision === 'exact' && !form.startDate) {
+      setError('Choose a date, or change date knowledge to year-only or unknown');
+      return;
+    }
+    if (form.datePrecision === 'year' && !form.dateLabel.trim()) {
+      setError('Enter the year or approximate date');
       return;
     }
 
     setSaving(true);
 
     try {
+      let latitude = form.latitude;
+      let longitude = form.longitude;
+
+      // Saving a city should be enough to place the memory on the map.
+      if (!latitude || !longitude) {
+        const mapQuery = [form.locationName, form.city, form.state, form.country]
+          .filter(Boolean)
+          .join(', ');
+
+        try {
+          const mapResults = await nominatimSearch(mapQuery);
+          if (mapResults[0]) {
+            latitude = mapResults[0].lat;
+            longitude = mapResults[0].lng;
+          }
+        } catch {
+          // The memory can still be saved and mapped later.
+        }
+      }
+
       const data = {
         locationName: form.locationName,
-        latitude: form.latitude,
-        longitude: form.longitude,
+        city: form.city,
+        latitude,
+        longitude,
         country: form.country,
         state: form.state,
-        startDate: form.startDate,
-        endDate: form.endDate || null,
+        startDate: form.datePrecision === 'exact' ? form.startDate : null,
+        endDate: form.datePrecision === 'exact' ? form.endDate || null : null,
+        dateLabel: form.datePrecision === 'exact' ? null : form.dateLabel,
+        datePrecision: form.datePrecision,
         tripType: form.tripType,
         notes: form.notes,
         travelerIds: form.travelerIds,
@@ -164,7 +309,7 @@ export default function TripForm({ trip, onClose }) {
         <div className="p-6 bg-gradient-to-r from-ocean-blue to-ocean-dark rounded-t-xl">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-bold text-white">
-              {trip ? 'Edit Trip' : 'Add New Trip'}
+              {trip ? 'Edit Memory' : 'Add a Memory'}
             </h2>
             <button
               onClick={onClose}
@@ -180,7 +325,7 @@ export default function TripForm({ trip, onClose }) {
           {/* Location Search */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Location *
+              Find a city or place *
             </label>
             <div className="flex gap-2">
               <input
@@ -188,7 +333,10 @@ export default function TripForm({ trip, onClose }) {
                 name="locationName"
                 value={form.locationName}
                 onChange={handleChange}
-                placeholder="City, State or Country"
+                placeholder="Start typing St. Louis or Gateway Arch"
+                autoComplete="off"
+                aria-autocomplete="list"
+                aria-expanded={activeSearchField === 'locationName' && searchResults.length > 0}
                 className="flex-1 px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-ocean-teal focus:border-transparent"
               />
               <button
@@ -202,33 +350,79 @@ export default function TripForm({ trip, onClose }) {
             </div>
             
             {/* Search Results */}
-            {searchResults.length > 0 && (
-              <div className="mt-2 border rounded-lg overflow-hidden">
-                {searchResults.map((result, i) => (
-                  <button
-                    key={i}
-                    type="button"
-                    onClick={() => selectLocation(result)}
-                    className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 border-b last:border-b-0"
-                  >
-                    {result.display_name}
-                  </button>
-                ))}
-              </div>
-            )}
+            {renderSearchResults('locationName', 'Location suggestions')}
+            <p className="mt-1 text-[10px] text-gray-400">City suggestions use Open-Meteo and GeoNames. Use 🔍 for a landmark.</p>
 
-            {form.latitude && form.longitude && (
+            {Number.isFinite(Number(form.latitude)) && Number.isFinite(Number(form.longitude)) && (
               <p className="mt-1 text-xs text-gray-500">
-                📍 {form.latitude.toFixed(4)}, {form.longitude.toFixed(4)}
+                📍 {Number(form.latitude).toFixed(4)}, {Number(form.longitude).toFixed(4)}
               </p>
             )}
           </div>
 
-          {/* Dates */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
+              <input
+                type="text"
+                name="city"
+                value={form.city}
+                onChange={handleChange}
+                placeholder="St. Louis"
+                autoComplete="off"
+                aria-autocomplete="list"
+                aria-expanded={activeSearchField === 'city' && searchResults.length > 0}
+                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-ocean-teal"
+              />
+              {renderSearchResults('city', 'City suggestions')}
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">State / region</label>
+              <input
+                type="text"
+                name="state"
+                value={form.state}
+                onChange={handleChange}
+                placeholder="Missouri"
+                autoComplete="off"
+                aria-autocomplete="list"
+                aria-expanded={activeSearchField === 'state' && searchResults.length > 0}
+                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-ocean-teal"
+              />
+              {renderSearchResults('state', 'State or region suggestions')}
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Country</label>
+              <input
+                type="text"
+                name="country"
+                value={form.country}
+                onChange={handleChange}
+                placeholder="United States"
+                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-ocean-teal"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">What do you know about the date?</label>
+            <select
+              name="datePrecision"
+              value={form.datePrecision}
+              onChange={handleChange}
+              className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-ocean-teal"
+            >
+              <option value="exact">I know the date</option>
+              <option value="year">I know the year or an approximate date</option>
+              <option value="unknown">I don’t know yet</option>
+            </select>
+          </div>
+
+          {form.datePrecision === 'exact' && (
+            <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Start Date *
+                Date *
               </label>
               <input
                 type="date"
@@ -250,7 +444,24 @@ export default function TripForm({ trip, onClose }) {
                 className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-ocean-teal"
               />
             </div>
-          </div>
+            </div>
+          )}
+
+          {form.datePrecision !== 'exact' && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {form.datePrecision === 'year' ? 'Year or approximate date *' : 'Date note (optional)'}
+              </label>
+              <input
+                type="text"
+                name="dateLabel"
+                value={form.dateLabel}
+                onChange={handleChange}
+                placeholder={form.datePrecision === 'year' ? '2004 or around 1999' : 'We’ll fill this in later'}
+                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-ocean-teal"
+              />
+            </div>
+          )}
 
           {/* Trip Type */}
           <div>
@@ -372,7 +583,7 @@ export default function TripForm({ trip, onClose }) {
               disabled={saving}
               className="flex-1 py-3 bg-gradient-to-r from-sunset-orange to-coral-pink text-white font-semibold rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
             >
-              {saving ? 'Saving...' : (trip ? 'Update Trip' : 'Add Trip')}
+              {saving ? 'Saving...' : (trip ? 'Save Changes' : 'Save Memory')}
             </button>
           </div>
         </form>

@@ -11,7 +11,7 @@ const tripTypeColors = {
   'Other': '#6B7280', // gray
 };
 
-export default function MapView({ trips = [], onSelectTrip, showRoutes = false }) {
+export default function MapView({ trips = [], onSelectTrip, showRoutes = false, compact = false }) {
   const mapRef = useRef(null);
   const mapContainer = useRef(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -95,7 +95,9 @@ export default function MapView({ trips = [], onSelectTrip, showRoutes = false }
       .sort((a, b) => new Date(a.start_date) - new Date(b.start_date));
 
     // Check if trips have actually changed
-    const newTripIds = tripsWithCoords.map(t => t.id).join(',');
+    const newTripIds = tripsWithCoords
+      .map(t => `${t.id}:${t.latitude}:${t.longitude}:${t.location_name}:${t.start_date || t.date_label || ''}`)
+      .join(',');
     const showRoutesState = showRoutes ? 'routes' : 'no-routes';
     const currentState = `${newTripIds}:${showRoutesState}`;
     
@@ -131,7 +133,7 @@ export default function MapView({ trips = [], onSelectTrip, showRoutes = false }
 
       const marker = L.marker([trip.latitude, trip.longitude], { icon });
       
-      const dateStr = formatDate(trip.start_date);
+      const dateStr = trip.start_date ? formatDate(trip.start_date) : trip.date_label || 'Date unknown';
       const endStr = trip.end_date && trip.end_date !== trip.start_date 
         ? ` - ${formatDate(trip.end_date)}` 
         : '';
@@ -174,13 +176,12 @@ export default function MapView({ trips = [], onSelectTrip, showRoutes = false }
     map._tripMarkers = markers;
     map._tripRoutes = routes;
 
-    // Fit bounds only on initial load or when trips change (not on every zoom)
-    if (tripsWithCoords.length > 0 && !map._hasFitInitialBounds) {
+    // Keep newly added or newly geocoded memories visible.
+    if (tripsWithCoords.length > 0) {
       const bounds = L.latLngBounds(tripsWithCoords.map(t => [t.latitude, t.longitude]));
       // Include home in bounds
       bounds.extend([35.4676, -97.5164]);
       map.fitBounds(bounds, { padding: [50, 50], maxZoom: 8 });
-      map._hasFitInitialBounds = true;
     }
   }, [trips, showRoutes]);
 
@@ -198,7 +199,7 @@ export default function MapView({ trips = [], onSelectTrip, showRoutes = false }
       <div
         ref={mapContainer}
         className="w-full rounded-b-xl"
-        style={{ height: isFullscreen ? '100vh' : '500px' }}
+        style={{ height: isFullscreen ? '100vh' : compact ? '360px' : '500px' }}
       />
     </div>
   );

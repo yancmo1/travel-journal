@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
 import { Upload, X, Image as ImageIcon, CheckCircle, AlertCircle } from 'lucide-react';
+import api from '../utils/api';
 
 export default function PhotoUploader({ tripId, onUploadComplete, showAnalyzer = false, customUploadHandler }) {
   const [isDragging, setIsDragging] = useState(false);
@@ -96,25 +97,8 @@ export default function PhotoUploader({ tripId, onUploadComplete, showAnalyzer =
       return;
     }
 
-    const formData = new FormData();
-    files.forEach(file => {
-      formData.append('photos', file);
-    });
-
     try {
-      const response = await fetch(`/api/photos/${tripId}`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: formData
-      });
-
-      if (!response.ok) {
-        throw new Error('Upload failed');
-      }
-
-      const result = await response.json();
+      const result = await api.uploadPhotos(tripId, files);
       setUploadResults(result);
       setProgress(100);
 
@@ -234,9 +218,9 @@ export default function PhotoUploader({ tripId, onUploadComplete, showAnalyzer =
                    flex items-center justify-center gap-2"
         >
           <Upload className="h-5 w-5" />
-          {customUploadHandler 
+          {customUploadHandler
             ? `Analyze ${files.length} Photo${files.length > 1 ? 's' : ''}`
-            : `Upload ${files.length} Photo${files.length > 1 ? 's' : ''}`
+            : `Save ${files.length} Photo${files.length > 1 ? 's' : ''}`
           }
         </button>
       )}
@@ -245,7 +229,7 @@ export default function PhotoUploader({ tripId, onUploadComplete, showAnalyzer =
       {uploading && (
         <div className="space-y-2">
           <div className="flex items-center justify-between text-sm text-gray-600">
-            <span>{customUploadHandler ? 'Analyzing...' : 'Uploading...'}</span>
+            <span>{customUploadHandler ? 'Analyzing...' : 'Saving smaller copies...'}</span>
             <span>{progress}%</span>
           </div>
           <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
