@@ -15,8 +15,8 @@ const storage = multer.diskStorage({
     try {
       let uploadDir;
 
-      // For analysis endpoint, use temp directory
-      if (req.path.includes('/analyze')) {
+      // Metadata inspection should never leave a second permanent copy behind.
+      if (req.path.includes('/analyze') || req.path.includes('/metadata-suggestions')) {
         uploadDir = path.join(storagePath, 'temp');
       } else {
         const tripId = req.params.tripId || 'temp';

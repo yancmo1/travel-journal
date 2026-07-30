@@ -170,6 +170,16 @@ class ApiClient {
     });
   }
 
+  async getPhotoMetadataSuggestions(files) {
+    const formData = new FormData();
+    files.forEach(file => formData.append('photos', file));
+
+    return this.request('/photos/metadata-suggestions', {
+      method: 'POST',
+      body: formData,
+    });
+  }
+
   async getPhotos(tripId) {
     return this.request(`/photos/${tripId}`);
   }

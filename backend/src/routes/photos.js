@@ -6,7 +6,7 @@ import { upload } from '../middleware/upload.js';
 import { extractExifData, hasGPSData } from '../utils/exifReader.js';
 import { processImage, deleteProcessedImages } from '../utils/imageProcessor.js';
 import { smartCluster } from '../utils/photoClustering.js';
-import { reverseGeocode } from '../utils/geocoding.js';
+import { reverseGeocode, areCoordinatesClose } from '../utils/geocoding.js';
 import { v4 as uuidv4 } from 'uuid';
 import { backfillPhotoLocations, getLocationBackfillCandidates } from '../services/locationBackfill.js';
 
@@ -71,6 +71,68 @@ router.post('/location-backfill', async (req, res, next) => {
     res.json(await backfillPhotoLocations());
   } catch (err) {
     next(err);
+  }
+});
+
+// Inspect selected photos before a memory is saved and suggest dates/place.
+// Multer stores these copies in temp; they are always removed after inspection.
+router.post('/metadata-suggestions', upload.array('photos', 50), async (req, res, next) => {
+  const files = req.files || [];
+
+  try {
+    if (files.length === 0) {
+      return res.status(400).json({ error: 'No photos selected' });
+    }
+
+    const inspected = [];
+    for (const file of files) {
+      const metadata = await extractExifData(file.path);
+      inspected.push({
+        filename: file.originalname,
+        dateTaken: metadata?.dateTaken || null,
+        latitude: metadata?.latitude ?? null,
+        longitude: metadata?.longitude ?? null,
+        hasGPS: hasGPSData(metadata),
+      });
+    }
+
+    const dates = inspected
+      .map(photo => photo.dateTaken?.slice(0, 10))
+      .filter(Boolean)
+      .sort();
+    const gpsPhotos = inspected.filter(photo => photo.hasGPS);
+    const primaryGps = gpsPhotos[0] || null;
+    let location = null;
+
+    if (primaryGps) {
+      location = await reverseGeocode(primaryGps.latitude, primaryGps.longitude);
+    }
+
+    const multipleLocations = primaryGps
+      ? gpsPhotos.some(photo => !areCoordinatesClose(
+          primaryGps.latitude,
+          primaryGps.longitude,
+          photo.latitude,
+          photo.longitude,
+          25
+        ))
+      : false;
+
+    res.json({
+      totalPhotos: inspected.length,
+      photosWithDate: dates.length,
+      photosWithGPS: gpsPhotos.length,
+      startDate: dates[0] || null,
+      endDate: dates.length > 1 ? dates[dates.length - 1] : null,
+      latitude: primaryGps?.latitude ?? null,
+      longitude: primaryGps?.longitude ?? null,
+      location,
+      multipleLocations,
+    });
+  } catch (err) {
+    next(err);
+  } finally {
+    await Promise.allSettled(files.map(file => fs.unlink(file.path)));
   }
 });
 

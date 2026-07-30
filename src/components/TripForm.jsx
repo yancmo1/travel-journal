@@ -39,8 +39,12 @@ export default function TripForm({ trip, onClose }) {
   const [showNewTraveler, setShowNewTraveler] = useState(false);
   const [newTraveler, setNewTraveler] = useState({ name: '', relationship: 'child' });
   const [photoFiles, setPhotoFiles] = useState([]);
+  const [photoMetadata, setPhotoMetadata] = useState(null);
+  const [checkingPhotoMetadata, setCheckingPhotoMetadata] = useState(false);
+  const [photoMetadataError, setPhotoMetadataError] = useState('');
   const [savedTripId, setSavedTripId] = useState(null);
   const skipNextAutocomplete = useRef(false);
+  const metadataRequestId = useRef(0);
 
   useEffect(() => {
     if (trip) {
@@ -240,6 +244,67 @@ export default function TripForm({ trip, onClose }) {
     } catch (err) {
       setError('Failed to add traveler');
     }
+  }
+
+  async function handlePhotoSelection(event) {
+    const files = Array.from(event.target.files || []);
+    const requestId = ++metadataRequestId.current;
+
+    setPhotoFiles(files);
+    setPhotoMetadata(null);
+    setPhotoMetadataError('');
+
+    if (files.length === 0) return;
+
+    setCheckingPhotoMetadata(true);
+    try {
+      const suggestions = await api.getPhotoMetadataSuggestions(files);
+      if (requestId === metadataRequestId.current) {
+        setPhotoMetadata(suggestions);
+      }
+    } catch (err) {
+      if (requestId === metadataRequestId.current) {
+        setPhotoMetadataError(err.message || 'Photo details could not be checked.');
+      }
+    } finally {
+      if (requestId === metadataRequestId.current) {
+        setCheckingPhotoMetadata(false);
+      }
+    }
+  }
+
+  function applyPhotoDates() {
+    if (!photoMetadata?.startDate) return;
+
+    setForm(prev => ({
+      ...prev,
+      datePrecision: 'exact',
+      startDate: photoMetadata.startDate,
+      endDate: photoMetadata.endDate || '',
+      dateLabel: '',
+    }));
+  }
+
+  function applyPhotoPlace() {
+    if (photoMetadata?.latitude == null || photoMetadata?.longitude == null) return;
+
+    const location = photoMetadata.location;
+    setForm(prev => ({
+      ...prev,
+      locationName: location?.locationName || prev.locationName || 'Photo location',
+      city: location?.city || location?.locationName || prev.city,
+      state: location?.state || prev.state,
+      country: location?.country || prev.country,
+      latitude: photoMetadata.latitude,
+      longitude: photoMetadata.longitude,
+    }));
+    setActiveSearchField(null);
+    setSearchResults([]);
+  }
+
+  function applyAllPhotoMetadata() {
+    applyPhotoDates();
+    applyPhotoPlace();
   }
 
   async function handleSubmit(e) {
@@ -580,7 +645,7 @@ export default function TripForm({ trip, onClose }) {
               type="file"
               multiple
               accept="image/*,.heic,.heif"
-              onChange={event => setPhotoFiles(Array.from(event.target.files || []))}
+              onChange={handlePhotoSelection}
               className="block w-full text-sm text-gray-600 file:mr-3 file:rounded-lg file:border-0 file:bg-ocean-blue/10 file:px-4 file:py-2 file:font-medium file:text-ocean-blue hover:file:bg-ocean-blue/20"
             />
             <p className="mt-1 text-xs text-gray-500">
@@ -588,6 +653,87 @@ export default function TripForm({ trip, onClose }) {
                 ? `${photoFiles.length} photo${photoFiles.length === 1 ? '' : 's'} will upload when you save this memory.`
                 : 'You can select several photos now or add more later.'}
             </p>
+
+            {checkingPhotoMetadata && (
+              <div className="mt-3 rounded-lg border border-ocean-blue/20 bg-ocean-blue/5 p-3 text-sm text-ocean-dark">
+                Checking photo dates and locations…
+              </div>
+            )}
+
+            {photoMetadata && !checkingPhotoMetadata && (
+              <div className="mt-3 rounded-lg border border-ocean-teal/30 bg-teal-50 p-3 text-sm">
+                {(photoMetadata.photosWithDate > 0 || photoMetadata.photosWithGPS > 0) ? (
+                  <>
+                    <p className="font-semibold text-gray-800">Photo details found</p>
+                    <div className="mt-1 space-y-1 text-gray-600">
+                      {photoMetadata.photosWithDate > 0 ? (
+                        <p>
+                          📅 {photoMetadata.startDate}
+                          {photoMetadata.endDate && photoMetadata.endDate !== photoMetadata.startDate
+                            ? ` through ${photoMetadata.endDate}`
+                            : ''}
+                          {' '}({photoMetadata.photosWithDate} of {photoMetadata.totalPhotos})
+                        </p>
+                      ) : (
+                        <p>📅 No original dates were found.</p>
+                      )}
+                      {photoMetadata.photosWithGPS > 0 ? (
+                        <p>
+                          📍 {photoMetadata.location?.displayName || 'GPS coordinates found'}
+                          {' '}({photoMetadata.photosWithGPS} of {photoMetadata.totalPhotos})
+                        </p>
+                      ) : (
+                        <p>📍 No GPS location was found.</p>
+                      )}
+                      {photoMetadata.multipleLocations && (
+                        <p className="text-amber-700">
+                          These photos cover more than one area. The suggested place comes from the first photo with GPS.
+                        </p>
+                      )}
+                    </div>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {photoMetadata.photosWithDate > 0 && (
+                        <button
+                          type="button"
+                          onClick={applyPhotoDates}
+                          className="rounded-md bg-white px-3 py-1.5 font-medium text-ocean-blue shadow-sm ring-1 ring-gray-200 hover:bg-gray-50"
+                        >
+                          Apply dates
+                        </button>
+                      )}
+                      {photoMetadata.photosWithGPS > 0 && (
+                        <button
+                          type="button"
+                          onClick={applyPhotoPlace}
+                          className="rounded-md bg-white px-3 py-1.5 font-medium text-ocean-blue shadow-sm ring-1 ring-gray-200 hover:bg-gray-50"
+                        >
+                          Apply place
+                        </button>
+                      )}
+                      {photoMetadata.photosWithDate > 0 && photoMetadata.photosWithGPS > 0 && (
+                        <button
+                          type="button"
+                          onClick={applyAllPhotoMetadata}
+                          className="rounded-md bg-ocean-teal px-3 py-1.5 font-medium text-white hover:bg-teal-600"
+                        >
+                          Apply both
+                        </button>
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <p className="text-gray-600">
+                    These photos do not contain an original date or GPS location. They can still be uploaded normally.
+                  </p>
+                )}
+              </div>
+            )}
+
+            {photoMetadataError && (
+              <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+                We couldn’t check these photo details, but they can still be uploaded when you save.
+              </div>
+            )}
           </div>
 
           {/* Notes */}
@@ -623,10 +769,14 @@ export default function TripForm({ trip, onClose }) {
             </button>
             <button
               type="submit"
-              disabled={saving}
+              disabled={saving || checkingPhotoMetadata}
               className="flex-1 py-3 bg-gradient-to-r from-sunset-orange to-coral-pink text-white font-semibold rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
             >
-              {saving ? 'Saving...' : (trip ? 'Save Changes' : 'Save Memory')}
+              {saving
+                ? 'Saving...'
+                : checkingPhotoMetadata
+                  ? 'Checking photos...'
+                  : (trip ? 'Save Changes' : 'Save Memory')}
             </button>
           </div>
         </form>
