@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE TABLE IF NOT EXISTS travelers (
   id SERIAL PRIMARY KEY,
   name VARCHAR(100) NOT NULL,
-  relationship VARCHAR(50) DEFAULT 'other', -- 'husband', 'wife', 'child', 'other'
+  relationship VARCHAR(50) DEFAULT 'other', -- 'husband', 'wife', 'child', 'grandchild', 'other'
   is_active BOOLEAN DEFAULT true,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

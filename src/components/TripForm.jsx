@@ -1,11 +1,19 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useData } from '../context/DataContext';
 import { nominatimSearch, placeAutocomplete } from '../utils/geocoding';
+import api from '../utils/api';
 
 const TRIP_TYPES = ['Road Trip', 'Flight', 'Cruise', 'Day Trip', 'Other'];
+const RELATIONSHIPS = [
+  ['husband', 'Husband'],
+  ['wife', 'Wife'],
+  ['child', 'Child'],
+  ['grandchild', 'Grandkid'],
+  ['other', 'Other'],
+];
 
 export default function TripForm({ trip, onClose }) {
-  const { travelers, addTrip, updateTrip, addTraveler } = useData();
+  const { travelers, addTrip, updateTrip, addTraveler, loadTrips } = useData();
   
   const [form, setForm] = useState({
     locationName: '',
@@ -30,6 +38,8 @@ export default function TripForm({ trip, onClose }) {
   const [error, setError] = useState('');
   const [showNewTraveler, setShowNewTraveler] = useState(false);
   const [newTraveler, setNewTraveler] = useState({ name: '', relationship: 'child' });
+  const [photoFiles, setPhotoFiles] = useState([]);
+  const [savedTripId, setSavedTripId] = useState(null);
   const skipNextAutocomplete = useRef(false);
 
   useEffect(() => {
@@ -250,6 +260,7 @@ export default function TripForm({ trip, onClose }) {
     }
 
     setSaving(true);
+    let memorySaved = false;
 
     try {
       let latitude = form.latitude;
@@ -288,15 +299,29 @@ export default function TripForm({ trip, onClose }) {
         travelerIds: form.travelerIds,
       };
 
-      if (trip) {
-        await updateTrip(trip.id, data);
+      let savedTrip;
+      const existingTripId = trip?.id || savedTripId;
+
+      if (existingTripId) {
+        savedTrip = await updateTrip(existingTripId, data);
       } else {
-        await addTrip(data);
+        savedTrip = await addTrip(data);
+        setSavedTripId(savedTrip.id);
+      }
+      memorySaved = true;
+
+      if (photoFiles.length > 0) {
+        const uploadResult = await api.uploadPhotos(savedTrip.id, photoFiles);
+        if (!uploadResult.count) {
+          throw new Error('The memory was saved, but none of the selected photos could be processed.');
+        }
+        await loadTrips();
       }
       
       onClose();
     } catch (err) {
-      setError(err.message || 'Failed to save trip');
+      const prefix = memorySaved || savedTripId ? 'The memory was saved. ' : '';
+      setError(`${prefix}${err.message || 'Failed to save memory'}`);
     } finally {
       setSaving(false);
     }
@@ -524,10 +549,9 @@ export default function TripForm({ trip, onClose }) {
                   onChange={e => setNewTraveler(prev => ({ ...prev, relationship: e.target.value }))}
                   className="px-3 py-2 border rounded text-sm"
                 >
-                  <option value="husband">Husband</option>
-                  <option value="wife">Wife</option>
-                  <option value="child">Child</option>
-                  <option value="other">Other</option>
+                  {RELATIONSHIPS.map(([value, label]) => (
+                    <option key={value} value={value}>{label}</option>
+                  ))}
                 </select>
                 <button
                   type="button"
@@ -545,6 +569,25 @@ export default function TripForm({ trip, onClose }) {
                 </button>
               </div>
             )}
+          </div>
+
+          {/* Photos */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Photos
+            </label>
+            <input
+              type="file"
+              multiple
+              accept="image/*,.heic,.heif"
+              onChange={event => setPhotoFiles(Array.from(event.target.files || []))}
+              className="block w-full text-sm text-gray-600 file:mr-3 file:rounded-lg file:border-0 file:bg-ocean-blue/10 file:px-4 file:py-2 file:font-medium file:text-ocean-blue hover:file:bg-ocean-blue/20"
+            />
+            <p className="mt-1 text-xs text-gray-500">
+              {photoFiles.length > 0
+                ? `${photoFiles.length} photo${photoFiles.length === 1 ? '' : 's'} will upload when you save this memory.`
+                : 'You can select several photos now or add more later.'}
+            </p>
           </div>
 
           {/* Notes */}

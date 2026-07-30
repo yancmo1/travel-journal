@@ -3,7 +3,12 @@
 -- Default travelers (the couple)
 INSERT INTO travelers (name, relationship) VALUES 
   ('You', 'husband'),
-  ('Wife', 'wife')
+  ('Wife', 'wife'),
+  ('Dawson', 'grandchild'),
+  ('Luke', 'grandchild'),
+  ('Charity', 'grandchild'),
+  ('Adalynn', 'grandchild'),
+  ('Elayna', 'grandchild')
 ON CONFLICT DO NOTHING;
 
 -- Sample trips from the PRD
