@@ -13,7 +13,7 @@ a private Cloudflare R2 bucket.
 | `backend` | Express API and image processing | Private Docker network |
 | `postgres` | PostgreSQL 15 | Private Docker network |
 | shared `cloudflared` | Existing outbound tunnel connector | Outbound connections only |
-| shared `watchtower` | Existing automatic GHCR updater | None |
+| `watchtower` | Travel Journal-only automatic GHCR updater | None |
 
 The frontend is also bound to `127.0.0.1:3080` for server-side health checks.
 There is no reason to open ports 80, 443, 3080, 4000, or 5432 in the router or
@@ -146,9 +146,11 @@ Ubuntu disk; R2 is an encrypted off-site backup rather than live photo serving.
 
 ## Deploys and rollback
 
-Every push to `main` publishes `latest`. The host's shared Watchtower polls every
-five minutes and updates the frontend and backend containers in its `autodeploy`
-scope. Database, `cloudflared`, and Watchtower updates remain deliberate.
+Every push to `main` publishes `latest`. The stack's Watchtower polls every five
+minutes and updates the frontend and backend containers in its `travel-journal`
+scope. It uses anonymous access to the public Travel Journal packages, leaving
+the host's separate GHCR login untouched. Database and `cloudflared` updates
+remain deliberate.
 
 To pin or roll back, set `IMAGE_TAG=sha-<commit>` in `.env.production`, then run:
 
