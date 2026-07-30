@@ -261,7 +261,7 @@ export default function PhotoAnalyzerPage({ setPage }) {
 
                               <div className="flex flex-col">
                                 <label className="text-xs text-gray-500 mb-1 flex items-center gap-2"><MapPin className="h-4 w-4" /> Location</label>
-                                <div className="text-sm text-gray-600">{suggestion.latitude.toFixed(4)}, {suggestion.longitude.toFixed(4)}</div>
+                                <div className="text-sm text-gray-600">{Number(suggestion.latitude).toFixed(4)}, {Number(suggestion.longitude).toFixed(4)}</div>
                               </div>
 
                               <div className="flex flex-col">

@@ -8,6 +8,7 @@ import { processImage, deleteProcessedImages } from '../utils/imageProcessor.js'
 import { smartCluster } from '../utils/photoClustering.js';
 import { reverseGeocode } from '../utils/geocoding.js';
 import { v4 as uuidv4 } from 'uuid';
+import { backfillPhotoLocations, getLocationBackfillCandidates } from '../services/locationBackfill.js';
 
 const router = Router();
 const storagePath = process.env.PHOTO_STORAGE_PATH || '/app/media/travel-photos';
@@ -44,6 +45,34 @@ router.get('/temp/:filename', async (req, res, next) => {
 // =====================================================
 // IMPORTANT: Specific routes MUST come before /:tripId
 // =====================================================
+
+// Find photo-backed memories that still need place names.
+router.get('/location-backfill', async (req, res, next) => {
+  try {
+    const candidates = await getLocationBackfillCandidates();
+    res.json({
+      count: candidates.length,
+      candidates: candidates.map(candidate => ({
+        tripId: candidate.trip_id,
+        locationName: candidate.location_name,
+        date: candidate.start_date || candidate.date_label || candidate.date_taken,
+        latitude: candidate.latitude,
+        longitude: candidate.longitude,
+      })),
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Safely fill only blank/unknown places, one lookup at a time.
+router.post('/location-backfill', async (req, res, next) => {
+  try {
+    res.json(await backfillPhotoLocations());
+  } catch (err) {
+    next(err);
+  }
+});
 
 // Analyze photos for auto-trip creation (bulk upload with intelligence)
 router.post('/analyze', upload.array('photos', 100), async (req, res, next) => {

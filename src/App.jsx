@@ -4,9 +4,8 @@ import { DataProvider } from './context/DataContext';
 import Header from './components/Header';
 import Dashboard from './pages/Dashboard';
 import TripsPage from './pages/TripsPage';
-import AnalyticsPage from './pages/AnalyticsPage';
-import PhotoAnalyzerPage from './pages/PhotoAnalyzerPage';
 import LoginPage from './pages/LoginPage';
+import JourneysPage from './pages/JourneysPage';
 
 function AppContent() {
   const { user, loading } = useAuth();
@@ -26,13 +25,12 @@ function AppContent() {
 
   return (
     <DataProvider>
-      <div className="min-h-screen bg-gradient-to-br from-sky-100 via-blue-50 to-orange-50">
+      <div className="min-h-screen app-shell">
         <Header currentPage={page} setPage={setPage} />
-        <main className="container mx-auto px-4 py-6">
-          {page === 'dashboard' && <Dashboard />}
+        <main className="memory-main">
+          {page === 'dashboard' && <Dashboard setPage={setPage} />}
+          {page === 'journeys' && <JourneysPage />}
           {page === 'trips' && <TripsPage />}
-          {page === 'analytics' && <AnalyticsPage />}
-          {page === 'photos' && <PhotoAnalyzerPage setPage={setPage} />}
         </main>
       </div>
     </DataProvider>

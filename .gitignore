@@ -22,6 +22,7 @@ logs/
 .env.development.local
 .env.production.local
 backend/.env
+.env.production
 
 # OS files
 .DS_Store
@@ -36,3 +37,4 @@ docker-compose.override.yml
 # Misc
 /.envrc
 .cache/
+/runtime/

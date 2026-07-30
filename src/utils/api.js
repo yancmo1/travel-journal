@@ -106,6 +106,29 @@ class ApiClient {
     return this.request(`/trips/${id}`, { method: 'DELETE' });
   }
 
+  // Journeys
+  async getJourneys() {
+    return this.request('/journeys');
+  }
+
+  async createJourney(journey) {
+    return this.request('/journeys', {
+      method: 'POST',
+      body: JSON.stringify(journey),
+    });
+  }
+
+  async updateJourney(id, journey) {
+    return this.request(`/journeys/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(journey),
+    });
+  }
+
+  async deleteJourney(id) {
+    return this.request(`/journeys/${id}`, { method: 'DELETE' });
+  }
+
   // Travelers
   async getTravelers() {
     return this.request('/travelers');
@@ -146,6 +169,14 @@ class ApiClient {
 
   async deletePhoto(id) {
     return this.request(`/photos/${id}`, { method: 'DELETE' });
+  }
+
+  async getLocationBackfillCandidates() {
+    return this.request('/photos/location-backfill');
+  }
+
+  async backfillPhotoLocations() {
+    return this.request('/photos/location-backfill', { method: 'POST' });
   }
 
   // Analytics

@@ -18,18 +18,37 @@ CREATE TABLE IF NOT EXISTS travelers (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Journeys group individual place memories into one larger trip.
+CREATE TABLE IF NOT EXISTS journeys (
+  id SERIAL PRIMARY KEY,
+  title VARCHAR(255) NOT NULL,
+  start_date DATE,
+  end_date DATE,
+  date_label VARCHAR(100),
+  journey_type VARCHAR(50) DEFAULT 'Other',
+  summary TEXT,
+  created_by INT REFERENCES users(id),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Trips table
 CREATE TABLE IF NOT EXISTS trips (
   id SERIAL PRIMARY KEY,
   location_name VARCHAR(255) NOT NULL,
+  city VARCHAR(100),
   latitude DECIMAL(10, 8),
   longitude DECIMAL(11, 8),
   country VARCHAR(100),
   state VARCHAR(100),
-  start_date DATE NOT NULL,
+  start_date DATE,
   end_date DATE,
+  date_label VARCHAR(100),
+  date_precision VARCHAR(20) DEFAULT 'exact',
   trip_type VARCHAR(50) DEFAULT 'Other', -- 'Road Trip', 'Flight', 'Cruise', 'Day Trip', 'Other'
   notes TEXT,
+  journey_id INT REFERENCES journeys(id) ON DELETE SET NULL,
+  journey_order INT,
   home_distance_miles DECIMAL(10, 2),
   created_by INT REFERENCES users(id),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -62,6 +81,7 @@ CREATE TABLE IF NOT EXISTS photos (
 CREATE INDEX IF NOT EXISTS idx_trips_start_date ON trips(start_date);
 CREATE INDEX IF NOT EXISTS idx_trips_location ON trips(location_name);
 CREATE INDEX IF NOT EXISTS idx_trips_type ON trips(trip_type);
+CREATE INDEX IF NOT EXISTS idx_trips_journey_id ON trips(journey_id);
 CREATE INDEX IF NOT EXISTS idx_photos_trip_id ON photos(trip_id);
 CREATE INDEX IF NOT EXISTS idx_trip_travelers_trip ON trip_travelers(trip_id);
 CREATE INDEX IF NOT EXISTS idx_trip_travelers_traveler ON trip_travelers(traveler_id);

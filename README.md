@@ -1,17 +1,26 @@
 # Travel Memory Tracker
 
-A personal full-stack web application for logging and visualizing your travel memories on an interactive map. Built with React, Node.js, PostgreSQL, and Docker.
+A private family storybook for revisiting travel memories, grouping individual
+stops into complete journeys, and keeping storage-friendly photo copies.
 
 ## Features
 
-- 🗺️ **Interactive Map** - View all trips on a CARTO/Leaflet map with color-coded pins by trip type
-- 📊 **Analytics Dashboard** - Visualize trips by year, decade, and type with Chart.js
-- 🚗 **Trip Management** - Log Road Trips, Flights, and Cruises with dates, locations, and notes
+- ✦ **Daily Memory** - Open the site to a different memory and swipe through more
+- 🧳 **Journeys** - Group stops and memories into cruises, road trips, and vacations
+- 🗺️ **Interactive Map** - View all remembered places and journey routes
+- 📍 **Easy Place Entry** - City, state, and landmark suggestions with automatic map coordinates
+- 🚗 **Memory Management** - Add exact, approximate, year-only, or unknown dates
 - 👥 **Traveler Tracking** - Track who went on each trip (family members, friends)
-- 📍 **Distance Tracking** - Automatic calculation of distance from your home location
-- 📷 **Photo Storage** - Upload photos with EXIF data extraction
+- 📷 **Smaller Photo Copies** - Store a 1600px display image and thumbnail while retaining EXIF details
+- 🧭 **GPS Backfill** - Recover missing place names from coordinates already stored with photos
 - 🔐 **User Authentication** - JWT-based auth for single-user personal deployment
 - 🐳 **Docker Deployment** - Full-stack containerized setup with PostgreSQL
+
+## Production hosting
+
+The supported family deployment uses Ubuntu, GHCR, Cloudflare Tunnel, local
+photo storage, and encrypted R2 backups. See
+[PRODUCTION_DEPLOYMENT.md](PRODUCTION_DEPLOYMENT.md) for the complete runbook.
 
 ## Tech Stack
 
@@ -96,7 +105,7 @@ npm run dev
 ├── backend/
 │   ├── src/
 │   │   ├── server.js           # Express entry point
-│   │   ├── routes/             # API routes (auth, trips, travelers, photos, analytics)
+│   │   ├── routes/             # API routes (auth, journeys, memories, travelers, photos)
 │   │   ├── middleware/         # Auth, upload middleware
 │   │   └── utils/              # DB pool, calculations
 │   └── database/
@@ -104,7 +113,7 @@ npm run dev
 │       └── seed.sql            # Sample data
 ├── src/
 │   ├── App.jsx                 # Main React app
-│   ├── pages/                  # Dashboard, Trips, Analytics, Login
+│   ├── pages/                  # Memories, Journeys, All Places, Login
 │   ├── components/             # Map, TripForm, Header, etc.
 │   ├── context/                # Auth & Data context providers
 │   └── utils/                  # API client, formatting
@@ -124,10 +133,18 @@ npm run dev
 | POST | `/api/trips` | Create trip |
 | PUT | `/api/trips/:id` | Update trip |
 | DELETE | `/api/trips/:id` | Delete trip |
+| GET | `/api/journeys` | List complete journeys |
+| POST | `/api/journeys` | Create a journey and assign memories |
+| PUT | `/api/journeys/:id` | Update a journey and its memories |
+| DELETE | `/api/journeys/:id` | Delete a journey without deleting its memories |
 | GET | `/api/travelers` | List travelers |
 | POST | `/api/travelers` | Create traveler |
 | GET | `/api/analytics` | Get trip statistics |
 | POST | `/api/photos/:tripId` | Upload photo |
+| GET | `/api/photos/:tripId` | List a memory's photos |
+| DELETE | `/api/photos/:id` | Delete a saved photo copy |
+| GET | `/api/photos/location-backfill` | Count GPS-backed memories missing place names |
+| POST | `/api/photos/location-backfill` | Safely fill only blank or unknown places |
 
 ## Theme
 

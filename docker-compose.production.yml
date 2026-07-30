@@ -1,0 +1,82 @@
+name: travel-journal
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - ${DATA_ROOT}/postgres:/var/lib/postgresql/data
+      - ./backend/database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./backend/database/seed.sql:/docker-entrypoint-initdb.d/02-seed.sql:ro
+      - ./backend/database/seed-journeys.sql:/docker-entrypoint-initdb.d/03-seed-journeys.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    networks: [private]
+
+  backend:
+    image: ghcr.io/${GHCR_OWNER}/travel-journal-backend:${IMAGE_TAG:-latest}
+    platform: linux/amd64
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-90d}
+      PHOTO_STORAGE_PATH: /app/media/travel-photos
+      HOME_LATITUDE: ${HOME_LATITUDE:-35.4676}
+      HOME_LONGITUDE: ${HOME_LONGITUDE:--97.5164}
+      PORT: 4000
+      NODE_ENV: production
+    volumes:
+      - ${DATA_ROOT}/photos:/app/media/travel-photos
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:4000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    labels:
+      com.centurylinklabs.watchtower.scope: autodeploy
+    networks: [private]
+
+  frontend:
+    image: ghcr.io/${GHCR_OWNER}/travel-journal-frontend:${IMAGE_TAG:-latest}
+    platform: linux/amd64
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${LOCAL_HTTP_PORT:-3080}:80"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:80/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+    labels:
+      traefik.enable: "true"
+      traefik.docker.network: edge
+      traefik.http.routers.travel-journal.rule: Host(`${APP_HOSTNAME}`)
+      traefik.http.routers.travel-journal.entrypoints: websecure
+      traefik.http.routers.travel-journal.tls: "true"
+      traefik.http.services.travel-journal.loadbalancer.server.port: "80"
+      com.centurylinklabs.watchtower.scope: autodeploy
+    networks: [private, edge]
+
+networks:
+  private:
+    driver: bridge
+  edge:
+    external: true
+    name: edge

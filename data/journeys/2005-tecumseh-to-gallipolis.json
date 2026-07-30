@@ -1,0 +1,29 @@
+{
+  "title": "Return to Gallipolis",
+  "journeyType": "Road Trip",
+  "origin": {
+    "city": "Tecumseh",
+    "state": "Oklahoma",
+    "country": "United States"
+  },
+  "destination": {
+    "city": "Gallipolis",
+    "state": "Ohio",
+    "country": "United States"
+  },
+  "startDate": "2005-08-04",
+  "endDate": null,
+  "datePrecision": "partial",
+  "status": "researching",
+  "stops": [
+    {
+      "name": "Gallipolis",
+      "city": "Gallipolis",
+      "state": "Ohio",
+      "country": "United States",
+      "date": "2005-08-04",
+      "confidence": "confirmed",
+      "notes": "A second road trip from Tecumseh to Gallipolis."
+    }
+  ]
+}

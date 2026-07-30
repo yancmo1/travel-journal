@@ -1,0 +1,9 @@
+[Unit]
+Description=Back up Travel Journal photos and PostgreSQL to Cloudflare R2
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/travel-journal
+ExecStart=/opt/travel-journal/scripts/backup-to-r2.sh

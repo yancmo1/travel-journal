@@ -10,8 +10,8 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  async function handleSubmit(e) {
-    e.preventDefault();
+  async function handleSubmit(event) {
+    event.preventDefault();
     setError('');
     setLoading(true);
 
@@ -22,103 +22,94 @@ export default function LoginPage() {
         await login(username, password);
       }
     } catch (err) {
-      setError(err.message || 'Authentication failed');
+      setError(err.message || 'We couldn’t sign you in.');
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-ocean-blue via-sky-500 to-sunset-orange flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <span className="text-6xl mb-4 block">🌅</span>
-          <h1 className="text-3xl font-bold text-white mb-2">
-            Travel Memory Tracker
-          </h1>
-          <p className="text-white/80">
-            Track your adventures together
-          </p>
+    <main className="memory-login">
+      <section className="memory-login-story">
+        <div className="memory-login-brand">
+          <span className="memory-brand-mark" aria-hidden="true">W</span>
+          <span>Where We’ve Been</span>
         </div>
+        <div>
+          <p className="memory-eyebrow">A life traveled together</p>
+          <h1>Every place left us with a story.</h1>
+          <p>Come back to one today.</p>
+        </div>
+        <p className="memory-login-footnote">Private to your family.</p>
+      </section>
 
-        {/* Form Card */}
-        <div className="bg-white rounded-2xl shadow-2xl p-8">
-          <h2 className="text-2xl font-bold text-ocean-dark mb-6 text-center">
-            {isRegister ? 'Create Account' : 'Welcome Back'}
-          </h2>
+      <section className="memory-login-panel">
+        <div className="memory-login-form">
+          <p className="memory-eyebrow">{isRegister ? 'Begin your journal' : 'Welcome back'}</p>
+          <h2>{isRegister ? 'Create your account' : 'See today’s memory'}</h2>
+          <p className="memory-login-copy">
+            {isRegister
+              ? 'Set this up once, then the two of you can start adding your travels.'
+              : 'Sign in to return to your shared travel story.'}
+          </p>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit}>
             {isRegister && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Display Name
-                </label>
+              <label>
+                Your name
                 <input
                   type="text"
                   value={displayName}
-                  onChange={e => setDisplayName(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-ocean-teal focus:border-transparent transition-all"
-                  placeholder="Your name"
+                  onChange={event => setDisplayName(event.target.value)}
+                  placeholder="What should we call you?"
+                  autoComplete="name"
                 />
-              </div>
+              </label>
             )}
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Username
-              </label>
+            <label>
+              Username
               <input
                 type="text"
                 value={username}
-                onChange={e => setUsername(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-ocean-teal focus:border-transparent transition-all"
-                placeholder="Enter username"
+                onChange={event => setUsername(event.target.value)}
+                placeholder="Your username"
+                autoComplete="username"
                 required
               />
-            </div>
+            </label>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Password
-              </label>
+            <label>
+              Password
               <input
                 type="password"
                 value={password}
-                onChange={e => setPassword(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-ocean-teal focus:border-transparent transition-all"
-                placeholder="Enter password"
+                onChange={event => setPassword(event.target.value)}
+                placeholder="Your password"
+                autoComplete={isRegister ? 'new-password' : 'current-password'}
                 required
               />
-            </div>
+            </label>
 
-            {error && (
-              <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
-                {error}
-              </div>
-            )}
+            {error && <div className="memory-login-error" role="alert">{error}</div>}
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-3 bg-gradient-to-r from-sunset-orange to-coral-pink text-white font-semibold rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
-            >
-              {loading ? 'Please wait...' : (isRegister ? 'Create Account' : 'Sign In')}
+            <button type="submit" disabled={loading} className="memory-login-submit">
+              {loading ? 'One moment…' : isRegister ? 'Create our journal' : 'Open our memories'}
             </button>
           </form>
 
-          <div className="mt-6 text-center">
-            <button
-              onClick={() => setIsRegister(!isRegister)}
-              className="text-ocean-teal hover:text-ocean-blue transition-colors"
-            >
-              {isRegister 
-                ? 'Already have an account? Sign in' 
-                : "Don't have an account? Create one"}
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setIsRegister(value => !value);
+              setError('');
+            }}
+            className="memory-login-switch"
+          >
+            {isRegister ? 'We already have an account' : 'Setting this up for the first time?'}
+          </button>
         </div>
-      </div>
-    </div>
+      </section>
+    </main>
   );
 }

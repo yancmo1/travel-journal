@@ -4,20 +4,28 @@ import api from '../utils/api';
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  // Auto-login with mock user (auth disabled)
-  const [user, setUser] = useState({ id: 1, username: 'demo', display_name: 'Demo User' });
-  const [loading, setLoading] = useState(false);
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Auto-login - set a dummy token for API calls
-    if (!localStorage.getItem('travel_token')) {
-      localStorage.setItem('travel_token', 'demo-token');
-    }
+    checkAuth();
   }, []);
 
   async function checkAuth() {
-    // Auth disabled - always logged in
-    return;
+    if (!api.getToken()) {
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const data = await api.getMe();
+      setUser(data.user);
+    } catch {
+      api.logout();
+      setUser(null);
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function login(username, password) {

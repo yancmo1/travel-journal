@@ -144,7 +144,7 @@ export default function PhotoGallery({ photos = [], onDelete }) {
                   <div className="flex items-center gap-2">
                     <MapPin className="h-4 w-4" />
                     <span>
-                      {currentPhoto.latitude.toFixed(4)}, {currentPhoto.longitude.toFixed(4)}
+                      {Number(currentPhoto.latitude).toFixed(4)}, {Number(currentPhoto.longitude).toFixed(4)}
                     </span>
                   </div>
                 )}

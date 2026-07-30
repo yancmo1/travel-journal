@@ -8,7 +8,7 @@ const __dirname = path.dirname(__filename);
 
 // Image size configurations
 export const IMAGE_SIZES = {
-  thumbnail: { width: 200, height: 200, fit: 'cover' },
+  thumbnail: { width: 320, height: 320, fit: 'cover' },
   medium: { width: 800, height: 800, fit: 'inside' },
   large: { width: 1600, height: 1600, fit: 'inside' }
 };
@@ -53,11 +53,15 @@ export async function processImage(inputPath, outputDir, baseFilename) {
       }
     };
 
-    // Save original (optimized JPEG)
+    // Keep a display-quality copy rather than the full camera original.
     const originalPath = path.join(dirs.original, `${baseFilename}${ext}`);
     await image
       .clone()
-      .jpeg({ quality: 90, progressive: true })
+      .resize(IMAGE_SIZES.large.width, IMAGE_SIZES.large.height, {
+        fit: IMAGE_SIZES.large.fit,
+        withoutEnlargement: true
+      })
+      .jpeg({ quality: 82, progressive: true, mozjpeg: true })
       .toFile(originalPath);
     
     const originalStats = await fs.stat(originalPath);
@@ -77,18 +81,8 @@ export async function processImage(inputPath, outputDir, baseFilename) {
     
     results.thumbnail = thumbnailPath;
 
-    // Generate medium size
-    const mediumPath = path.join(dirs.medium, `${baseFilename}${ext}`);
-    await sharp(inputPath)
-      .rotate()
-      .resize(IMAGE_SIZES.medium.width, IMAGE_SIZES.medium.height, {
-        fit: IMAGE_SIZES.medium.fit,
-        withoutEnlargement: true
-      })
-      .jpeg({ quality: 85, progressive: true })
-      .toFile(mediumPath);
-    
-    results.medium = mediumPath;
+    // The optimized display copy is also the medium view, avoiding a third stored copy.
+    results.medium = originalPath;
 
     // Delete temporary uploaded file
     await fs.unlink(inputPath);
