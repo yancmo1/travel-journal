@@ -10,6 +10,7 @@ stops into complete journeys, and keeping storage-friendly photo copies.
 - 🗺️ **Interactive Map** - View all remembered places and journey routes
 - 📍 **Easy Place Entry** - City, state, and landmark suggestions with automatic map coordinates
 - 🚗 **Memory Management** - Add exact, approximate, year-only, or unknown dates
+- ✓ **Cleanup Mode** - Find duplicates and missing details, edit quickly, and safely remove selected memories
 - 👥 **Traveler Tracking** - Track who went on each trip (family members, friends)
 - 📷 **Smaller Photo Copies** - Store a 1600px display image and thumbnail while retaining EXIF details
 - 🧭 **GPS Backfill** - Recover missing place names from coordinates already stored with photos
@@ -133,6 +134,7 @@ npm run dev
 | POST | `/api/trips` | Create trip |
 | PUT | `/api/trips/:id` | Update trip |
 | DELETE | `/api/trips/:id` | Delete trip |
+| POST | `/api/trips/bulk-delete` | Delete confirmed memories and their saved photo directories |
 | GET | `/api/journeys` | List complete journeys |
 | POST | `/api/journeys` | Create a journey and assign memories |
 | PUT | `/api/journeys/:id` | Update a journey and its memories |

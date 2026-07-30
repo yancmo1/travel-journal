@@ -1,8 +1,28 @@
 import { Router } from 'express';
+import fs from 'fs/promises';
+import path from 'path';
 import { query } from '../utils/db.js';
 import { distanceFromHome } from '../utils/calculations.js';
 
 const router = Router();
+const photoStoragePath = process.env.PHOTO_STORAGE_PATH || '/app/media/travel-photos';
+
+function normalizeIds(ids) {
+  if (!Array.isArray(ids)) return [];
+  return [...new Set(ids.map(Number).filter(id => Number.isInteger(id) && id > 0))];
+}
+
+async function removePhotoDirectories(ids) {
+  const results = await Promise.allSettled(
+    ids.map(id => fs.rm(path.join(photoStoragePath, String(id)), { recursive: true, force: true }))
+  );
+
+  results.forEach((result, index) => {
+    if (result.status === 'rejected') {
+      console.error(`Failed to remove photo directory for trip ${ids[index]}:`, result.reason);
+    }
+  });
+}
 
 // Get all trips
 router.get('/', async (req, res, next) => {
@@ -205,16 +225,47 @@ router.put('/:id', async (req, res, next) => {
   }
 });
 
+// Delete several memories during a confirmed cleanup operation.
+router.post('/bulk-delete', async (req, res, next) => {
+  try {
+    const ids = normalizeIds(req.body.ids);
+
+    if (ids.length === 0) {
+      return res.status(400).json({ error: 'Choose at least one memory to delete' });
+    }
+
+    if (ids.length > 200) {
+      return res.status(400).json({ error: 'Delete no more than 200 memories at once' });
+    }
+
+    const result = await query(
+      'DELETE FROM trips WHERE id = ANY($1::int[]) RETURNING id',
+      [ids]
+    );
+    const deletedIds = result.rows.map(row => row.id);
+
+    await removePhotoDirectories(deletedIds);
+    res.json({ deletedIds, count: deletedIds.length });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // Delete trip
 router.delete('/:id', async (req, res, next) => {
   try {
-    const { id } = req.params;
+    const [id] = normalizeIds([req.params.id]);
+    if (!id) {
+      return res.status(400).json({ error: 'Invalid trip ID' });
+    }
+
     const result = await query('DELETE FROM trips WHERE id = $1 RETURNING id', [id]);
     
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Trip not found' });
     }
 
+    await removePhotoDirectories([id]);
     res.json({ message: 'Trip deleted', id: result.rows[0].id });
   } catch (err) {
     next(err);

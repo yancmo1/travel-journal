@@ -3,6 +3,7 @@ import { useData } from '../context/DataContext';
 import MapView from '../components/Map';
 import TripForm from '../components/TripForm';
 import MemoryPhotosModal from '../components/MemoryPhotosModal';
+import { formatDateOnly } from '../utils/format';
 
 export default function Dashboard({ setPage }) {
   const { trips, analytics, loading } = useData();
@@ -256,7 +257,7 @@ function TripDetailModal({ trip, onClose, onPhotos, onEdit }) {
 
 function formatDate(dateStr) {
   if (!dateStr) return '';
-  return new Date(dateStr).toLocaleDateString('en-US', {
+  return formatDateOnly(dateStr, {
     month: 'long',
     day: 'numeric',
     year: 'numeric'

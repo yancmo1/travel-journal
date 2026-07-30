@@ -6,6 +6,7 @@ import Dashboard from './pages/Dashboard';
 import TripsPage from './pages/TripsPage';
 import LoginPage from './pages/LoginPage';
 import JourneysPage from './pages/JourneysPage';
+import CleanupPage from './pages/CleanupPage';
 
 function AppContent() {
   const { user, loading } = useAuth();
@@ -31,6 +32,7 @@ function AppContent() {
           {page === 'dashboard' && <Dashboard setPage={setPage} />}
           {page === 'journeys' && <JourneysPage />}
           {page === 'trips' && <TripsPage />}
+          {page === 'cleanup' && <CleanupPage />}
         </main>
       </div>
     </DataProvider>
