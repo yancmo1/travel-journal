@@ -117,6 +117,11 @@ curl --fail http://127.0.0.1:3080/api/health
 sudo docker logs --tail=100 infra-new-cloudflared-1
 ```
 
+`PHOTO_UID` and `PHOTO_GID` default to `1000`, matching the unprivileged
+`node` user in the backend container. The deployment script applies that
+ownership to the local photo directory so uploads work without running the app
+as root.
+
 Visit the public hostname, pass the Cloudflare Access login, and create the two
 application accounts. Confirm a photo upload and thumbnail display before
 calling the launch complete.

@@ -12,18 +12,22 @@ if (!fs.existsSync(storagePath)) {
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    let uploadDir;
-    
-    // For analysis endpoint, use temp directory
-    if (req.path.includes('/analyze')) {
-      uploadDir = path.join(storagePath, 'temp');
-    } else {
-      const tripId = req.params.tripId || 'temp';
-      uploadDir = path.join(storagePath, tripId, 'original');
+    try {
+      let uploadDir;
+
+      // For analysis endpoint, use temp directory
+      if (req.path.includes('/analyze')) {
+        uploadDir = path.join(storagePath, 'temp');
+      } else {
+        const tripId = req.params.tripId || 'temp';
+        uploadDir = path.join(storagePath, tripId, 'original');
+      }
+
+      fs.mkdirSync(uploadDir, { recursive: true });
+      cb(null, uploadDir);
+    } catch (error) {
+      cb(error);
     }
-    
-    fs.mkdirSync(uploadDir, { recursive: true });
-    cb(null, uploadDir);
   },
   filename: (req, file, cb) => {
     const ext = path.extname(file.originalname);
