@@ -28,7 +28,17 @@ if [[ "${DATA_ROOT}" != /* ]]; then
   exit 1
 fi
 
-install -d -m 0750 "${DATA_ROOT}/photos" "${DATA_ROOT}/postgres" "${DATA_ROOT}/postgres-dumps"
+photo_uid="${PHOTO_UID:-1000}"
+photo_gid="${PHOTO_GID:-1000}"
+
+if [[ ! "${photo_uid}" =~ ^[0-9]+$ ]] || [[ ! "${photo_gid}" =~ ^[0-9]+$ ]]; then
+  echo "PHOTO_UID and PHOTO_GID must be numeric."
+  exit 1
+fi
+
+# The backend image runs as Node's unprivileged uid/gid 1000 by default.
+install -d -o "${photo_uid}" -g "${photo_gid}" -m 0750 "${DATA_ROOT}/photos"
+install -d -m 0750 "${DATA_ROOT}/postgres" "${DATA_ROOT}/postgres-dumps"
 
 docker compose --env-file "${env_file}" -f "${compose_file}" pull
 docker compose --env-file "${env_file}" -f "${compose_file}" up -d --remove-orphans
