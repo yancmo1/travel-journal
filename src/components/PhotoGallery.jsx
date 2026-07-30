@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { X, ChevronLeft, ChevronRight, Trash2, MapPin, Calendar, Camera } from 'lucide-react';
+import { Trash2, MapPin, Calendar, Camera } from 'lucide-react';
+import PhotoLightbox from './PhotoLightbox';
 
 export default function PhotoGallery({ photos = [], onDelete }) {
   const [lightboxOpen, setLightboxOpen] = useState(false);
@@ -20,36 +21,18 @@ export default function PhotoGallery({ photos = [], onDelete }) {
     setLightboxOpen(true);
   };
 
-  const closeLightbox = () => {
-    setLightboxOpen(false);
-  };
-
-  const nextPhoto = () => {
-    setCurrentIndex((prev) => (prev + 1) % photos.length);
-  };
-
-  const prevPhoto = () => {
-    setCurrentIndex((prev) => (prev - 1 + photos.length) % photos.length);
-  };
-
-  const currentPhoto = photos[currentIndex];
-
-  const handleKeyDown = (e) => {
-    if (e.key === 'Escape') closeLightbox();
-    if (e.key === 'ArrowRight') nextPhoto();
-    if (e.key === 'ArrowLeft') prevPhoto();
-  };
-
   return (
     <>
       {/* Photo Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
         {photos.map((photo, index) => (
-          <div
+          <button
+            type="button"
             key={photo.id}
             onClick={() => openLightbox(index)}
             className="relative aspect-square cursor-pointer group overflow-hidden rounded-lg
                      border-2 border-gray-200 hover:border-ocean-blue transition-all"
+            aria-label={`Open ${photo.filename || `photo ${index + 1}`}`}
           >
             <img
               src={`/photos/${photo.thumbnail_path}`}
@@ -76,126 +59,56 @@ export default function PhotoGallery({ photos = [], onDelete }) {
                 )}
               </div>
             </div>
-          </div>
+          </button>
         ))}
       </div>
 
-      {/* Lightbox Modal */}
       {lightboxOpen && (
-        <div
-          className="fixed inset-0 z-[1500] bg-black/95 flex items-center justify-center"
-          onClick={closeLightbox}
-          onKeyDown={handleKeyDown}
-          tabIndex={0}
-        >
-          {/* Close Button */}
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              closeLightbox();
-            }}
-            className="absolute top-4 right-4 text-white hover:text-gray-300 z-10"
-          >
-            <X className="h-8 w-8" />
-          </button>
-
-          {/* Previous Button */}
-          {photos.length > 1 && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                prevPhoto();
-              }}
-              className="absolute left-4 text-white hover:text-gray-300 z-10"
-            >
-              <ChevronLeft className="h-12 w-12" />
-            </button>
-          )}
-
-          {/* Main Image */}
-          <div 
-            className="max-w-6xl max-h-[85vh] flex flex-col"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <img
-              src={`/photos/${currentPhoto.file_path}`}
-              alt={currentPhoto.filename}
-              className="max-w-full max-h-[75vh] object-contain rounded-lg"
-            />
-
-            {/* Photo Info */}
-            <div className="bg-gray-900/90 text-white p-4 rounded-b-lg mt-2 space-y-2">
-              <div className="flex items-center justify-between">
-                <h3 className="font-medium">{currentPhoto.filename}</h3>
-                <span className="text-sm text-gray-400">
-                  {currentIndex + 1} / {photos.length}
-                </span>
-              </div>
-
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-gray-300">
-                {currentPhoto.date_taken && (
-                  <div className="flex items-center gap-2">
+        <PhotoLightbox
+          photos={photos}
+          currentIndex={currentIndex}
+          onIndexChange={setCurrentIndex}
+          onClose={() => setLightboxOpen(false)}
+          footer={photo => (
+            <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-gray-300">
+              <div className="flex flex-wrap items-center gap-4">
+                {photo.date_taken && (
+                  <span className="flex items-center gap-2">
                     <Calendar className="h-4 w-4" />
-                    <span>{new Date(currentPhoto.date_taken).toLocaleDateString()}</span>
-                  </div>
+                    {new Date(photo.date_taken).toLocaleDateString()}
+                  </span>
                 )}
-
-                {currentPhoto.latitude && currentPhoto.longitude && (
-                  <div className="flex items-center gap-2">
+                {photo.latitude && photo.longitude && (
+                  <span className="flex items-center gap-2">
                     <MapPin className="h-4 w-4" />
-                    <span>
-                      {Number(currentPhoto.latitude).toFixed(4)}, {Number(currentPhoto.longitude).toFixed(4)}
-                    </span>
-                  </div>
+                    {Number(photo.latitude).toFixed(4)}, {Number(photo.longitude).toFixed(4)}
+                  </span>
                 )}
-
-                {currentPhoto.metadata?.model && (
-                  <div className="flex items-center gap-2">
+                {photo.metadata?.model && (
+                  <span className="flex items-center gap-2">
                     <Camera className="h-4 w-4" />
-                    <span>{currentPhoto.metadata.model}</span>
-                  </div>
+                    {photo.metadata.model}
+                  </span>
                 )}
-
-                <div className="flex items-center gap-2">
-                  <span className="text-gray-400">Size:</span>
-                  <span>{(currentPhoto.file_size / 1024 / 1024).toFixed(2)} MB</span>
-                </div>
               </div>
-
-              {/* Actions */}
               {onDelete && (
-                <div className="flex justify-end pt-2">
-                  <button
-                    onClick={() => {
-                      if (confirm('Delete this photo?')) {
-                        onDelete(currentPhoto.id);
-                        closeLightbox();
-                      }
-                    }}
-                    className="flex items-center gap-2 text-red-400 hover:text-red-300 
-                             text-sm px-3 py-1 rounded transition-colors"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                    Delete
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (confirm('Delete this photo?')) {
+                      onDelete(photo.id);
+                      setLightboxOpen(false);
+                    }
+                  }}
+                  className="flex items-center gap-2 rounded px-3 py-1 text-red-400 hover:text-red-300"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Delete
+                </button>
               )}
             </div>
-          </div>
-
-          {/* Next Button */}
-          {photos.length > 1 && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                nextPhoto();
-              }}
-              className="absolute right-4 text-white hover:text-gray-300 z-10"
-            >
-              <ChevronRight className="h-12 w-12" />
-            </button>
           )}
-        </div>
+        />
       )}
     </>
   );

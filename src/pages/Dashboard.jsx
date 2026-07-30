@@ -3,6 +3,7 @@ import { useData } from '../context/DataContext';
 import MapView from '../components/Map';
 import TripForm from '../components/TripForm';
 import MemoryPhotosModal from '../components/MemoryPhotosModal';
+import PhotoLightbox from '../components/PhotoLightbox';
 import { formatDateOnly } from '../utils/format';
 
 export default function Dashboard({ setPage }) {
@@ -191,6 +192,8 @@ export default function Dashboard({ setPage }) {
 }
 
 function TripDetailModal({ trip, onClose, onPhotos, onEdit }) {
+  const [photoIndex, setPhotoIndex] = useState(null);
+
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[1500]">
       <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-auto">
@@ -231,8 +234,23 @@ function TripDetailModal({ trip, onClose, onPhotos, onEdit }) {
             )}
             {trip.photos?.length > 0 && (
               <div className="journey-photo-strip">
-                {trip.photos.slice(0, 4).map(photo => (
-                  <img key={photo.id} src={`/photos/${photo.thumbnail_path}`} alt={photo.filename} />
+                {trip.photos.slice(0, 4).map((photo, index) => (
+                  <button
+                    type="button"
+                    key={photo.id}
+                    onClick={() => setPhotoIndex(index)}
+                    className="group relative overflow-hidden rounded-xl focus:outline-none focus:ring-2 focus:ring-ocean-teal"
+                    aria-label={`Open ${photo.filename || `photo ${index + 1}`}`}
+                  >
+                    <img
+                      src={`/photos/${photo.thumbnail_path}`}
+                      alt={photo.filename || ''}
+                      className="transition-transform duration-200 group-hover:scale-105"
+                    />
+                    <span className="absolute inset-x-0 bottom-0 bg-black/60 py-1 text-center text-[10px] font-medium text-white opacity-0 transition-opacity group-hover:opacity-100">
+                      View larger
+                    </span>
+                  </button>
                 ))}
               </div>
             )}
@@ -251,6 +269,14 @@ function TripDetailModal({ trip, onClose, onPhotos, onEdit }) {
           </div>
         </div>
       </div>
+      {photoIndex !== null && (
+        <PhotoLightbox
+          photos={trip.photos}
+          currentIndex={photoIndex}
+          onIndexChange={setPhotoIndex}
+          onClose={() => setPhotoIndex(null)}
+        />
+      )}
     </div>
   );
 }
