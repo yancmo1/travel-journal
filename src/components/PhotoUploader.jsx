@@ -128,10 +128,11 @@ export default function PhotoUploader({ tripId, onUploadComplete, showAnalyzer =
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         className={`
-          border-2 border-dashed rounded-lg p-8 text-center transition-all
+          border-2 border-dashed rounded-lg transition-all
+          ${showAnalyzer ? 'p-8 text-center' : 'flex items-center gap-3 px-4 py-3 text-left'}
           ${isDragging 
             ? 'border-ocean-teal bg-ocean-teal/10' 
-            : 'border-gray-300 hover:border-ocean-blue'
+            : 'border-gray-300 bg-gray-50/60 hover:border-ocean-blue hover:bg-ocean-blue/5'
           }
           ${uploading ? 'opacity-50 pointer-events-none' : 'cursor-pointer'}
         `}
@@ -146,21 +147,23 @@ export default function PhotoUploader({ tripId, onUploadComplete, showAnalyzer =
           className="hidden"
         />
 
-        <Upload className={`mx-auto h-12 w-12 mb-3 ${
+        <Upload className={`${showAnalyzer ? 'mx-auto mb-3 h-12 w-12' : 'h-6 w-6 shrink-0'} ${
           isDragging ? 'text-ocean-teal' : 'text-gray-400'
         }`} />
 
-        <p className="text-lg font-medium text-gray-700 mb-1">
-          {isDragging ? 'Drop photos here' : 'Drag & drop photos here'}
-        </p>
-        <p className="text-sm text-gray-500">
-          or click to browse • JPEG, PNG, HEIC supported
-        </p>
-        {showAnalyzer && (
-          <p className="text-xs text-ocean-blue mt-2">
-            Photos with GPS data will be analyzed for location
+        <div className="min-w-0">
+          <p className={`${showAnalyzer ? 'mb-1 text-lg' : 'text-sm'} font-medium text-gray-700`}>
+            {isDragging ? 'Drop photos here' : showAnalyzer ? 'Drag & drop photos here' : 'Add photos'}
           </p>
-        )}
+          <p className={`${showAnalyzer ? 'text-sm' : 'text-xs'} text-gray-500`}>
+            {showAnalyzer ? 'or click to browse' : 'Drop here or click to choose'} • JPEG, PNG, HEIC
+          </p>
+          {showAnalyzer && (
+            <p className="mt-2 text-xs text-ocean-blue">
+              Photos with GPS data will be analyzed for location
+            </p>
+          )}
+        </div>
       </div>
 
       {/* Preview Grid */}

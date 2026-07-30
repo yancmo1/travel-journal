@@ -196,6 +196,11 @@ class ApiClient {
     return this.request('/photos/location-backfill', { method: 'POST' });
   }
 
+  // Places
+  async searchPlaces(query) {
+    return this.request(`/places/search?q=${encodeURIComponent(query)}`);
+  }
+
   // Analytics
   async getAnalytics() {
     return this.request('/analytics');

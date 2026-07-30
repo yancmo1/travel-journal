@@ -44,7 +44,6 @@ export default function MemoryPhotosModal({ memory, onClose }) {
         </div>
 
         <div className="photo-modal-body">
-          <PhotoUploader tripId={memory.id} onUploadComplete={handleUploadComplete} />
           <div>
             <div className="photo-section-title">
               <h3>{photos.length ? `${photos.length} saved photo${photos.length === 1 ? '' : 's'}` : 'Saved photos'}</h3>
@@ -54,6 +53,9 @@ export default function MemoryPhotosModal({ memory, onClose }) {
             ) : (
               <PhotoGallery photos={photos} onDelete={handleDelete} />
             )}
+          </div>
+          <div className="border-t border-gray-100 pt-4">
+            <PhotoUploader tripId={memory.id} onUploadComplete={handleUploadComplete} />
           </div>
         </div>
       </div>

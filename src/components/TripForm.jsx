@@ -136,8 +136,15 @@ export default function TripForm({ trip, onClose }) {
     setError('');
     
     try {
-      const results = await nominatimSearch(form.locationName);
-      setSearchResults(results.slice(0, 5));
+      try {
+        const results = await api.searchPlaces(form.locationName);
+        setSearchResults(results.slice(0, 5));
+      } catch {
+        // Keep the free fallback available when Google Places is not configured
+        // locally or the request is temporarily unavailable.
+        const results = await nominatimSearch(form.locationName);
+        setSearchResults(results.slice(0, 5));
+      }
     } catch (err) {
       setError('Location search failed. Please try again.');
     } finally {
@@ -441,7 +448,7 @@ export default function TripForm({ trip, onClose }) {
             
             {/* Search Results */}
             {renderSearchResults('locationName', 'Location suggestions')}
-            <p className="mt-1 text-[10px] text-gray-400">City suggestions use Open-Meteo and GeoNames. Use 🔍 for a landmark.</p>
+            <p className="mt-1 text-[10px] text-gray-400">Type a city or landmark, then use 🔍 to search a larger places database.</p>
 
             {Number.isFinite(Number(form.latitude)) && Number.isFinite(Number(form.longitude)) && (
               <p className="mt-1 text-xs text-gray-500">

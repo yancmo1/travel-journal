@@ -10,6 +10,7 @@ import travelersRoutes from './routes/travelers.js';
 import photosRoutes from './routes/photos.js';
 import analyticsRoutes from './routes/analytics.js';
 import journeysRoutes from './routes/journeys.js';
+import placesRoutes from './routes/places.js';
 import { authMiddleware } from './middleware/auth.js';
 import { initDatabase } from './utils/db.js';
 
@@ -39,6 +40,7 @@ app.use('/api/travelers', authMiddleware, travelersRoutes);
 app.use('/api/photos', authMiddleware, photosRoutes);
 app.use('/api/analytics', authMiddleware, analyticsRoutes);
 app.use('/api/journeys', authMiddleware, journeysRoutes);
+app.use('/api/places', authMiddleware, placesRoutes);
 
 // Error handler
 app.use((err, req, res, next) => {
