@@ -2,7 +2,6 @@ import React, { useMemo, useState } from 'react';
 import { useData } from '../context/DataContext';
 import TripForm from '../components/TripForm';
 import MemoryPhotosModal from '../components/MemoryPhotosModal';
-import DataBackupPanel from '../components/DataBackupPanel';
 import { formatDateOnly } from '../utils/format';
 
 const FILTERS = [
@@ -213,8 +212,6 @@ export default function CleanupPage() {
         <IssueCard label="No photos" count={counts.noPhotos} onClick={() => setFilter('no-photos')} />
         <IssueCard label="Not in a journey" count={counts.noJourney} onClick={() => setFilter('no-journey')} />
       </section>
-
-      <DataBackupPanel />
 
       {message && (
         <div className={`rounded-lg border px-4 py-3 text-sm ${

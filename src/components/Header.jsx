@@ -6,8 +6,7 @@ const navItems = [
   { id: 'journeys', label: 'Our journeys', icon: '⌁' },
   { id: 'timeline', label: 'Timeline', icon: '↗' },
   { id: 'trips', label: 'All places', icon: '○' },
-  { id: 'people', label: 'People', icon: '♧' },
-  { id: 'cleanup', label: 'Clean up', icon: '✓' },
+  { id: 'settings', label: 'Settings', icon: '⚙' },
 ];
 
 export default function Header({ currentPage, setPage }) {

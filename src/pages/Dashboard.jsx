@@ -8,7 +8,7 @@ import { formatDateOnly } from '../utils/format';
 import { getPhotoImageStyle } from '../utils/photos';
 
 export default function Dashboard({ setPage }) {
-  const { trips, analytics, backupStatus, loading } = useData();
+  const { trips, analytics, loading } = useData();
   const [showForm, setShowForm] = useState(false);
   const [editingTrip, setEditingTrip] = useState(null);
   const [selectedTrip, setSelectedTrip] = useState(null);
@@ -145,8 +145,6 @@ export default function Dashboard({ setPage }) {
         </div>
       )}
 
-      <BackupStatus status={backupStatus} />
-
       <section className="memory-after">
         <div className="memory-story-summary">
           <p className="memory-eyebrow">Our story so far</p>
@@ -193,60 +191,6 @@ export default function Dashboard({ setPage }) {
       {photoTrip && <MemoryPhotosModal memory={photoTrip} onClose={() => setPhotoTrip(null)} />}
     </div>
   );
-}
-
-function BackupStatus({ status }) {
-  const statusClass = status?.stale
-    ? 'border-amber-200 bg-amber-50 text-amber-950'
-    : 'border-green-200 bg-green-50 text-green-950';
-
-  return (
-    <section className={`rounded-2xl border p-4 shadow-sm ${statusClass}`} aria-live="polite">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] opacity-70">Backup health</p>
-          <h2 className="mt-1 text-lg font-semibold">
-            {status?.stale ? 'Backup needs attention' : status ? 'Backups are current' : 'Checking backup status…'}
-          </h2>
-          <p className="mt-1 text-sm opacity-80">
-            {status?.message || (status?.stale
-              ? 'The last successful R2 backup is outside the expected window.'
-              : 'The Ubuntu backup job is reporting normally.')}
-          </p>
-        </div>
-        {status && (
-          <div className="grid grid-cols-1 gap-2 text-sm sm:min-w-[19rem] sm:grid-cols-3">
-            <BackupMetric label="Last backup" value={formatStatusDate(status.lastSuccessfulBackupAt)} />
-            <BackupMetric label="DB dump" value={formatStatusDate(status.lastDatabaseDumpAt)} />
-            <BackupMetric label="Photos on disk" value={formatBytes(status.photoStorageBytes)} />
-          </div>
-        )}
-      </div>
-    </section>
-  );
-}
-
-function BackupMetric({ label, value }) {
-  return (
-    <div className="rounded-xl bg-white/60 px-3 py-2">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] opacity-60">{label}</p>
-      <p className="mt-1 font-semibold">{value}</p>
-    </div>
-  );
-}
-
-function formatStatusDate(value) {
-  if (!value) return 'Not reported';
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? 'Not reported' : date.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
-}
-
-function formatBytes(value) {
-  const bytes = Number(value);
-  if (!Number.isFinite(bytes) || bytes <= 0) return 'Not reported';
-  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
-  const index = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
-  return `${(bytes / (1024 ** index)).toFixed(index ? 1 : 0)} ${units[index]}`;
 }
 
 function TripDetailModal({ trip, onClose, onPhotos, onEdit }) {

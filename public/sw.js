@@ -1,5 +1,9 @@
-const CACHE_NAME = 'travel-journal-shell-v1';
-const SHELL_FILES = ['/', '/index.html', '/manifest.webmanifest', '/icon.svg'];
+const CACHE_NAME = 'travel-journal-shell-v2';
+const SHELL_FILES = ['/', '/index.html', '/manifest.webmanifest', '/icon.svg', '/icon-192.png', '/icon-512.png'];
+
+self.addEventListener('message', event => {
+  if (event.data?.type === 'SKIP_WAITING') self.skipWaiting();
+});
 
 self.addEventListener('install', event => {
   event.waitUntil(
@@ -27,7 +31,7 @@ self.addEventListener('fetch', event => {
 
   if (request.mode === 'navigate') {
     event.respondWith(
-      fetch(request)
+      fetch(request, { cache: 'no-cache' })
         .then(response => {
           const copy = response.clone();
           caches.open(CACHE_NAME).then(cache => cache.put('/index.html', copy));
@@ -38,13 +42,18 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  event.respondWith(
-    caches.match(request).then(cached => cached || fetch(request).then(response => {
-      if (response.ok) {
+  event.respondWith((async () => {
+    const cached = await caches.match(request);
+    if (cached) return cached;
+    try {
+      const response = await fetch(request);
+      if (response.ok && new URL(request.url).pathname !== '/sw.js') {
         const copy = response.clone();
-        caches.open(CACHE_NAME).then(cache => cache.put(request, copy));
+        event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.put(request, copy)));
       }
       return response;
-    }))
-  );
+    } catch {
+      return cached || Response.error();
+    }
+  })());
 });

@@ -42,12 +42,22 @@ class ApiClient {
       delete config.headers['Content-Type'];
     }
 
-    const response = await fetch(url, config);
+    let response;
+    try {
+      response = await fetch(url, config);
+    } catch (error) {
+      const networkError = new Error('You appear to be offline. Your changes will be saved on this device and synced when you reconnect.');
+      networkError.isNetworkError = true;
+      networkError.cause = error;
+      throw networkError;
+    }
 
     if (response.status === 401) {
       this.clearToken();
+      const error = new Error('Your session has expired. Please sign in again.');
+      error.isUnauthorized = true;
       window.location.href = '/login';
-      throw new Error('Unauthorized');
+      throw error;
     }
 
     if (!response.ok) {

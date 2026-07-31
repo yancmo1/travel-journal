@@ -149,6 +149,25 @@ The job keeps 14 days of local compressed database dumps. In R2, Restic retains
 7 daily, 5 weekly, and 12 monthly snapshots. Photos remain primary on the
 Ubuntu disk; R2 is an encrypted off-site backup rather than live photo serving.
 
+The backup status file is written under `${DATA_ROOT}/maintenance/` and is
+owned by the backend container's uid/gid so the authenticated dashboard can
+read it. If `MAINTENANCE_UID` and `MAINTENANCE_GID` are not set, the script
+uses `PHOTO_UID` and `PHOTO_GID`, which default to `1000`.
+
+To access the encrypted R2 repository from the Ubuntu host, use the Restic
+container with the same `.env.production` file:
+
+```bash
+cd /opt/travel-journal
+sudo docker run --rm --env-file .env.production \
+  restic/restic:latest snapshots
+```
+
+R2 objects are Restic-encrypted and are not meant to be opened directly as
+individual files in the R2 browser. Use `restic snapshots`, `restic ls`, or a
+staging restore. Keep `RESTIC_PASSWORD` with the R2 credentials; without it,
+the bucket contents cannot be restored.
+
 ## Deploys and rollback
 
 Every push to `main` publishes `latest`. The stack's Watchtower polls every five
