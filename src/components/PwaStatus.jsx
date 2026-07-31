@@ -4,16 +4,12 @@ import { useData } from '../context/DataContext';
 export default function PwaStatus() {
   const { offline, syncing, pendingCount, syncError, syncMutations, lastSyncedAt } = useData();
   const [installEvent, setInstallEvent] = useState(null);
-  const [updateReady, setUpdateReady] = useState(false);
 
   useEffect(() => {
     const install = event => { event.preventDefault(); setInstallEvent(event); };
-    const update = () => setUpdateReady(true);
     window.addEventListener('beforeinstallprompt', install);
-    window.addEventListener('pwa-update-ready', update);
     return () => {
       window.removeEventListener('beforeinstallprompt', install);
-      window.removeEventListener('pwa-update-ready', update);
     };
   }, []);
 
@@ -23,13 +19,7 @@ export default function PwaStatus() {
     setInstallEvent(null);
   }
 
-  function update() {
-    navigator.serviceWorker?.getRegistration('/').then(registration => {
-      registration?.waiting?.postMessage({ type: 'SKIP_WAITING' });
-    });
-  }
-
-  if (!offline && !syncing && !pendingCount && !syncError && !installEvent && !updateReady) return null;
+  if (!offline && !syncing && !pendingCount && !syncError && !installEvent) return null;
 
   return (
     <aside className="pwa-status" aria-live="polite">
@@ -40,14 +30,13 @@ export default function PwaStatus() {
             : syncing ? 'Syncing saved changes…'
               : syncError ? syncError
                 : pendingCount ? `${pendingCount} saved change${pendingCount === 1 ? '' : 's'} waiting to sync.`
-                  : 'A new version is ready.'}
+                  : 'Your changes are synced.'}
           {!offline && !syncing && lastSyncedAt && <small> Last synced {new Date(lastSyncedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}.</small>}
         </span>
       </div>
       <div className="pwa-status-actions">
         {pendingCount > 0 && !offline && <button type="button" onClick={syncMutations}>Sync now</button>}
         {installEvent && <button type="button" onClick={install}>Install app</button>}
-        {updateReady && <button type="button" onClick={update}>Update app</button>}
       </div>
     </aside>
   );

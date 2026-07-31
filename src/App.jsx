@@ -6,8 +6,7 @@ import Dashboard from './pages/Dashboard';
 import TripsPage from './pages/TripsPage';
 import LoginPage from './pages/LoginPage';
 import JourneysPage from './pages/JourneysPage';
-import CleanupPage from './pages/CleanupPage';
-import PeoplePage from './pages/PeoplePage';
+import SettingsPage from './pages/SettingsPage';
 import TimelinePage from './pages/TimelinePage';
 import SharedJourneyPage from './pages/SharedJourneyPage';
 import PwaStatus from './components/PwaStatus';
@@ -39,13 +38,12 @@ function AppContent() {
           {page === 'journeys' && <JourneysPage />}
           {page === 'timeline' && <TimelinePage setPage={setPage} />}
           {page === 'trips' && <TripsPage initialTravelerFilter={travelerFilter} />}
-          {page === 'people' && (
-            <PeoplePage
+          {page === 'settings' && (
+            <SettingsPage
               setPage={setPage}
               setTravelerFilter={setTravelerFilter}
             />
           )}
-          {page === 'cleanup' && <CleanupPage />}
         </main>
       </div>
     </DataProvider>
