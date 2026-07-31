@@ -21,7 +21,7 @@ function hasCoordinates(latitude, longitude) {
 }
 
 export default function TripForm({ trip, onClose }) {
-  const { travelers, addTrip, updateTrip, addTraveler, loadTrips } = useData();
+  const { travelers, addTrip, updateTrip, addTraveler, loadTrips, offline, queuePhotoUpload } = useData();
   
   const [form, setForm] = useState({
     locationName: '',
@@ -405,6 +405,11 @@ export default function TripForm({ trip, onClose }) {
       memorySaved = true;
 
       if (photoFiles.length > 0) {
+        if (offline || String(savedTrip.id).startsWith('offline-')) {
+          await queuePhotoUpload(savedTrip.id, photoFiles);
+          onClose();
+          return;
+        }
         const uploadResult = await api.uploadPhotos(savedTrip.id, photoFiles);
         if (!uploadResult.count) {
           throw new Error('The memory was saved, but none of the selected photos could be processed.');
