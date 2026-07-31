@@ -14,6 +14,7 @@ export default function JourneyForm({ journey, onClose }) {
     journeyType: journey?.journey_type || 'Other',
     summary: journey?.summary || '',
     memoryIds: journey?.memories?.map(memory => memory.id) || [],
+    coverPhotoId: journey?.cover_photo_id || '',
   });
   const [search, setSearch] = useState('');
   const [saving, setSaving] = useState(false);
@@ -31,6 +32,13 @@ export default function JourneyForm({ journey, onClose }) {
         return new Date(a.start_date) - new Date(b.start_date);
       });
   }, [trips, search]);
+
+  const coverOptions = useMemo(() => trips
+    .filter(memory => form.memoryIds.includes(memory.id))
+    .flatMap(memory => (memory.photos || []).map(photo => ({
+      ...photo,
+      memoryLocation: memory.location_name,
+    }))), [trips, form.memoryIds]);
 
   function toggleMemory(id) {
     setForm(current => ({
@@ -121,6 +129,21 @@ export default function JourneyForm({ journey, onClose }) {
               onChange={event => setForm({ ...form, summary: event.target.value })}
               placeholder="What made this trip special?"
             />
+          </label>
+
+          <label>
+            <span>Journey cover <small>(optional)</small></span>
+            <select
+              value={form.coverPhotoId}
+              onChange={event => setForm({ ...form, coverPhotoId: event.target.value })}
+            >
+              <option value="">Use the first memory cover</option>
+              {coverOptions.map(photo => (
+                <option key={photo.id} value={photo.id}>
+                  {photo.memoryLocation} · {photo.caption || photo.filename || `Photo ${photo.id}`}
+                </option>
+              ))}
+            </select>
           </label>
 
           <section className="journey-memory-picker">

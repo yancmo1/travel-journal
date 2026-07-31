@@ -4,14 +4,16 @@ import TripForm from '../components/TripForm';
 import MemoryPhotosModal from '../components/MemoryPhotosModal';
 import api from '../utils/api';
 import { formatDateOnly } from '../utils/format';
+import { sortTravelers } from '../utils/travelers';
 
 const TRIP_TYPES = ['All', 'Road Trip', 'Flight', 'Cruise', 'Day Trip', 'Other'];
 
-export default function TripsPage() {
-  const { trips, loading, deleteTrip, loadTrips, loadJourneys } = useData();
+export default function TripsPage({ initialTravelerFilter = 'all' }) {
+  const { trips, travelers, loading, deleteTrip, loadTrips, loadJourneys } = useData();
   const [filter, setFilter] = useState('All');
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState('date-desc');
+  const [travelerFilter, setTravelerFilter] = useState(initialTravelerFilter);
   const [showForm, setShowForm] = useState(false);
   const [editTrip, setEditTrip] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
@@ -19,6 +21,10 @@ export default function TripsPage() {
   const [backfillCount, setBackfillCount] = useState(0);
   const [backfilling, setBackfilling] = useState(false);
   const [backfillMessage, setBackfillMessage] = useState('');
+
+  useEffect(() => {
+    setTravelerFilter(initialTravelerFilter || 'all');
+  }, [initialTravelerFilter]);
 
   useEffect(() => {
     api.getLocationBackfillCandidates()
@@ -33,14 +39,31 @@ export default function TripsPage() {
     filteredTrips = filteredTrips.filter(t => t.trip_type === filter);
   }
 
+  if (travelerFilter !== 'all') {
+    filteredTrips = filteredTrips.filter(trip => (
+      trip.travelers?.some(traveler => String(traveler.id) === travelerFilter)
+    ));
+  }
+
   if (search) {
-    const q = search.toLowerCase();
-    filteredTrips = filteredTrips.filter(t => 
-      t.location_name?.toLowerCase().includes(q) ||
-      t.notes?.toLowerCase().includes(q) ||
-      t.country?.toLowerCase().includes(q) ||
-      t.state?.toLowerCase().includes(q)
-    );
+    const q = search.trim().toLowerCase();
+    filteredTrips = filteredTrips.filter(trip => {
+      const searchable = [
+        trip.location_name,
+        trip.city,
+        trip.state,
+        trip.country,
+        trip.notes,
+        trip.date_label,
+        trip.start_date,
+        trip.end_date,
+        trip.trip_type,
+        trip.journey_title,
+        ...(trip.travelers || []).map(traveler => traveler.name),
+        ...(trip.photos || []).flatMap(photo => [photo.filename, photo.caption]),
+      ].filter(Boolean).join(' ').toLowerCase();
+      return searchable.includes(q);
+    });
   }
 
   filteredTrips.sort((a, b) => {
@@ -126,7 +149,7 @@ export default function TripsPage() {
               type="text"
               value={search}
               onChange={e => setSearch(e.target.value)}
-              placeholder="Search places and memories..."
+              placeholder="Search places, notes, people, dates, or photo captions..."
               className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-ocean-teal focus:border-transparent"
             />
           </div>
@@ -158,6 +181,20 @@ export default function TripsPage() {
             <option value="date-asc">Oldest First</option>
             <option value="location">By Location</option>
             <option value="type">By Type</option>
+          </select>
+
+          <select
+            value={travelerFilter}
+            onChange={e => setTravelerFilter(e.target.value)}
+            aria-label="Filter memories by person"
+            className="px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-ocean-teal"
+          >
+            <option value="all">Everyone</option>
+            {sortTravelers(travelers).map(traveler => (
+              <option key={traveler.id} value={traveler.id}>
+                {traveler.name}{traveler.is_active === false ? ' (inactive)' : ''}
+              </option>
+            ))}
           </select>
         </div>
       </div>

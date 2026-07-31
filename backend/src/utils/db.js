@@ -40,15 +40,59 @@ export async function initDatabase() {
   await query('ALTER TABLE trips ADD COLUMN IF NOT EXISTS journey_id INT REFERENCES journeys(id) ON DELETE SET NULL');
   await query('ALTER TABLE trips ADD COLUMN IF NOT EXISTS journey_order INT');
   await query('CREATE INDEX IF NOT EXISTS idx_trips_journey_id ON trips(journey_id)');
+  await query('ALTER TABLE journeys ADD COLUMN IF NOT EXISTS cover_photo_id INT');
+  await query('ALTER TABLE journeys ADD COLUMN IF NOT EXISTS share_token VARCHAR(64)');
+  await query('ALTER TABLE journeys ADD COLUMN IF NOT EXISTS share_expires_at TIMESTAMP');
+  await query('CREATE UNIQUE INDEX IF NOT EXISTS idx_journeys_share_token ON journeys(share_token) WHERE share_token IS NOT NULL');
+  await query('ALTER TABLE photos ADD COLUMN IF NOT EXISTS caption TEXT');
+  await query('ALTER TABLE photos ADD COLUMN IF NOT EXISTS sort_order INTEGER NOT NULL DEFAULT 0');
+  await query('ALTER TABLE photos ADD COLUMN IF NOT EXISTS is_cover BOOLEAN NOT NULL DEFAULT false');
+  await query('ALTER TABLE photos ADD COLUMN IF NOT EXISTS rotation INTEGER NOT NULL DEFAULT 0');
+  await query(`
+    WITH ranked AS (
+      SELECT id, ROW_NUMBER() OVER (PARTITION BY trip_id ORDER BY uploaded_at NULLS LAST, id) - 1 AS position
+      FROM photos
+    )
+    UPDATE photos
+    SET sort_order = ranked.position
+    FROM ranked
+    WHERE photos.id = ranked.id
+      AND (SELECT COUNT(DISTINCT sort_order) FROM photos) <= 1
+  `);
+
+  // Bring the original placeholder names forward without breaking their memory links.
+  await query(`
+    UPDATE travelers
+    SET name = 'Yancy', relationship = 'husband'
+    WHERE LOWER(name) = 'you'
+      AND NOT EXISTS (SELECT 1 FROM travelers WHERE LOWER(name) = 'yancy')
+  `);
+  await query(`
+    UPDATE travelers
+    SET name = 'Amber', relationship = 'wife'
+    WHERE LOWER(name) = 'wife'
+      AND NOT EXISTS (SELECT 1 FROM travelers WHERE LOWER(name) = 'amber')
+  `);
+  await query(`
+    UPDATE travelers
+    SET name = 'Josh', relationship = 'child'
+    WHERE LOWER(name) = 'test child'
+      AND NOT EXISTS (SELECT 1 FROM travelers WHERE LOWER(name) = 'josh')
+  `);
 
   // Keep the core family list available on both new and existing installations.
   await query(`
     INSERT INTO travelers (name, relationship)
     SELECT family.name, family.relationship
     FROM (VALUES
+      ('Yancy', 'husband'),
+      ('Amber', 'wife'),
+      ('Josh', 'child'),
+      ('Jonathan', 'child'),
+      ('Aden', 'child'),
+      ('Charity', 'grandchild'),
       ('Dawson', 'grandchild'),
       ('Luke', 'grandchild'),
-      ('Charity', 'grandchild'),
       ('Adalynn', 'grandchild'),
       ('Elayna', 'grandchild')
     ) AS family(name, relationship)

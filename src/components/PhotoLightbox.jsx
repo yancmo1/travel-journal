@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ChevronLeft, ChevronRight, Minus, Plus, RotateCcw, X } from 'lucide-react';
+import { getPhotoImageStyle } from '../utils/photos';
 
 const ZOOM_STEPS = [1, 1.5, 2];
 
@@ -56,6 +57,7 @@ export default function PhotoLightbox({
   if (!currentPhoto) return null;
 
   const imagePath = currentPhoto.file_path || currentPhoto.thumbnail_path;
+  const imageStyle = getPhotoImageStyle(currentPhoto);
 
   return (
     <div
@@ -117,7 +119,10 @@ export default function PhotoLightbox({
             alt={currentPhoto.filename || 'Memory photo'}
             onClick={() => setZoom(current => current === 1 ? 2 : 1)}
             className={`rounded-lg select-none ${zoom === 1 ? 'max-h-[78vh] max-w-full cursor-zoom-in object-contain' : 'max-w-none cursor-zoom-out'}`}
-            style={zoom === 1 ? undefined : { width: `${zoom * 90}vw`, height: 'auto' }}
+            style={{
+              ...imageStyle,
+              ...(zoom === 1 ? {} : { width: `${zoom * 90}vw`, height: 'auto' }),
+            }}
           />
         </div>
       </div>

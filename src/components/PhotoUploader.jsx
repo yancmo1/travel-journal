@@ -9,7 +9,9 @@ export default function PhotoUploader({ tripId, onUploadComplete, showAnalyzer =
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [uploadResults, setUploadResults] = useState(null);
+  const [error, setError] = useState('');
   const fileInputRef = useRef(null);
+  const cameraInputRef = useRef(null);
 
   // Handle file selection
   const handleFiles = (selectedFiles) => {
@@ -19,10 +21,14 @@ export default function PhotoUploader({ tripId, onUploadComplete, showAnalyzer =
     );
 
     if (validFiles.length === 0) {
-      alert('Please select valid image files');
+      setError('Please choose one or more image files. JPEG, PNG, and HEIC are supported.');
       return;
     }
 
+    setError(fileArray.length !== validFiles.length
+      ? `${fileArray.length - validFiles.length} file${fileArray.length - validFiles.length === 1 ? '' : 's'} skipped because it was not an image.`
+      : '');
+    setUploadResults(null);
     setFiles(validFiles);
 
     // Generate previews
@@ -74,6 +80,7 @@ export default function PhotoUploader({ tripId, onUploadComplete, showAnalyzer =
   const uploadPhotos = async () => {
     if (files.length === 0) return;
 
+    setError('');
     setUploading(true);
     setProgress(0);
 
@@ -90,7 +97,7 @@ export default function PhotoUploader({ tripId, onUploadComplete, showAnalyzer =
         }, 500);
       } catch (error) {
         console.error('Custom handler error:', error);
-        alert('Failed to process photos. Please try again.');
+        setError('We couldn’t process these photos. Your selection is still here; check the files and try again.');
       } finally {
         setUploading(false);
       }
@@ -114,7 +121,7 @@ export default function PhotoUploader({ tripId, onUploadComplete, showAnalyzer =
 
     } catch (error) {
       console.error('Upload error:', error);
-      alert('Failed to upload photos. Please try again.');
+      setError('We couldn’t save these photos. Your selection is still here; check your connection and try again.');
     } finally {
       setUploading(false);
     }
@@ -142,7 +149,15 @@ export default function PhotoUploader({ tripId, onUploadComplete, showAnalyzer =
           ref={fileInputRef}
           type="file"
           multiple
+          accept="image/*,.heic,.heif"
+          onChange={(e) => handleFiles(e.target.files)}
+          className="hidden"
+        />
+        <input
+          ref={cameraInputRef}
+          type="file"
           accept="image/*"
+          capture="environment"
           onChange={(e) => handleFiles(e.target.files)}
           className="hidden"
         />
@@ -163,8 +178,36 @@ export default function PhotoUploader({ tripId, onUploadComplete, showAnalyzer =
               Photos with GPS data will be analyzed for location
             </p>
           )}
+          <div className="mt-3 flex flex-wrap gap-2" onClick={event => event.stopPropagation()}>
+            <button
+              type="button"
+              onClick={() => cameraInputRef.current?.click()}
+              disabled={uploading}
+              className="min-h-11 rounded-lg border border-ocean-teal/30 bg-white px-3 py-2 text-xs font-semibold text-ocean-dark hover:bg-ocean-teal/5 disabled:opacity-50"
+            >
+              Take a photo
+            </button>
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+              className="min-h-11 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-700 hover:border-ocean-blue hover:text-ocean-dark disabled:opacity-50"
+            >
+              Choose from library
+            </button>
+          </div>
         </div>
       </div>
+
+      {error && (
+        <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700" role="alert" aria-live="polite">
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+          <div>
+            <p>{error}</p>
+            {files.length > 0 && <p className="mt-1 text-xs text-red-600">Use the retry button below; you won’t need to select the photos again.</p>}
+          </div>
+        </div>
+      )}
 
       {/* Preview Grid */}
       {previews.length > 0 && (
@@ -215,13 +258,16 @@ export default function PhotoUploader({ tripId, onUploadComplete, showAnalyzer =
       {/* Upload Button */}
       {files.length > 0 && !uploading && !uploadResults && (
         <button
+          type="button"
           onClick={uploadPhotos}
           className="w-full bg-ocean-blue hover:bg-ocean-blue/90 text-white 
                    font-medium px-6 py-3 rounded-lg transition-colors
                    flex items-center justify-center gap-2"
         >
           <Upload className="h-5 w-5" />
-          {customUploadHandler
+          {error
+            ? 'Retry'
+            : customUploadHandler
             ? `Analyze ${files.length} Photo${files.length > 1 ? 's' : ''}`
             : `Save ${files.length} Photo${files.length > 1 ? 's' : ''}`
           }

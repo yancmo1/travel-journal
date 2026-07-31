@@ -31,10 +31,13 @@ services:
       - HOME_LATITUDE=${HOME_LATITUDE:-35.4676}
       - HOME_LONGITUDE=${HOME_LONGITUDE:-97.5164}
       - GOOGLE_PLACES_API_KEY=${GOOGLE_PLACES_API_KEY:-}
+      - BACKUP_STATUS_PATH=/app/maintenance/backup-status.json
+      - BACKUP_STALE_AFTER_HOURS=${BACKUP_STALE_AFTER_HOURS:-30}
       - PORT=4000
       - NODE_ENV=production
     volumes:
       - photo_storage:/app/media/travel-photos
+      - ./data/maintenance:/app/maintenance:ro
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:4000/api/health"]
       interval: 30s

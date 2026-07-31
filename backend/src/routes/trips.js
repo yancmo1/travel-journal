@@ -36,22 +36,25 @@ router.get('/', async (req, res, next) => {
           FILTER (WHERE tr.id IS NOT NULL), 
           '[]'
         ) as travelers,
-        COALESCE(
-          json_agg(DISTINCT jsonb_build_object(
-            'id', p.id,
-            'filename', p.filename,
-            'file_path', p.file_path,
-            'thumbnail_path', p.thumbnail_path,
-            'date_taken', p.date_taken
-          ))
-          FILTER (WHERE p.id IS NOT NULL), 
-          '[]'
-        ) as photos
+        COALESCE((
+          SELECT json_agg(json_build_object(
+            'id', p2.id,
+            'filename', p2.filename,
+            'file_path', p2.file_path,
+            'thumbnail_path', p2.thumbnail_path,
+            'date_taken', p2.date_taken,
+            'caption', p2.caption,
+            'sort_order', p2.sort_order,
+            'is_cover', p2.is_cover,
+            'rotation', p2.rotation
+          ) ORDER BY p2.is_cover DESC, p2.sort_order ASC, p2.date_taken NULLS LAST, p2.uploaded_at, p2.id)
+          FROM photos p2
+          WHERE p2.trip_id = t.id
+        ), '[]') AS photos
       FROM trips t
       LEFT JOIN journeys j ON t.journey_id = j.id
       LEFT JOIN trip_travelers tt ON t.id = tt.trip_id
       LEFT JOIN travelers tr ON tt.traveler_id = tr.id
-      LEFT JOIN photos p ON t.id = p.trip_id
     `;
     
     const conditions = [];
@@ -110,7 +113,11 @@ router.get('/:id', async (req, res, next) => {
     trip.travelers = travelersResult.rows;
 
     // Get photos
-    const photosResult = await query('SELECT * FROM photos WHERE trip_id = $1', [id]);
+    const photosResult = await query(`
+      SELECT * FROM photos
+      WHERE trip_id = $1
+      ORDER BY is_cover DESC, sort_order ASC, date_taken NULLS LAST, uploaded_at, id
+    `, [id]);
     trip.photos = photosResult.rows;
 
     res.json(trip);

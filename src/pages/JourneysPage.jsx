@@ -4,6 +4,8 @@ import JourneyForm from '../components/JourneyForm';
 import MapView from '../components/Map';
 import MemoryPhotosModal from '../components/MemoryPhotosModal';
 import { formatDateOnly } from '../utils/format';
+import { getPhotoImageStyle } from '../utils/photos';
+import api from '../utils/api';
 
 export default function JourneysPage() {
   const { journeys, deleteJourney } = useData();
@@ -11,6 +13,7 @@ export default function JourneysPage() {
   const [editing, setEditing] = useState(null);
   const [selected, setSelected] = useState(null);
   const [photoMemory, setPhotoMemory] = useState(null);
+  const [printJourney, setPrintJourney] = useState(null);
 
   function closeForm() {
     setShowForm(false);
@@ -44,7 +47,7 @@ export default function JourneysPage() {
                 <button type="button" className="journey-card-open" onClick={() => setSelected(journey)}>
                   <div className={`journey-cover ${cover ? 'has-photo' : ''}`}>
                     {cover ? (
-                      <img src={`/photos/${cover.thumbnail_path}`} alt="" />
+                      <img src={`/photos/${cover.thumbnail_path}`} alt="" style={getPhotoImageStyle(cover)} />
                     ) : (
                       <div className="journey-cover-art" aria-hidden="true"><span>✦</span></div>
                     )}
@@ -85,14 +88,58 @@ export default function JourneysPage() {
           onEdit={() => { setEditing(selected); setSelected(null); setShowForm(true); }}
           onDelete={() => removeJourney(selected)}
           onPhotos={setPhotoMemory}
+          onPrint={() => {
+            setPrintJourney(selected);
+            setSelected(null);
+            setTimeout(() => window.print(), 50);
+          }}
         />
       )}
       {photoMemory && <MemoryPhotosModal memory={photoMemory} onClose={() => setPhotoMemory(null)} />}
+      {printJourney && <TravelBookPrint journey={printJourney} onClose={() => setPrintJourney(null)} />}
     </div>
   );
 }
 
-function JourneyDetail({ journey, onClose, onEdit, onDelete, onPhotos }) {
+function JourneyDetail({ journey, onClose, onEdit, onDelete, onPhotos, onPrint }) {
+  const [shareLink, setShareLink] = useState(journey.share_token ? `${window.location.origin}/share/journey/${journey.share_token}` : '');
+  const [shareError, setShareError] = useState('');
+  const [sharing, setSharing] = useState(false);
+
+  async function createShareLink() {
+    setSharing(true);
+    setShareError('');
+    try {
+      const result = await api.createJourneyShare(journey.id);
+      setShareLink(`${window.location.origin}/share/journey/${result.share_token}`);
+    } catch (error) {
+      setShareError(error.message || 'The private link could not be created.');
+    } finally {
+      setSharing(false);
+    }
+  }
+
+  async function revokeShareLink() {
+    setSharing(true);
+    setShareError('');
+    try {
+      await api.revokeJourneyShare(journey.id);
+      setShareLink('');
+    } catch (error) {
+      setShareError(error.message || 'The private link could not be revoked.');
+    } finally {
+      setSharing(false);
+    }
+  }
+
+  async function copyShareLink() {
+    try {
+      await navigator.clipboard.writeText(shareLink);
+    } catch {
+      setShareError('Copy was blocked. Select the link and copy it manually.');
+    }
+  }
+
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-3 z-[1500]">
       <div className="journey-detail">
@@ -123,7 +170,7 @@ function JourneyDetail({ journey, onClose, onEdit, onDelete, onPhotos }) {
                 {memory.photos?.length > 0 && (
                   <div className="journey-photo-strip">
                     {memory.photos.slice(0, 4).map(photo => (
-                      <img key={photo.id} src={`/photos/${photo.thumbnail_path}`} alt={photo.filename} />
+                      <img key={photo.id} src={`/photos/${photo.thumbnail_path}`} alt={photo.caption || photo.filename} style={getPhotoImageStyle(photo)} />
                     ))}
                   </div>
                 )}
@@ -136,8 +183,20 @@ function JourneyDetail({ journey, onClose, onEdit, onDelete, onPhotos }) {
           {!journey.memories.length && <div className="memory-empty">No memories have been added to this journey yet.</div>}
         </div>
 
+        <div className="border-t border-gray-100 px-5 py-4">
+          <div className="flex flex-wrap items-center gap-2">
+            <button type="button" onClick={createShareLink} disabled={sharing} className="rounded-lg bg-ocean-teal px-3 py-2 text-sm font-semibold text-white disabled:opacity-50">
+              {sharing ? 'Working…' : shareLink ? 'Regenerate private link' : 'Create private link'}
+            </button>
+            {shareLink && <button type="button" onClick={copyShareLink} className="rounded-lg border border-gray-200 px-3 py-2 text-sm font-semibold text-gray-600">Copy link</button>}
+            {shareLink && <button type="button" onClick={revokeShareLink} disabled={sharing} className="rounded-lg border border-red-200 px-3 py-2 text-sm font-semibold text-red-600 disabled:opacity-50">Revoke</button>}
+          </div>
+          {shareLink && <input readOnly value={shareLink} aria-label="Private journey link" className="mt-3 w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-600" onFocus={event => event.target.select()} />}
+          {shareError && <p className="mt-2 text-sm text-red-600" role="alert">{shareError}</p>}
+        </div>
         <footer>
           <button type="button" onClick={onDelete}>Delete journey</button>
+          <button type="button" onClick={onPrint}>Print / save as PDF</button>
           <button type="button" onClick={onEdit}>Edit journey</button>
         </footer>
       </div>
@@ -146,10 +205,63 @@ function JourneyDetail({ journey, onClose, onEdit, onDelete, onPhotos }) {
 }
 
 function findCover(journey) {
+  if (journey.cover_photo_id) {
+    const selected = journey.memories.flatMap(memory => memory.photos || [])
+      .find(photo => String(photo.id) === String(journey.cover_photo_id));
+    if (selected) return selected;
+  }
+  for (const memory of journey.memories) {
+    const cover = memory.photos?.find(photo => photo.is_cover);
+    if (cover) return cover;
+  }
   for (const memory of journey.memories) {
     if (memory.photos?.length) return memory.photos[0];
   }
   return null;
+}
+
+function TravelBookPrint({ journey, onClose }) {
+  const cover = findCover(journey);
+
+  return (
+    <section className="travel-book-print" aria-label="Printable travel book">
+      <div className="travel-book-actions">
+        <button type="button" onClick={() => window.print()}>Print / save as PDF</button>
+        <button type="button" onClick={onClose}>Close</button>
+      </div>
+      <header>
+        {cover && <img src={`/photos/${cover.file_path || cover.thumbnail_path}`} alt="" style={getPhotoImageStyle(cover)} />}
+        <div>
+          <p>{formatJourneyDate(journey)}</p>
+          <h1>{journey.title}</h1>
+          <blockquote>{journey.summary || 'A family travel story.'}</blockquote>
+        </div>
+      </header>
+      {journey.memories.map((memory, index) => (
+        <article key={memory.id}>
+          <div className="travel-book-memory-heading">
+            <span>{String(index + 1).padStart(2, '0')}</span>
+            <div>
+              <p>{formatMemoryDate(memory)}</p>
+              <h2>{memory.location_name}</h2>
+              <small>{[memory.city, memory.state, memory.country].filter(Boolean).join(', ')}</small>
+            </div>
+          </div>
+          {memory.notes && <p>{memory.notes}</p>}
+          {memory.photos?.length > 0 && (
+            <div className="travel-book-photos">
+              {memory.photos.map(photo => (
+                <figure key={photo.id}>
+                  <img src={`/photos/${photo.file_path || photo.thumbnail_path}`} alt={photo.caption || photo.filename || ''} style={getPhotoImageStyle(photo)} />
+                  {photo.caption && <figcaption>{photo.caption}</figcaption>}
+                </figure>
+              ))}
+            </div>
+          )}
+        </article>
+      ))}
+    </section>
+  );
 }
 
 function formatJourneyDate(journey) {

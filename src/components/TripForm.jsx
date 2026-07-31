@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useData } from '../context/DataContext';
 import { nominatimSearch, placeAutocomplete } from '../utils/geocoding';
 import api from '../utils/api';
+import { sortTravelers } from '../utils/travelers';
 
 const TRIP_TYPES = ['Road Trip', 'Flight', 'Cruise', 'Day Trip', 'Other'];
 const RELATIONSHIPS = [
@@ -11,6 +12,13 @@ const RELATIONSHIPS = [
   ['grandchild', 'Grandkid'],
   ['other', 'Other'],
 ];
+
+function hasCoordinates(latitude, longitude) {
+  const hasValue = value => value !== null && value !== undefined && value !== '';
+  return hasValue(latitude) && hasValue(longitude)
+    && Number.isFinite(Number(latitude))
+    && Number.isFinite(Number(longitude));
+}
 
 export default function TripForm({ trip, onClose }) {
   const { travelers, addTrip, updateTrip, addTraveler, loadTrips } = useData();
@@ -45,6 +53,12 @@ export default function TripForm({ trip, onClose }) {
   const [savedTripId, setSavedTripId] = useState(null);
   const skipNextAutocomplete = useRef(false);
   const metadataRequestId = useRef(0);
+  const googleSearchTimer = useRef(null);
+  const googleSearchRequestId = useRef(0);
+
+  const selectableTravelers = sortTravelers(travelers.filter(traveler => (
+    traveler.is_active !== false || form.travelerIds.includes(traveler.id)
+  )));
 
   useEffect(() => {
     if (trip) {
@@ -104,6 +118,8 @@ export default function TripForm({ trip, onClose }) {
     return () => clearTimeout(timer);
   }, [activeSearchField, form.locationName, form.city, form.state, form.country]);
 
+  useEffect(() => () => clearTimeout(googleSearchTimer.current), []);
+
   function handleChange(e) {
     const { name, value } = e.target;
     const isSearchField = ['locationName', 'city', 'state'].includes(name);
@@ -129,27 +145,33 @@ export default function TripForm({ trip, onClose }) {
   }
 
   async function handleSearch() {
-    if (!form.locationName.trim()) return;
+    const query = form.locationName.trim();
+    if (!query) return;
+
+    clearTimeout(googleSearchTimer.current);
+    const requestId = ++googleSearchRequestId.current;
 
     setActiveSearchField('locationName');
     setSearching(true);
     setError('');
-    
-    try {
+
+    googleSearchTimer.current = setTimeout(async () => {
       try {
-        const results = await api.searchPlaces(form.locationName);
-        setSearchResults(results.slice(0, 5));
+        try {
+          const results = await api.searchPlaces(query);
+          if (requestId === googleSearchRequestId.current) setSearchResults(results.slice(0, 5));
+        } catch {
+          // Keep the free fallback available when Google Places is not configured
+          // locally or the request is temporarily unavailable.
+          const results = await nominatimSearch(query);
+          if (requestId === googleSearchRequestId.current) setSearchResults(results.slice(0, 5));
+        }
       } catch {
-        // Keep the free fallback available when Google Places is not configured
-        // locally or the request is temporarily unavailable.
-        const results = await nominatimSearch(form.locationName);
-        setSearchResults(results.slice(0, 5));
+        if (requestId === googleSearchRequestId.current) setError('Location search failed. Please try again.');
+      } finally {
+        if (requestId === googleSearchRequestId.current) setSearching(false);
       }
-    } catch (err) {
-      setError('Location search failed. Please try again.');
-    } finally {
-      setSearching(false);
-    }
+    }, 250);
   }
 
   function getLocationDetails(result) {
@@ -450,7 +472,7 @@ export default function TripForm({ trip, onClose }) {
             {renderSearchResults('locationName', 'Location suggestions')}
             <p className="mt-1 text-[10px] text-gray-400">Type a city or landmark, then use 🔍 to search a larger places database.</p>
 
-            {Number.isFinite(Number(form.latitude)) && Number.isFinite(Number(form.longitude)) && (
+            {hasCoordinates(form.latitude, form.longitude) && (
               <p className="mt-1 text-xs text-gray-500">
                 📍 {Number(form.latitude).toFixed(4)}, {Number(form.longitude).toFixed(4)}
               </p>
@@ -583,7 +605,7 @@ export default function TripForm({ trip, onClose }) {
               Who went on this trip?
             </label>
             <div className="flex flex-wrap gap-2">
-              {travelers.map(t => (
+              {selectableTravelers.map(t => (
                 <button
                   key={t.id}
                   type="button"
@@ -595,6 +617,7 @@ export default function TripForm({ trip, onClose }) {
                   }`}
                 >
                   {t.name}
+                  {t.is_active === false && <span className="ml-1 text-[10px]">(inactive)</span>}
                 </button>
               ))}
               <button

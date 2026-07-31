@@ -8,9 +8,13 @@ export default function PhotoAnalyzerPage({ setPage }) {
   const [selectedSuggestions, setSelectedSuggestions] = useState([]);
   const [creatingTrips, setCreatingTrips] = useState(false);
   const [editedSuggestions, setEditedSuggestions] = useState({});
+  const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
 
   const handleAnalyze = async (files) => {
     setAnalyzing(true);
+    setError('');
+    setSuccessMessage('');
 
     const formData = new FormData();
     files.forEach(file => {
@@ -53,7 +57,7 @@ export default function PhotoAnalyzerPage({ setPage }) {
 
     } catch (error) {
       console.error('Analysis error:', error);
-      alert('Failed to analyze photos. Please try again.');
+      setError('We couldn’t analyze these photos. Keep the selected files and try again, or check that they are readable image files.');
     } finally {
       setAnalyzing(false);
     }
@@ -81,6 +85,8 @@ export default function PhotoAnalyzerPage({ setPage }) {
 
   const createTripsFromSuggestions = async () => {
     setCreatingTrips(true);
+    setError('');
+    setSuccessMessage('');
 
     try {
       // Create each trip using selected suggestion indices so we keep edits aligned
@@ -112,14 +118,14 @@ export default function PhotoAnalyzerPage({ setPage }) {
         });
       }
 
-      alert(`Successfully created ${selectedTrips.length} trip(s)!`);
+      setSuccessMessage(`Successfully created ${selectedSuggestions.length} trip${selectedSuggestions.length === 1 ? '' : 's'}!`);
       if (setPage) {
         setPage('trips');
       }
 
     } catch (error) {
       console.error('Trip creation error:', error);
-      alert('Failed to create trips. Please try again.');
+      setError('We couldn’t create the selected trips. Your analysis is still here; review the suggestions and try again.');
     } finally {
       setCreatingTrips(false);
     }
@@ -137,6 +143,8 @@ export default function PhotoAnalyzerPage({ setPage }) {
           <p className="text-lg text-gray-600">
             Upload photos and we'll automatically suggest trips based on GPS data and dates
           </p>
+          {error && <div className="mx-auto mt-4 max-w-2xl rounded-lg border border-red-200 bg-red-50 p-3 text-left text-sm text-red-700" role="alert">{error}</div>}
+          {successMessage && <div className="mx-auto mt-4 max-w-2xl rounded-lg border border-green-200 bg-green-50 p-3 text-left text-sm text-green-700" role="status">{successMessage}</div>}
         </div>
 
         {/* Upload Section */}

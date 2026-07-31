@@ -29,9 +29,11 @@ if [[ "${DATA_ROOT}" != /* ]]; then
 fi
 
 dump_dir="${DATA_ROOT}/postgres-dumps"
+maintenance_dir="${DATA_ROOT}/maintenance"
 stamp="$(date -u +%Y-%m-%dT%H%M%SZ)"
 dump_path="${dump_dir}/travel-journal-${stamp}.sql.gz"
 install -d -m 0750 "${dump_dir}"
+install -d -m 0750 "${maintenance_dir}"
 
 docker compose --env-file "${env_file}" -f "${compose_file}" exec -T postgres \
   pg_dump --clean --if-exists --no-owner --no-privileges \
@@ -50,7 +52,21 @@ if ! restic snapshots --no-lock >/dev/null 2>&1; then
   restic init
 fi
 
-restic backup /data/photos /data/postgres-dumps --tag travel-journal
+restic backup /data/photos /data/postgres-dumps /data/maintenance --tag travel-journal
 restic forget --keep-daily 7 --keep-weekly 5 --keep-monthly 12 --prune
+
+photo_storage_bytes="$(du -sb "${DATA_ROOT}/photos" | awk '{print $1}')"
+database_dump_bytes="$(stat -c '%s' "${dump_path}")"
+status_tmp="${maintenance_dir}/backup-status.json.tmp"
+cat >"${status_tmp}" <<EOF
+{
+  "lastSuccessfulBackupAt": "${stamp}",
+  "lastDatabaseDumpAt": "${stamp}",
+  "databaseDumpBytes": ${database_dump_bytes},
+  "photoStorageBytes": ${photo_storage_bytes}
+}
+EOF
+mv -f "${status_tmp}" "${maintenance_dir}/backup-status.json"
+chmod 0640 "${maintenance_dir}/backup-status.json"
 
 echo "R2 backup completed at ${stamp}."

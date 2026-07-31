@@ -6,7 +6,9 @@ const router = Router();
 // Get all travelers
 router.get('/', async (req, res, next) => {
   try {
-    const result = await query('SELECT * FROM travelers ORDER BY created_at');
+    const includeInactive = req.query.includeInactive === 'true';
+    const where = includeInactive ? '' : 'WHERE is_active = true';
+    const result = await query(`SELECT * FROM travelers ${where} ORDER BY is_active DESC, created_at`);
     res.json(result.rows);
   } catch (err) {
     next(err);

@@ -1,4 +1,11 @@
 const API_URL = import.meta.env.VITE_API_URL || '/api';
+const PLACE_CACHE_TTL_MS = 5 * 60 * 1000;
+const placeSearchCache = new Map();
+const inFlightPlaceSearches = new Map();
+
+function normalizePlaceQuery(query) {
+  return query.replace(/\s+/g, ' ').trim().toLowerCase();
+}
 
 class ApiClient {
   constructor() {
@@ -136,9 +143,21 @@ class ApiClient {
     return this.request(`/journeys/${id}`, { method: 'DELETE' });
   }
 
+  async createJourneyShare(id) {
+    return this.request(`/journeys/${id}/share`, { method: 'POST' });
+  }
+
+  async revokeJourneyShare(id) {
+    return this.request(`/journeys/${id}/share`, { method: 'DELETE' });
+  }
+
+  async getSharedJourney(token) {
+    return this.request(`/shared/journeys/${encodeURIComponent(token)}`);
+  }
+
   // Travelers
-  async getTravelers() {
-    return this.request('/travelers');
+  async getTravelers({ includeInactive = false } = {}) {
+    return this.request(`/travelers${includeInactive ? '?includeInactive=true' : ''}`);
   }
 
   async createTraveler(traveler) {
@@ -188,6 +207,20 @@ class ApiClient {
     return this.request(`/photos/${id}`, { method: 'DELETE' });
   }
 
+  async updatePhoto(id, changes) {
+    return this.request(`/photos/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(changes),
+    });
+  }
+
+  async reorderPhotos(tripId, photoIds) {
+    return this.request(`/photos/${tripId}/reorder`, {
+      method: 'PUT',
+      body: JSON.stringify({ photoIds }),
+    });
+  }
+
   async getLocationBackfillCandidates() {
     return this.request('/photos/location-backfill');
   }
@@ -196,9 +229,39 @@ class ApiClient {
     return this.request('/photos/location-backfill', { method: 'POST' });
   }
 
+  async getBackupStatus() {
+    return this.request('/maintenance/backup-status');
+  }
+
   // Places
   async searchPlaces(query) {
-    return this.request(`/places/search?q=${encodeURIComponent(query)}`);
+    const cacheKey = normalizePlaceQuery(query);
+    if (!cacheKey) return [];
+
+    const cached = placeSearchCache.get(cacheKey);
+    if (cached && cached.expiresAt > Date.now()) {
+      return cached.results;
+    }
+    if (cached) placeSearchCache.delete(cacheKey);
+
+    if (inFlightPlaceSearches.has(cacheKey)) {
+      return inFlightPlaceSearches.get(cacheKey);
+    }
+
+    const request = this.request(`/places/search?q=${encodeURIComponent(cacheKey)}`)
+      .then(results => {
+        placeSearchCache.set(cacheKey, {
+          results,
+          expiresAt: Date.now() + PLACE_CACHE_TTL_MS,
+        });
+        return results;
+      })
+      .finally(() => {
+        inFlightPlaceSearches.delete(cacheKey);
+      });
+
+    inFlightPlaceSearches.set(cacheKey, request);
+    return request;
   }
 
   // Analytics

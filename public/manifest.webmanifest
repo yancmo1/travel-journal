@@ -1,0 +1,19 @@
+{
+  "name": "Where We’ve Been",
+  "short_name": "Travel Memories",
+  "description": "A private family travel memory journal.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f5f0e8",
+  "theme_color": "#1e3730",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

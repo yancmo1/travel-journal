@@ -8,11 +8,14 @@ export default function MemoryPhotosModal({ memory, onClose }) {
   const { loadTrips, loadJourneys } = useData();
   const [photos, setPhotos] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [actionError, setActionError] = useState('');
 
   async function loadPhotos() {
     setLoading(true);
     try {
       setPhotos(await api.getPhotos(memory.id));
+    } catch (error) {
+      setActionError(error.message || 'Saved photos could not be loaded. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -23,12 +26,47 @@ export default function MemoryPhotosModal({ memory, onClose }) {
   }, [memory.id]);
 
   async function handleUploadComplete() {
-    await Promise.all([loadPhotos(), loadTrips(), loadJourneys()]);
+    try {
+      await Promise.all([loadPhotos(), loadTrips(), loadJourneys()]);
+    } catch {
+      setActionError('Photos uploaded, but the gallery could not refresh. Close and reopen this memory to check.');
+    }
   }
 
   async function handleDelete(id) {
-    await api.deletePhoto(id);
-    await Promise.all([loadPhotos(), loadTrips(), loadJourneys()]);
+    try {
+      await api.deletePhoto(id);
+      await Promise.all([loadPhotos(), loadTrips(), loadJourneys()]);
+    } catch (error) {
+      setActionError(error.message || 'Photo could not be deleted. Please try again.');
+    }
+  }
+
+  async function handleUpdate(id, changes) {
+    try {
+      const updated = await api.updatePhoto(id, changes);
+      setPhotos(current => current.map(photo => {
+        if (photo.id === updated.id) return updated;
+        return changes.isCover ? { ...photo, is_cover: false } : photo;
+      }));
+      await Promise.all([loadTrips(), loadJourneys()]);
+    } catch (error) {
+      setActionError(error.message || 'Photo details could not be saved. Please try again.');
+    }
+  }
+
+  async function handleReorder(photoIds) {
+    const byId = new Map(photos.map(photo => [photo.id, photo]));
+    setPhotos(photoIds.map(id => byId.get(id)).filter(Boolean));
+
+    try {
+      const saved = await api.reorderPhotos(memory.id, photoIds);
+      setPhotos(saved);
+      await Promise.all([loadTrips(), loadJourneys()]);
+    } catch (error) {
+      setActionError(error.message || 'Photo order could not be saved. Please try again.');
+      await loadPhotos();
+    }
   }
 
   return (
@@ -48,10 +86,20 @@ export default function MemoryPhotosModal({ memory, onClose }) {
             <div className="photo-section-title">
               <h3>{photos.length ? `${photos.length} saved photo${photos.length === 1 ? '' : 's'}` : 'Saved photos'}</h3>
             </div>
+            {actionError && (
+              <div className="mb-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700" role="alert">
+                {actionError}
+              </div>
+            )}
             {loading ? (
               <div className="memory-empty">Loading photos…</div>
             ) : (
-              <PhotoGallery photos={photos} onDelete={handleDelete} />
+              <PhotoGallery
+                photos={photos}
+                onDelete={handleDelete}
+                onUpdate={handleUpdate}
+                onReorder={handleReorder}
+              />
             )}
           </div>
           <div className="border-t border-gray-100 pt-4">

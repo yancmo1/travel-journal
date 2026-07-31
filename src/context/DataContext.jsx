@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import api from '../utils/api';
 import { useAuth } from './AuthContext';
+import { sortTravelers } from '../utils/travelers';
 
 const DataContext = createContext(null);
 
@@ -10,6 +11,7 @@ export function DataProvider({ children }) {
   const [travelers, setTravelers] = useState([]);
   const [journeys, setJourneys] = useState([]);
   const [analytics, setAnalytics] = useState(null);
+  const [backupStatus, setBackupStatus] = useState(null);
   const [loading, setLoading] = useState(false);
 
   const loadTrips = useCallback(async (filters = {}) => {
@@ -25,11 +27,11 @@ export function DataProvider({ children }) {
     }
   }, [user]);
 
-  const loadTravelers = useCallback(async () => {
+  const loadTravelers = useCallback(async ({ includeInactive = false } = {}) => {
     if (!user) return;
     try {
-      const data = await api.getTravelers();
-      setTravelers(data);
+      const data = await api.getTravelers({ includeInactive });
+      setTravelers(sortTravelers(data));
     } catch (err) {
       console.error('Failed to load travelers:', err);
     }
@@ -55,19 +57,31 @@ export function DataProvider({ children }) {
     }
   }, [user]);
 
+  const loadBackupStatus = useCallback(async () => {
+    if (!user) return;
+    try {
+      setBackupStatus(await api.getBackupStatus());
+    } catch (err) {
+      console.error('Failed to load backup status:', err);
+      setBackupStatus({ configured: false, stale: true, message: 'Backup status is unavailable.' });
+    }
+  }, [user]);
+
   useEffect(() => {
     if (user) {
       loadTrips();
-      loadTravelers();
+      loadTravelers({ includeInactive: true });
       loadJourneys();
       loadAnalytics();
+      loadBackupStatus();
     } else {
       setTrips([]);
       setTravelers([]);
       setJourneys([]);
       setAnalytics(null);
+      setBackupStatus(null);
     }
-  }, [user, loadTrips, loadTravelers, loadJourneys, loadAnalytics]);
+  }, [user, loadTrips, loadTravelers, loadJourneys, loadAnalytics, loadBackupStatus]);
 
   async function addTrip(tripData) {
     const trip = await api.createTrip(tripData);
@@ -101,13 +115,13 @@ export function DataProvider({ children }) {
 
   async function addTraveler(data) {
     const traveler = await api.createTraveler(data);
-    setTravelers(prev => [...prev, traveler]);
+    setTravelers(prev => sortTravelers([...prev, traveler]));
     return traveler;
   }
 
   async function updateTraveler(id, data) {
     const traveler = await api.updateTraveler(id, data);
-    setTravelers(prev => prev.map(t => t.id === id ? traveler : t));
+    setTravelers(prev => sortTravelers(prev.map(t => t.id === id ? traveler : t)));
     return traveler;
   }
 
@@ -138,8 +152,8 @@ export function DataProvider({ children }) {
 
   return (
     <DataContext.Provider value={{
-      trips, travelers, journeys, analytics, loading,
-      loadTrips, loadTravelers, loadJourneys, loadAnalytics,
+      trips, travelers, journeys, analytics, backupStatus, loading,
+      loadTrips, loadTravelers, loadJourneys, loadAnalytics, loadBackupStatus,
       addTrip, updateTrip, deleteTrip, deleteTrips,
       addJourney, updateJourney, deleteJourney,
       addTraveler, updateTraveler, deleteTraveler

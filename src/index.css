@@ -603,6 +603,13 @@ body {
 }
 
 @media (max-width: 760px) {
+  button,
+  input,
+  select,
+  textarea {
+    min-height: 44px;
+  }
+
   .memory-main {
     width: min(100% - 22px, 1180px);
     padding-top: 24px;
@@ -674,6 +681,18 @@ body {
 
   .memory-login-panel {
     padding: 42px 24px 60px;
+  }
+
+  .memory-nav-mobile button {
+    padding-top: 10px;
+    padding-bottom: 10px;
+  }
+
+  .memory-controls button {
+    justify-content: center;
+    padding: 10px 12px;
+    border-radius: 999px;
+    background: rgba(255,255,255,.65);
   }
 }
 
@@ -933,6 +952,98 @@ button:focus {
   max-width: 580px;
   margin: 10px auto 22px;
   color: #69736f;
+}
+
+.travel-book-print {
+  display: none;
+}
+
+@media print {
+  body * {
+    visibility: hidden !important;
+  }
+
+  .travel-book-print,
+  .travel-book-print * {
+    visibility: visible !important;
+  }
+
+  .travel-book-print {
+    display: block;
+    position: absolute;
+    inset: 0;
+    padding: .55in;
+    color: #23302c;
+    background: #fffdf9;
+    font-family: Georgia, serif;
+  }
+
+  .travel-book-actions {
+    display: none !important;
+  }
+
+  .travel-book-print > header {
+    min-height: 3.8in;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: .35in;
+    align-items: end;
+    page-break-after: always;
+  }
+
+  .travel-book-print > header img {
+    width: 100%;
+    height: 3.8in;
+    object-fit: cover;
+  }
+
+  .travel-book-print h1 {
+    font-size: 38pt;
+    line-height: 1.05;
+  }
+
+  .travel-book-print h2 {
+    margin: .08in 0;
+    font-size: 22pt;
+  }
+
+  .travel-book-print article {
+    page-break-inside: avoid;
+    padding: .2in 0;
+    border-bottom: 1px solid #d8d2c7;
+  }
+
+  .travel-book-memory-heading {
+    display: flex;
+    gap: .15in;
+    align-items: baseline;
+  }
+
+  .travel-book-memory-heading > span {
+    color: #9b6042;
+    font-size: 18pt;
+  }
+
+  .travel-book-photos {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: .1in;
+    margin-top: .15in;
+  }
+
+  .travel-book-photos figure {
+    margin: 0;
+  }
+
+  .travel-book-photos img {
+    width: 100%;
+    height: 1.55in;
+    object-fit: cover;
+  }
+
+  .travel-book-photos figcaption {
+    font-size: 8pt;
+  }
 }
 
 /* Journey editor */

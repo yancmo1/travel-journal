@@ -12,6 +12,23 @@ import { backfillPhotoLocations, getLocationBackfillCandidates } from '../servic
 
 const router = Router();
 const storagePath = process.env.PHOTO_STORAGE_PATH || '/app/media/travel-photos';
+const VALID_ROTATIONS = new Set([0, 90, 180, 270]);
+
+function normalizeRotation(value) {
+  const rotation = Number(value);
+  return VALID_ROTATIONS.has(rotation) ? rotation : 0;
+}
+
+function nextSortOrder(result) {
+  return Number(result.rows[0]?.next_sort_order || 0);
+}
+
+async function getNextSortOrder(tripId) {
+  return nextSortOrder(await query(
+    'SELECT COALESCE(MAX(sort_order), -1) + 1 AS next_sort_order FROM photos WHERE trip_id = $1',
+    [tripId]
+  ));
+}
 
 // Serve temp upload files (convert HEIC to JPEG on the fly for browser preview)
 router.get('/temp/:filename', async (req, res, next) => {
@@ -258,6 +275,7 @@ router.post('/create-from-analysis', async (req, res, next) => {
 
     const photos = [];
     const uploadDir = path.join(storagePath, 'temp');
+    let sortOrder = await getNextSortOrder(trip.id);
 
     for (const tempFilename of photoFilenames) {
       try {
@@ -275,8 +293,8 @@ router.post('/create-from-analysis', async (req, res, next) => {
         const result = await query(`
           INSERT INTO photos (
             trip_id, filename, file_path, thumbnail_path,
-            file_size, mime_type, date_taken, latitude, longitude
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+            file_size, mime_type, date_taken, latitude, longitude, sort_order
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
           RETURNING *
         `, [
           trip.id,
@@ -287,7 +305,8 @@ router.post('/create-from-analysis', async (req, res, next) => {
           'image/jpeg',
           metadata?.dateTaken || null,
           metadata?.latitude || null,
-          metadata?.longitude || null
+          metadata?.longitude || null,
+          sortOrder++
         ]);
 
         photos.push(result.rows[0]);
@@ -329,6 +348,7 @@ router.post('/:tripId', upload.array('photos', 50), async (req, res, next) => {
     await fs.mkdir(tripDir, { recursive: true });
 
     const photos = [];
+    let sortOrder = await getNextSortOrder(tripId);
 
     for (const file of files) {
       try {
@@ -370,8 +390,8 @@ router.post('/:tripId', upload.array('photos', 50), async (req, res, next) => {
         const result = await query(`
           INSERT INTO photos (
             trip_id, filename, file_path, thumbnail_path, 
-            file_size, mime_type, date_taken, latitude, longitude
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+            file_size, mime_type, date_taken, latitude, longitude, sort_order
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
           RETURNING *
         `, [
           photoData.tripId,
@@ -382,7 +402,8 @@ router.post('/:tripId', upload.array('photos', 50), async (req, res, next) => {
           photoData.mimeType,
           photoData.dateTaken,
           photoData.latitude,
-          photoData.longitude
+          photoData.longitude,
+          sortOrder++
         ]);
 
         photos.push({
@@ -410,7 +431,78 @@ router.post('/:tripId', upload.array('photos', 50), async (req, res, next) => {
 router.get('/:tripId', async (req, res, next) => {
   try {
     const { tripId } = req.params;
-    const result = await query('SELECT * FROM photos WHERE trip_id = $1 ORDER BY date_taken, uploaded_at', [tripId]);
+    const result = await query(`
+      SELECT * FROM photos
+      WHERE trip_id = $1
+      ORDER BY is_cover DESC, sort_order ASC, date_taken NULLS LAST, uploaded_at, id
+    `, [tripId]);
+    res.json(result.rows);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Update a saved photo's caption, cover status, or display rotation.
+router.patch('/:id', async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const existingResult = await query('SELECT * FROM photos WHERE id = $1', [id]);
+    if (!existingResult.rows.length) {
+      return res.status(404).json({ error: 'Photo not found' });
+    }
+
+    const existing = existingResult.rows[0];
+    const caption = Object.prototype.hasOwnProperty.call(req.body, 'caption')
+      ? String(req.body.caption || '').trim().slice(0, 2000) || null
+      : existing.caption;
+    const rotation = Object.prototype.hasOwnProperty.call(req.body, 'rotation')
+      ? normalizeRotation(req.body.rotation)
+      : normalizeRotation(existing.rotation);
+    const isCover = Object.prototype.hasOwnProperty.call(req.body, 'isCover')
+      ? Boolean(req.body.isCover)
+      : Boolean(existing.is_cover);
+
+    if (isCover) {
+      await query('UPDATE photos SET is_cover = false WHERE trip_id = $1', [existing.trip_id]);
+    }
+
+    const result = await query(`
+      UPDATE photos
+      SET caption = $1, rotation = $2, is_cover = $3
+      WHERE id = $4
+      RETURNING *
+    `, [caption, rotation, isCover, id]);
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Persist the display order for all photos belonging to a memory.
+router.put('/:tripId/reorder', async (req, res, next) => {
+  try {
+    const { tripId } = req.params;
+    const photoIds = Array.isArray(req.body.photoIds)
+      ? [...new Set(req.body.photoIds.map(Number).filter(id => Number.isInteger(id) && id > 0))]
+      : [];
+    const existingResult = await query('SELECT id FROM photos WHERE trip_id = $1', [tripId]);
+    const existingIds = existingResult.rows.map(photo => photo.id).sort((a, b) => a - b);
+    const requestedIds = [...photoIds].sort((a, b) => a - b);
+
+    if (existingIds.length !== requestedIds.length || existingIds.some((id, index) => id !== requestedIds[index])) {
+      return res.status(400).json({ error: 'Photo order must include every saved photo exactly once' });
+    }
+
+    for (let index = 0; index < photoIds.length; index += 1) {
+      await query('UPDATE photos SET sort_order = $1 WHERE id = $2 AND trip_id = $3', [index, photoIds[index], tripId]);
+    }
+
+    const result = await query(`
+      SELECT * FROM photos
+      WHERE trip_id = $1
+      ORDER BY is_cover DESC, sort_order ASC, date_taken NULLS LAST, uploaded_at, id
+    `, [tripId]);
     res.json(result.rows);
   } catch (err) {
     next(err);

@@ -11,6 +11,8 @@ import photosRoutes from './routes/photos.js';
 import analyticsRoutes from './routes/analytics.js';
 import journeysRoutes from './routes/journeys.js';
 import placesRoutes from './routes/places.js';
+import maintenanceRoutes from './routes/maintenance.js';
+import sharedRoutes from './routes/shared.js';
 import { authMiddleware } from './middleware/auth.js';
 import { initDatabase } from './utils/db.js';
 
@@ -33,6 +35,7 @@ app.get('/api/health', (req, res) => {
 
 // Public routes
 app.use('/api/auth', authRoutes);
+app.use('/api/shared', sharedRoutes);
 
 // Protected routes
 app.use('/api/trips', authMiddleware, tripsRoutes);
@@ -41,6 +44,7 @@ app.use('/api/photos', authMiddleware, photosRoutes);
 app.use('/api/analytics', authMiddleware, analyticsRoutes);
 app.use('/api/journeys', authMiddleware, journeysRoutes);
 app.use('/api/places', authMiddleware, placesRoutes);
+app.use('/api/maintenance', authMiddleware, maintenanceRoutes);
 
 // Error handler
 app.use((err, req, res, next) => {

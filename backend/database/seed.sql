@@ -2,11 +2,14 @@
 
 -- Default travelers (the couple)
 INSERT INTO travelers (name, relationship) VALUES 
-  ('You', 'husband'),
-  ('Wife', 'wife'),
+  ('Yancy', 'husband'),
+  ('Amber', 'wife'),
+  ('Josh', 'child'),
+  ('Jonathan', 'child'),
+  ('Aden', 'child'),
+  ('Charity', 'grandchild'),
   ('Dawson', 'grandchild'),
   ('Luke', 'grandchild'),
-  ('Charity', 'grandchild'),
   ('Adalynn', 'grandchild'),
   ('Elayna', 'grandchild')
 ON CONFLICT DO NOTHING;

@@ -27,6 +27,9 @@ CREATE TABLE IF NOT EXISTS journeys (
   date_label VARCHAR(100),
   journey_type VARCHAR(50) DEFAULT 'Other',
   summary TEXT,
+  cover_photo_id INT,
+  share_token VARCHAR(64) UNIQUE,
+  share_expires_at TIMESTAMP,
   created_by INT REFERENCES users(id),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -74,6 +77,10 @@ CREATE TABLE IF NOT EXISTS photos (
   date_taken TIMESTAMP,
   latitude DECIMAL(10, 8),
   longitude DECIMAL(11, 8),
+  caption TEXT,
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  is_cover BOOLEAN NOT NULL DEFAULT false,
+  rotation INTEGER NOT NULL DEFAULT 0,
   uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -85,3 +92,7 @@ CREATE INDEX IF NOT EXISTS idx_trips_journey_id ON trips(journey_id);
 CREATE INDEX IF NOT EXISTS idx_photos_trip_id ON photos(trip_id);
 CREATE INDEX IF NOT EXISTS idx_trip_travelers_trip ON trip_travelers(trip_id);
 CREATE INDEX IF NOT EXISTS idx_trip_travelers_traveler ON trip_travelers(traveler_id);
+
+ALTER TABLE journeys
+  ADD CONSTRAINT journeys_cover_photo_id_fkey
+  FOREIGN KEY (cover_photo_id) REFERENCES photos(id) ON DELETE SET NULL;
