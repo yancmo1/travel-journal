@@ -741,6 +741,10 @@ body {
   font-size: 13px;
 }
 
+.app-shell {
+  overscroll-behavior-y: contain;
+}
+
 .pwa-status-copy,
 .pwa-status-actions {
   display: flex;
@@ -769,6 +773,36 @@ body {
   border-radius: 999px;
   font-size: 12px;
   font-weight: 700;
+}
+
+.pull-refresh-indicator {
+  position: fixed;
+  top: 0;
+  left: 50%;
+  z-index: 1300;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 13px;
+  color: #24483e;
+  background: #fffdf8;
+  border: 1px solid #e3d9c8;
+  border-radius: 999px;
+  box-shadow: 0 5px 18px rgba(36, 72, 62, .14);
+  font-size: 12px;
+  font-weight: 700;
+  pointer-events: none;
+  transition: transform .16s ease, background-color .16s ease;
+}
+
+.pull-refresh-indicator > span {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.pull-refresh-indicator.is-ready {
+  background: #edf5f0;
+  border-color: #b8d7c5;
 }
 
 .settings-heading {

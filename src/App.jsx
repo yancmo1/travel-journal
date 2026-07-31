@@ -10,6 +10,7 @@ import SettingsPage from './pages/SettingsPage';
 import TimelinePage from './pages/TimelinePage';
 import SharedJourneyPage from './pages/SharedJourneyPage';
 import PwaStatus from './components/PwaStatus';
+import PullToRefresh from './components/PullToRefresh';
 
 function AppContent() {
   const { user, loading } = useAuth();
@@ -33,6 +34,7 @@ function AppContent() {
       <div className="min-h-screen app-shell">
         <Header currentPage={page} setPage={setPage} />
         <PwaStatus />
+        <PullToRefresh />
         <main className="memory-main">
           {page === 'dashboard' && <Dashboard setPage={setPage} />}
           {page === 'journeys' && <JourneysPage />}

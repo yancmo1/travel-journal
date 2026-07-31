@@ -59,10 +59,25 @@ export default function MapView({ trips = [], onSelectTrip, showRoutes = false, 
       .addTo(map)
       .bindPopup('<strong>Home</strong><br/>Oklahoma City, OK');
 
+    // Leaflet can calculate a zero-sized viewport when a page is restored from
+    // the PWA cache or when the map was mounted while its parent was hidden.
+    // Recalculate after the first paint and whenever the container changes.
+    const resizeObserver = typeof ResizeObserver === 'function'
+      ? new ResizeObserver(() => map.invalidateSize({ pan: false }))
+      : null;
+    resizeObserver?.observe(mapContainer.current);
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') map.invalidateSize({ pan: false });
+    };
+    window.addEventListener('visibilitychange', handleVisibilityChange);
+    requestAnimationFrame(() => map.invalidateSize({ pan: false }));
+
     // No custom pointer-based zoom centering — rely on Leaflet's native behavior to avoid jerky zoom.
 
     return () => {
       map.remove();
+      resizeObserver?.disconnect();
+      window.removeEventListener('visibilitychange', handleVisibilityChange);
       mapRef.current = null;
     };
   }, []);
@@ -90,25 +105,18 @@ export default function MapView({ trips = [], onSelectTrip, showRoutes = false, 
     const map = mapRef.current;
     if (!map) return;
 
-    // Filter trips with coordinates and sort by date
+    // Filter trips with valid numeric coordinates and sort by date. Truthiness
+    // checks drop valid zero coordinates, while malformed values can make
+    // Leaflet reject the entire bounds calculation.
     const tripsWithCoords = trips
-      .filter(t => t.latitude && t.longitude)
-      .sort((a, b) => new Date(a.start_date) - new Date(b.start_date));
+      .map(trip => ({ ...trip, latitude: Number(trip.latitude), longitude: Number(trip.longitude) }))
+      .filter(trip => Number.isFinite(trip.latitude) && Number.isFinite(trip.longitude)
+        && trip.latitude >= -90 && trip.latitude <= 90
+        && trip.longitude >= -180 && trip.longitude <= 180)
+      .sort((a, b) => dateValue(a.start_date) - dateValue(b.start_date));
 
-    // Check if trips have actually changed
-    const newTripIds = tripsWithCoords
-      .map(t => `${t.id}:${t.latitude}:${t.longitude}:${t.location_name}:${t.start_date || t.date_label || ''}`)
-      .join(',');
-    const showRoutesState = showRoutes ? 'routes' : 'no-routes';
-    const currentState = `${newTripIds}:${showRoutesState}`;
-    
-    if (map._currentState === currentState && map._tripMarkers && map.hasLayer(map._tripMarkers)) {
-      // Trips haven't changed and markers are still on map, don't rebuild
-      return;
-    }
-    map._currentState = currentState;
-
-    // Clear existing trip layers only when trips change
+    // Replace the trip layers as a single unit so a refresh can never leave
+    // the map showing a stale or partially rebuilt set of locations.
     if (map._tripMarkers && map.hasLayer(map._tripMarkers)) {
       map.removeLayer(map._tripMarkers);
     }
@@ -209,4 +217,10 @@ export default function MapView({ trips = [], onSelectTrip, showRoutes = false, 
 function formatDate(dateStr) {
   if (!dateStr) return '';
   return formatDateOnly(dateStr, { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function dateValue(value) {
+  if (!value) return Number.MAX_SAFE_INTEGER;
+  const timestamp = Date.parse(value);
+  return Number.isFinite(timestamp) ? timestamp : Number.MAX_SAFE_INTEGER;
 }

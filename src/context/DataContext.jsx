@@ -68,6 +68,7 @@ export function DataProvider({ children }) {
   const [pendingCount, setPendingCount] = useState(0);
   const [syncError, setSyncError] = useState('');
   const [lastSyncedAt, setLastSyncedAt] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
   const hydrated = useRef(false);
   const syncInFlight = useRef(false);
   const tempIdMap = useRef(new Map());
@@ -119,6 +120,24 @@ export function DataProvider({ children }) {
       else setBackupStatus({ configured: false, stale: true, message: 'Backup status is unavailable.' });
     }
   }, [user]);
+
+  const refreshAll = useCallback(async () => {
+    if (!user || refreshing) return;
+    setRefreshing(true);
+    try {
+      if (navigator.onLine) await syncMutations();
+      await Promise.all([
+        loadTrips(),
+        loadTravelers({ includeInactive: true }),
+        loadJourneys(),
+        loadAnalytics(),
+        loadBackupStatus(),
+      ]);
+      setLastSyncedAt(new Date().toISOString());
+    } finally {
+      setRefreshing(false);
+    }
+  }, [user, refreshing, loadTrips, loadTravelers, loadJourneys, loadAnalytics, loadBackupStatus]);
 
   useEffect(() => {
     let cancelled = false;
@@ -299,7 +318,7 @@ export function DataProvider({ children }) {
   return (
     <DataContext.Provider value={{
       trips, travelers, journeys, analytics, backupStatus, loading,
-      offline, syncing, pendingCount, syncError, lastSyncedAt, syncMutations,
+      offline, syncing, refreshing, pendingCount, syncError, lastSyncedAt, syncMutations, refreshAll,
       loadTrips, loadTravelers, loadJourneys, loadAnalytics, loadBackupStatus,
       addTrip, updateTrip, deleteTrip, deleteTrips,
       queuePhotoUpload,
