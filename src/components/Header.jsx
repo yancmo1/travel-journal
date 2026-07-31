@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 
 const navItems = [
@@ -12,6 +12,12 @@ const navItems = [
 
 export default function Header({ currentPage, setPage }) {
   const { user, logout } = useAuth();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  function navigate(id) {
+    setPage(id);
+    setMobileMenuOpen(false);
+  }
 
   return (
     <header className="memory-header">
@@ -35,7 +41,7 @@ export default function Header({ currentPage, setPage }) {
               <button
                 key={item.id}
                 type="button"
-                onClick={() => setPage(item.id)}
+                onClick={() => navigate(item.id)}
                 className={currentPage === item.id ? 'is-active' : ''}
                 aria-current={currentPage === item.id ? 'page' : undefined}
               >
@@ -46,6 +52,16 @@ export default function Header({ currentPage, setPage }) {
           </nav>
 
           <div className="memory-user">
+            <button
+              type="button"
+              className="memory-mobile-menu"
+              onClick={() => setMobileMenuOpen(open => !open)}
+              aria-expanded={mobileMenuOpen}
+              aria-controls="mobile-navigation"
+            >
+              <span aria-hidden="true">{mobileMenuOpen ? '×' : '☰'}</span>
+              <span>{mobileMenuOpen ? 'Close' : 'Menu'}</span>
+            </button>
             <span className="hidden sm:block">{user?.display_name || user?.username}</span>
             <button type="button" onClick={logout} className="memory-signout">
               Sign out
@@ -53,12 +69,16 @@ export default function Header({ currentPage, setPage }) {
           </div>
         </div>
 
-        <nav className="memory-nav memory-nav-mobile md:hidden" aria-label="Mobile navigation">
+        <nav
+          id="mobile-navigation"
+          className={`memory-nav memory-nav-mobile md:hidden ${mobileMenuOpen ? 'is-open' : ''}`}
+          aria-label="Mobile navigation"
+        >
           {navItems.map(item => (
             <button
               key={item.id}
               type="button"
-              onClick={() => setPage(item.id)}
+              onClick={() => navigate(item.id)}
               className={currentPage === item.id ? 'is-active' : ''}
               aria-current={currentPage === item.id ? 'page' : undefined}
             >

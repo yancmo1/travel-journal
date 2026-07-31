@@ -149,7 +149,7 @@ export default function TripsPage({ initialTravelerFilter = 'all' }) {
               type="text"
               value={search}
               onChange={e => setSearch(e.target.value)}
-              placeholder="Search places, notes, people, dates, or photo captions..."
+              placeholder="Search places, people, or notes..."
               className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-ocean-teal focus:border-transparent"
             />
           </div>

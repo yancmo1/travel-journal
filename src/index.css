@@ -12,6 +12,7 @@ body {
   background: #f5f0e8;
   color: #23302c;
   font-family: 'DM Sans', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  overflow-x: hidden;
 }
 
 .app-shell {
@@ -31,6 +32,7 @@ body {
   position: sticky;
   top: 0;
   z-index: 1200;
+  padding-top: env(safe-area-inset-top);
   color: #fdfaf5;
   background: rgba(30, 55, 48, .96);
   border-bottom: 1px solid rgba(255,255,255,.1);
@@ -121,15 +123,24 @@ body {
 }
 
 .memory-nav-mobile {
-  justify-content: space-between;
-  padding: 0 0 11px;
+  display: none;
+  padding: 0 0 12px;
 }
 
 .memory-nav-mobile button {
-  flex: 1;
   justify-content: center;
   padding: 8px;
   font-size: 12px;
+}
+
+.memory-mobile-menu {
+  display: none;
+  padding: 8px 11px;
+  color: rgba(255,255,255,.82);
+  border: 1px solid rgba(255,255,255,.2);
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .memory-home {
@@ -613,6 +624,7 @@ body {
   .memory-main {
     width: min(100% - 22px, 1180px);
     padding-top: 24px;
+    padding-bottom: calc(72px + env(safe-area-inset-bottom));
   }
 
   .memory-header-inner {
@@ -626,6 +638,24 @@ body {
   .memory-brand-subtitle,
   .memory-user > span {
     display: none;
+  }
+
+  .memory-mobile-menu {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .memory-nav-mobile.is-open {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 4px;
+  }
+
+  .memory-nav-mobile button {
+    justify-content: flex-start;
+    min-height: 44px;
+    padding: 10px 12px;
   }
 
   .memory-card {
