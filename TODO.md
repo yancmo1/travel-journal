@@ -9,6 +9,9 @@ This list is intentionally small and prioritized. We can check items off as we g
 - [x] Add Google Places guardrails: cache repeated searches, debounce requests, and set a billing budget alert.
 - [x] Fix the memory form's initial `0.0000, 0.0000` coordinate display before a location is selected.
 - [ ] Show the selected landmark's business name and address clearly after a Google Places result is chosen.
+- [ ] Deploy commit `0d11061` to Ubuntu, run the post-deploy smoke test, and verify backup status, PWA install, and private sharing.
+- [ ] Test the main workflows on both your phone and Amber's phone.
+- [ ] Rotate the Ubuntu GHCR credential to a least-privilege package-read token when convenient.
 
 ## Photo controls
 
@@ -27,14 +30,12 @@ This list is intentionally small and prioritized. We can check items off as we g
 - [x] Add a dedicated People page for renaming, adding, deactivating, and correcting relationships.
 - [x] Add person-based filtering from the People page and All Places page.
 - [x] Document the private production environment and the simple deploy/recovery commands.
-- [ ] Rotate the Ubuntu GHCR credential to a least-privilege package-read token when convenient.
 
 ## Reliability and mobile
 
 - [x] Add an automated post-deploy smoke test that creates a temporary memory, uploads a photo, verifies it, and cleans up.
 - [x] Add backup visibility: last successful R2 backup, last database dump, photo storage use, and a stale-backup warning.
 - [x] Increase mobile touch targets and make camera/photo-library uploads effortless.
-- [ ] Test the main workflows on both your phone and Amber's phone.
 - [x] Add installable home-screen app behavior (PWA).
 
 ## Later improvements
