@@ -30,10 +30,12 @@ fi
 
 dump_dir="${DATA_ROOT}/postgres-dumps"
 maintenance_dir="${DATA_ROOT}/maintenance"
-stamp="$(date -u +%Y-%m-%dT%H%M%SZ)"
+maintenance_uid="${MAINTENANCE_UID:-${PHOTO_UID:-1000}}"
+maintenance_gid="${MAINTENANCE_GID:-${PHOTO_GID:-1000}}"
+stamp="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 dump_path="${dump_dir}/travel-journal-${stamp}.sql.gz"
 install -d -m 0750 "${dump_dir}"
-install -d -m 0750 "${maintenance_dir}"
+install -d -o "${maintenance_uid}" -g "${maintenance_gid}" -m 0750 "${maintenance_dir}"
 
 docker compose --env-file "${env_file}" -f "${compose_file}" exec -T postgres \
   pg_dump --clean --if-exists --no-owner --no-privileges \
@@ -67,6 +69,7 @@ cat >"${status_tmp}" <<EOF
 }
 EOF
 mv -f "${status_tmp}" "${maintenance_dir}/backup-status.json"
+chown "${maintenance_uid}:${maintenance_gid}" "${maintenance_dir}/backup-status.json"
 chmod 0640 "${maintenance_dir}/backup-status.json"
 
 echo "R2 backup completed at ${stamp}."
