@@ -9,10 +9,18 @@ const jwtExpiresIn = process.env.JWT_EXPIRES_IN || '7d';
 // Register new user
 router.post('/register', async (req, res, next) => {
   try {
+    if (process.env.ALLOW_PUBLIC_REGISTRATION !== 'true') {
+      return res.status(403).json({ error: 'Postcards of Us is currently invitation-only.' });
+    }
+
     const { username, password, displayName } = req.body;
     
     if (!username || !password) {
       return res.status(400).json({ error: 'Username and password required' });
+    }
+
+    if (password.length < 10) {
+      return res.status(400).json({ error: 'Password must be at least 10 characters.' });
     }
 
     // Check if user exists

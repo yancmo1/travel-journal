@@ -2,11 +2,9 @@ import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 
 export default function LoginPage() {
-  const { login, register } = useAuth();
-  const [isRegister, setIsRegister] = useState(() => new URLSearchParams(window.location.search).get('mode') === 'register');
+  const { login } = useAuth();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [displayName, setDisplayName] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -16,11 +14,7 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      if (isRegister) {
-        await register(username, password, displayName);
-      } else {
-        await login(username, password);
-      }
+      await login(username, password);
     } catch (err) {
       setError(err.message || 'We couldn’t sign you in.');
     } finally {
@@ -31,10 +25,10 @@ export default function LoginPage() {
   return (
     <main className="memory-login">
       <section className="memory-login-story">
-        <div className="memory-login-brand">
+        <a className="memory-login-brand" href="/" aria-label="Postcards of Us home">
           <span className="memory-brand-mark" aria-hidden="true">P</span>
           <span>Postcards of Us</span>
-        </div>
+        </a>
         <div>
           <p className="memory-eyebrow">A life traveled together</p>
           <h1>Every place left us with a story.</h1>
@@ -45,28 +39,14 @@ export default function LoginPage() {
 
       <section className="memory-login-panel">
         <div className="memory-login-form">
-          <p className="memory-eyebrow">{isRegister ? 'Begin your journal' : 'Welcome back'}</p>
-          <h2>{isRegister ? 'Create your account' : 'See today’s memory'}</h2>
+          <a className="memory-login-back" href="/"><span aria-hidden="true">←</span> Back to Postcards of Us</a>
+          <p className="memory-eyebrow">Welcome back</p>
+          <h2>Open your memories</h2>
           <p className="memory-login-copy">
-            {isRegister
-              ? 'Set this up once, then the two of you can start adding your travels.'
-              : 'Sign in to return to your shared travel story.'}
+            Sign in to return to your private family travel story.
           </p>
 
           <form onSubmit={handleSubmit}>
-            {isRegister && (
-              <label>
-                Your name
-                <input
-                  type="text"
-                  value={displayName}
-                  onChange={event => setDisplayName(event.target.value)}
-                  placeholder="What should we call you?"
-                  autoComplete="name"
-                />
-              </label>
-            )}
-
             <label>
               Username
               <input
@@ -86,7 +66,7 @@ export default function LoginPage() {
                 value={password}
                 onChange={event => setPassword(event.target.value)}
                 placeholder="Your password"
-                autoComplete={isRegister ? 'new-password' : 'current-password'}
+                autoComplete="current-password"
                 required
               />
             </label>
@@ -94,20 +74,11 @@ export default function LoginPage() {
             {error && <div className="memory-login-error" role="alert">{error}</div>}
 
             <button type="submit" disabled={loading} className="memory-login-submit">
-              {loading ? 'One moment…' : isRegister ? 'Create our journal' : 'Open our memories'}
+              {loading ? 'One moment…' : 'Open our memories'}
             </button>
           </form>
 
-          <button
-            type="button"
-            onClick={() => {
-              setIsRegister(value => !value);
-              setError('');
-            }}
-            className="memory-login-switch"
-          >
-            {isRegister ? 'We already have an account' : 'Setting this up for the first time?'}
-          </button>
+          <p className="memory-login-invite">Postcards of Us is currently invitation-only.</p>
         </div>
       </section>
     </main>

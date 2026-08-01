@@ -25,14 +25,16 @@ by each browser independently; a new phone, tablet, or browser signs in once.
 
 ## 1. Publish the initial images
 
-The workflow at `.github/workflows/publish-containers.yml` publishes:
+The legacy workflow at `.github/workflows/publish-containers.yml` publishes:
 
 - `ghcr.io/yancmo1/travel-journal-frontend:latest`
 - `ghcr.io/yancmo1/travel-journal-backend:latest`
 
-Push this deployment work to `main`, or run **Publish production containers**
-from the GitHub Actions page. The workflow also publishes immutable
-`sha-<commit>` tags for rollback.
+Normal pushes no longer publish these images because `travel.yancmo.xyz` is
+frozen. An intentional emergency release requires manually running **Publish
+legacy production containers** from GitHub Actions and confirming the legacy
+release input. The workflow also publishes immutable `sha-<commit>` tags for
+rollback.
 
 New GHCR packages are private by default. Either make both packages public in
 GitHub package settings, or keep them private and log the Ubuntu host in with a
@@ -79,14 +81,13 @@ In Cloudflare Zero Trust:
    to `https://localhost:443` with `noTLSVerify: true`, then restart the shared
    `cloudflared` service.
 4. Route the tunnel DNS record to the existing tunnel.
-5. Under **Access controls > Applications**, add a self-hosted application for
-   the entire hostname.
-6. Add an Allow policy containing only your email and Amber's email. One-time
-   PIN is a simple identity provider for this small audience.
+5. Keep the root landing page public. Before beta accounts are introduced, add
+   an Access policy around the private app and API routes, or complete the
+   product's tenant-isolation work.
+6. Keep `ALLOW_PUBLIC_REGISTRATION=false`. Existing migrated accounts can sign
+   in; beta account provisioning remains an operator action.
 
-Do not use an `Everyone` or "all valid emails" Allow rule. The app's registration
-endpoint is intentionally available for family accounts, so Cloudflare Access
-is the outer privacy boundary.
+Do not use an `Everyone` or "all valid emails" Allow rule for private routes.
 
 ## 4. Create the R2 backup destination
 

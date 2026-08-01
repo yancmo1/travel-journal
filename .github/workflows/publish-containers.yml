@@ -1,9 +1,13 @@
-name: Publish production containers
+name: Publish legacy production containers
 
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
+    inputs:
+      confirm_legacy_release:
+        description: "Publish an intentional emergency update for the frozen legacy site"
+        required: true
+        default: false
+        type: boolean
 
 concurrency:
   group: production-containers
@@ -15,6 +19,7 @@ permissions:
 
 jobs:
   publish:
+    if: ${{ inputs.confirm_legacy_release }}
     name: Publish ${{ matrix.name }}
     runs-on: ubuntu-latest
     strategy:

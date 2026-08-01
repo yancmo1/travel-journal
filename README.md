@@ -82,9 +82,10 @@ docker-compose up --build -d
 
 Open http://localhost:3080
 
-1. Click **"Create Account"** to register (first user becomes the account)
-2. Login with your credentials
-3. Start logging your travel memories!
+Public registration is closed by default for the invite-only beta. Restore an
+existing database or provision the initial account as an operator, then sign in
+with those credentials. Do not enable registration for unrelated households
+until tenant isolation is complete.
 
 ## Development
 
@@ -136,7 +137,7 @@ npm run dev
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| POST | `/api/auth/register` | Create account |
+| POST | `/api/auth/register` | Create account when operator-enabled; closed by default |
 | POST | `/api/auth/login` | Login |
 | GET | `/api/auth/me` | Get current user |
 | GET | `/api/trips` | List all trips |

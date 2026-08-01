@@ -505,7 +505,12 @@ body {
   display: flex;
   align-items: center;
   gap: 12px;
+  color: white;
   font: 600 18px/1 'Playfair Display', serif;
+}
+
+.memory-login-brand:hover {
+  color: #f2c58f;
 }
 
 .memory-login-story h1 {
@@ -539,6 +544,20 @@ body {
 
 .memory-login-form {
   width: min(100%, 430px);
+}
+
+.memory-login-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 40px;
+  color: #6c7973;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.memory-login-back:hover {
+  color: #35675b;
 }
 
 .memory-login-form h2 {
@@ -595,12 +614,10 @@ body {
   opacity: .55;
 }
 
-.memory-login-switch {
-  width: 100%;
+.memory-login-invite {
   margin-top: 24px;
-  color: #9b6042;
+  color: #75817d;
   font-size: 13px;
-  font-weight: 700;
   text-align: center;
 }
 
@@ -1712,6 +1729,12 @@ button:focus {
   background: #35675b;
 }
 
+.landing-nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
 .landing-beta-label {
   color: #9b6042;
   font-size: 11px;
@@ -2152,6 +2175,7 @@ button:focus {
   .landing-nav { min-height: 72px; }
   .landing-brand { font-size: 16px; }
   .landing-brand-mark { width: 34px; height: 34px; }
+  .landing-beta-label { display: none; }
   .landing-hero { min-height: 0; padding: 44px 0 25px; }
   .landing-hero h1 { font-size: 48px; }
   .landing-lede { font-size: 16px; }

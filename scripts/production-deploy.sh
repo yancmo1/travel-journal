@@ -23,6 +23,13 @@ for name in "${required[@]}"; do
   fi
 done
 
+legacy_hostname="${LEGACY_HOSTNAME:-travel.yancmo.xyz}"
+if [[ "${APP_HOSTNAME}" == "${legacy_hostname}" && "${ALLOW_LEGACY_DEPLOY:-false}" != "true" ]]; then
+  echo "Deployment blocked: ${legacy_hostname} is frozen."
+  echo "Use a Postcards hostname, or set ALLOW_LEGACY_DEPLOY=true for an intentional emergency deployment."
+  exit 1
+fi
+
 if [[ "${DATA_ROOT}" != /* ]]; then
   echo "DATA_ROOT must be an absolute host path."
   exit 1
