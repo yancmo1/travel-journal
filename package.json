@@ -10,20 +10,22 @@
     "db:generate": "drizzle-kit generate"
   },
   "dependencies": {
-    "leaflet": "^1.9.4",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
+    "bcryptjs": "^2.4.3",
     "chart.js": "^4.4.0",
     "drizzle-orm": "0.45.2",
+    "leaflet": "^1.9.4",
+    "lucide-react": "^0.263.1",
+    "react": "^18.2.0",
     "react-chartjs-2": "^5.2.0",
-    "lucide-react": "^0.263.1"
+    "react-dom": "^18.2.0"
   },
   "devDependencies": {
+    "@vitejs/plugin-react": "^5.0.0",
     "autoprefixer": "^10.4.14",
     "drizzle-kit": "0.31.10",
+    "esbuild": "^0.21.5",
     "postcss": "^8.4.23",
     "tailwindcss": "^3.4.8",
     "vite": "^5.0.0"
-    ,"@vitejs/plugin-react": "^5.0.0"
   }
 }

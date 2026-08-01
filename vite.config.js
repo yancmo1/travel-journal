@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite'
-import { copyFileSync, cpSync, mkdirSync, readFileSync, readdirSync } from 'node:fs'
+import { cpSync, mkdirSync, readFileSync, readdirSync } from 'node:fs'
 import { resolve } from 'node:path'
+import { buildSync } from 'esbuild'
 
 function sitesStaticWorker() {
   return {
@@ -11,10 +12,15 @@ function sitesStaticWorker() {
       const serverDir = resolve(distDir, 'server')
       const clientDir = resolve(distDir, 'client')
       mkdirSync(serverDir, { recursive: true })
-      copyFileSync(
-        resolve(process.cwd(), 'worker/sites-static.js'),
-        resolve(serverDir, 'index.js'),
-      )
+      buildSync({
+        entryPoints: [resolve(process.cwd(), 'worker/sites-static.js')],
+        outfile: resolve(serverDir, 'index.js'),
+        bundle: true,
+        format: 'esm',
+        platform: 'browser',
+        target: 'es2022',
+        minify: true,
+      })
       mkdirSync(clientDir, { recursive: true })
       for (const entry of readdirSync(distDir)) {
         if (entry === 'client' || entry === 'server') continue
