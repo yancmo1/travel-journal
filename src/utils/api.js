@@ -243,6 +243,10 @@ class ApiClient {
     return this.request('/maintenance/backup-status');
   }
 
+  async runBackup() {
+    return this.request('/maintenance/backup-now', { method: 'POST' });
+  }
+
   // Places
   async searchPlaces(query) {
     const cacheKey = normalizePlaceQuery(query);

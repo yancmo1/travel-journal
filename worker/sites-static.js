@@ -74,6 +74,127 @@ function migrationAuthorized(request, env) {
   return mismatch === 0;
 }
 
+function secretAuthorized(request, secret, headerName) {
+  if (!secret) return false;
+  const supplied = request.headers.get(headerName) || '';
+  if (supplied.length !== secret.length) return false;
+  let mismatch = 0;
+  for (let index = 0; index < supplied.length; index += 1) mismatch |= supplied.charCodeAt(index) ^ secret.charCodeAt(index);
+  return mismatch === 0;
+}
+
+const backupPrefix = '_backups/';
+const backupTables = ['users', 'households', 'household_members', 'travelers', 'journeys', 'trips', 'trip_travelers', 'photos'];
+
+async function readLatestBackup(env) {
+  const object = await env.MEDIA.get(`${backupPrefix}latest.json`);
+  if (!object) return null;
+  try { return JSON.parse(await object.text()); } catch { return null; }
+}
+
+async function listSourceMedia(env) {
+  const objects = [];
+  let cursor;
+  do {
+    const page = await env.MEDIA.list({ cursor });
+    objects.push(...page.objects.filter(object => !object.key.startsWith(backupPrefix)));
+    cursor = page.truncated ? page.cursor : undefined;
+  } while (cursor);
+  return objects;
+}
+
+function cleanEtag(etag) {
+  return String(etag || 'unknown').replace(/[^a-zA-Z0-9_-]/g, '');
+}
+
+async function createBackup(env, { force = false } = {}) {
+  const existing = await readLatestBackup(env);
+  const existingAge = existing?.lastSuccessfulBackupAt ? Date.now() - Date.parse(existing.lastSuccessfulBackupAt) : Infinity;
+  if (!force && existingAge < 23 * 60 * 60 * 1000) return existing;
+
+  const startedAt = new Date().toISOString();
+  const queryResults = await env.DB.batch(backupTables.map(table => env.DB.prepare(`SELECT * FROM ${table}`)));
+  const tables = Object.fromEntries(backupTables.map((table, index) => [table, queryResults[index].results || []]));
+  const sourceMedia = await listSourceMedia(env);
+  const media = [];
+  let copiedObjects = 0;
+  let copiedBytes = 0;
+  let photoStorageBytes = 0;
+
+  for (const object of sourceMedia) {
+    photoStorageBytes += Number(object.size || 0);
+    const encodedKey = base64url(object.key);
+    const backupKey = `${backupPrefix}media/${encodedKey}/${cleanEtag(object.etag)}`;
+    if (!(await env.MEDIA.head(backupKey))) {
+      const source = await env.MEDIA.get(object.key);
+      if (!source) throw new Error(`Source media disappeared during backup: ${object.key}`);
+      await env.MEDIA.put(backupKey, source.body, {
+        httpMetadata: source.httpMetadata,
+        customMetadata: { sourceKey: object.key, sourceEtag: object.etag || '' },
+      });
+      copiedObjects += 1;
+      copiedBytes += Number(object.size || 0);
+    }
+    media.push({ key: object.key, backupKey, etag: object.etag, size: Number(object.size || 0), uploaded: object.uploaded });
+  }
+
+  const snapshot = {
+    format: 'postcards-cloudflare-backup',
+    version: 1,
+    createdAt: startedAt,
+    database: { engine: 'Cloudflare D1', tables },
+    media: { engine: 'Cloudflare R2', objects: media },
+  };
+  const snapshotBytes = encoder.encode(JSON.stringify(snapshot));
+  const safeTimestamp = startedAt.replace(/[:.]/g, '-');
+  const databaseKey = `${backupPrefix}database/${safeTimestamp}.json`;
+  await env.MEDIA.put(databaseKey, snapshotBytes, { httpMetadata: { contentType: 'application/json; charset=utf-8' } });
+
+  const manifest = {
+    configured: true,
+    stale: false,
+    lastSuccessfulBackupAt: startedAt,
+    lastDatabaseDumpAt: startedAt,
+    databaseDumpBytes: snapshotBytes.byteLength,
+    databaseKey,
+    databaseTableCounts: Object.fromEntries(backupTables.map(table => [table, tables[table].length])),
+    sourcePhotoObjects: sourceMedia.length,
+    photoStorageBytes,
+    protectedPhotoObjects: media.length,
+    protectedPhotoBytes: photoStorageBytes,
+    copiedObjects,
+    copiedBytes,
+    recovery: { database: 'Cloudflare D1 Time Travel plus R2 export', photos: 'Versioned R2 archive copies' },
+  };
+  await env.MEDIA.put(`${backupPrefix}latest.json`, encoder.encode(JSON.stringify(manifest)), { httpMetadata: { contentType: 'application/json; charset=utf-8' } });
+  return manifest;
+}
+
+function backupStatus(manifest) {
+  if (!manifest) {
+    return {
+      configured: true,
+      stale: true,
+      staleAfterHours: 30,
+      lastSuccessfulBackupAt: null,
+      message: 'The first private Cloudflare archive is being prepared.',
+    };
+  }
+  const ageHours = Math.max(0, (Date.now() - Date.parse(manifest.lastSuccessfulBackupAt)) / 3600000);
+  const stale = !Number.isFinite(ageHours) || ageHours > 30;
+  return {
+    ...manifest,
+    configured: true,
+    stale,
+    staleAfterHours: 30,
+    ageHours: Number.isFinite(ageHours) ? ageHours : null,
+    checkedAt: new Date().toISOString(),
+    message: stale
+      ? 'The last app archive is older than expected. A refresh has been queued.'
+      : 'Database recovery and private photo archive copies are current in Cloudflare.',
+  };
+}
+
 function photoJson(row) {
   return {
     id: row.id,
@@ -250,7 +371,7 @@ async function health(env) {
 }
 
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const url = new URL(request.url);
 
     if (url.pathname === '/api/health' && request.method === 'GET') {
@@ -285,9 +406,18 @@ export default {
       return json({ error: 'Not found' }, { status: 404 });
     }
 
+    if (url.pathname === '/api/maintenance/backup-runner' && request.method === 'POST') {
+      if (!secretAuthorized(request, env.BACKUP_TOKEN, 'x-backup-token')) return json({ error: 'Not found' }, { status: 404 });
+      try { return json(await createBackup(env, { force: true })); }
+      catch (error) {
+        console.error('Postcards backup failed', error);
+        return json({ error: 'Backup failed' }, { status: 500 });
+      }
+    }
+
     if (url.pathname.startsWith('/photos/') && request.method === 'GET') {
       const key = decodeURIComponent(url.pathname.slice('/photos/'.length));
-      if (!key || key.includes('..')) return new Response('Not found', { status: 404 });
+      if (!key || key.includes('..') || key.startsWith(backupPrefix)) return new Response('Not found', { status: 404 });
       const object = await env.MEDIA.get(key);
       if (!object) return new Response('Not found', { status: 404 });
       const headers = new Headers();
@@ -363,7 +493,18 @@ export default {
       }
 
       if (url.pathname === '/api/maintenance/backup-status' && request.method === 'GET') {
-        return json({ configured: false, stale: true, staleAfterHours: 30, lastSuccessfulBackupAt: env.LEGACY_BACKUP_AT || null, lastDatabaseDumpAt: env.LEGACY_BACKUP_AT || null, databaseDumpBytes: Number(env.LEGACY_DATABASE_DUMP_BYTES || 0), photoStorageBytes: Number(env.LEGACY_PHOTO_BYTES || 0), checkedAt: new Date().toISOString(), message: 'The migration snapshot is verified. Automated Cloudflare backups still need to be scheduled.' });
+        const latest = await readLatestBackup(env);
+        const due = !latest?.lastSuccessfulBackupAt || Date.now() - Date.parse(latest.lastSuccessfulBackupAt) > 24 * 60 * 60 * 1000;
+        if (due) ctx.waitUntil(createBackup(env).catch(error => console.error('Automatic Postcards backup failed', error)));
+        return json(backupStatus(latest));
+      }
+
+      if (url.pathname === '/api/maintenance/backup-now' && request.method === 'POST') {
+        try { return json(backupStatus(await createBackup(env, { force: true }))); }
+        catch (error) {
+          console.error('Manual Postcards backup failed', error);
+          return json({ error: 'The backup could not be completed. Please try again.' }, { status: 500 });
+        }
       }
 
       const photoMatch = url.pathname.match(/^\/api\/photos\/(\d+)$/);

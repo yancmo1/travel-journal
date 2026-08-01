@@ -4,6 +4,7 @@ import CleanupPage from './CleanupPage';
 import PeoplePage from './PeoplePage';
 import { useData } from '../context/DataContext';
 import { APP_VERSION } from '../config/app';
+import api from '../utils/api';
 
 const SECTIONS = [
   { id: 'overview', label: 'Settings', description: 'Backup, storage, and app details', icon: '⚙' },
@@ -56,7 +57,9 @@ export default function SettingsPage({ setPage, setTravelerFilter }) {
 }
 
 function SettingsOverview() {
-  const { backupStatus } = useData();
+  const { backupStatus, loadBackupStatus } = useData();
+  const [backingUp, setBackingUp] = useState(false);
+  const [backupError, setBackupError] = useState('');
   const statusClass = backupStatus?.stale
     ? 'border-amber-200 bg-amber-50 text-amber-950'
     : 'border-green-200 bg-green-50 text-green-950';
@@ -72,17 +75,39 @@ function SettingsOverview() {
             </h2>
             <p className="mt-1 max-w-xl text-sm opacity-80">
               {backupStatus?.message || (backupStatus?.stale
-                ? 'The last successful R2 backup is outside the expected window.'
-                : 'The Ubuntu backup job is reporting normally.')}
+                ? 'The latest private Cloudflare archive is outside the expected window.'
+                : 'Cloudflare database recovery and private photo copies are current.')}
             </p>
+            {backupError && <p className="mt-2 text-sm font-medium text-red-700" role="alert">{backupError}</p>}
           </div>
-          {backupStatus && (
-            <div className="grid grid-cols-1 gap-2 text-sm sm:min-w-[19rem] sm:grid-cols-3">
-              <BackupMetric label="Last backup" value={formatStatusDate(backupStatus.lastSuccessfulBackupAt)} />
-              <BackupMetric label="DB dump" value={formatStatusDate(backupStatus.lastDatabaseDumpAt)} />
-              <BackupMetric label="Photos on disk" value={formatBytes(backupStatus.photoStorageBytes)} />
-            </div>
-          )}
+          <div className="flex flex-col items-stretch gap-3 sm:min-w-[19rem]">
+            {backupStatus && (
+              <div className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-3">
+                <BackupMetric label="Last backup" value={formatStatusDate(backupStatus.lastSuccessfulBackupAt)} />
+                <BackupMetric label="DB export" value={formatBytes(backupStatus.databaseDumpBytes)} />
+                <BackupMetric label="Photos protected" value={formatBytes(backupStatus.protectedPhotoBytes)} />
+              </div>
+            )}
+            <button
+              type="button"
+              disabled={backingUp}
+              onClick={async () => {
+                setBackingUp(true);
+                setBackupError('');
+                try {
+                  await api.runBackup();
+                  await loadBackupStatus();
+                } catch (error) {
+                  setBackupError(error.message || 'The backup could not be completed.');
+                } finally {
+                  setBackingUp(false);
+                }
+              }}
+              className="self-end rounded-lg bg-ocean-blue px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+            >
+              {backingUp ? 'Backing up…' : 'Back up now'}
+            </button>
+          </div>
         </div>
       </section>
 
