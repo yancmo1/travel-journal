@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 
 export default function LoginPage() {
   const { login, register } = useAuth();
-  const [isRegister, setIsRegister] = useState(false);
+  const [isRegister, setIsRegister] = useState(() => new URLSearchParams(window.location.search).get('mode') === 'register');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
@@ -32,8 +32,8 @@ export default function LoginPage() {
     <main className="memory-login">
       <section className="memory-login-story">
         <div className="memory-login-brand">
-          <span className="memory-brand-mark" aria-hidden="true">T</span>
-          <span>Tracing Time</span>
+          <span className="memory-brand-mark" aria-hidden="true">P</span>
+          <span>Postcards of Us</span>
         </div>
         <div>
           <p className="memory-eyebrow">A life traveled together</p>

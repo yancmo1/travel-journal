@@ -1,4 +1,4 @@
-# Travel Journal To-Do
+# Postcards of Us To-Do
 
 This list is intentionally small and prioritized. We can check items off as we go; no item is committed automatically.
 

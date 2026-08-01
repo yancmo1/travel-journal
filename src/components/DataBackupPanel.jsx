@@ -72,7 +72,7 @@ export default function DataBackupPanel() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `travel-journal-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    link.download = `postcards-of-us-backup-${new Date().toISOString().slice(0, 10)}.json`;
     link.click();
     URL.revokeObjectURL(url);
     setMessage('Backup downloaded. Keep it somewhere separate from the server.');
@@ -85,7 +85,7 @@ export default function DataBackupPanel() {
     setMessage('');
     try {
       const parsed = JSON.parse(await file.text());
-      if (parsed.format !== 'travel-journal-backup' || parsed.version !== 1) throw new Error('That file is not a supported Travel Journal backup.');
+      if (parsed.format !== 'travel-journal-backup' || parsed.version !== 1) throw new Error('That file is not a supported Postcards of Us backup.');
       if (!Array.isArray(parsed.travelers) || !Array.isArray(parsed.journeys) || !Array.isArray(parsed.trips)) throw new Error('The backup is missing one or more data sections.');
       setBackup(parsed);
     } catch (error) {

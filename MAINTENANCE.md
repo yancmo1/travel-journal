@@ -1,4 +1,4 @@
-# Travel Journal maintenance
+# Postcards of Us maintenance
 
 This is the short operational checklist for the private Ubuntu deployment. The
 full architecture and first-time setup are documented in
@@ -42,7 +42,7 @@ entries, and jump to that person’s memories in **All Places & Memories**.
 ## Deploy the current published images
 
 The GitHub Actions workflow publishes `latest` and immutable `sha-<commit>`
-images to GHCR. Watchtower normally updates the Travel Journal containers
+images to GHCR. Watchtower normally updates the Postcards of Us containers
 within five minutes. To apply or pin a release immediately:
 
 ```bash

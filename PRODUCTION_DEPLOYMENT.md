@@ -13,7 +13,7 @@ a private Cloudflare R2 bucket.
 | `backend` | Express API and image processing | Private Docker network |
 | `postgres` | PostgreSQL 15 | Private Docker network |
 | shared `cloudflared` | Existing outbound tunnel connector | Outbound connections only |
-| `watchtower` | Travel Journal-only automatic GHCR updater | None |
+| `watchtower` | Postcards of Us-only automatic GHCR updater | None |
 
 The frontend is also bound to `127.0.0.1:3080` for server-side health checks.
 There is no reason to open ports 80, 443, 3080, 4000, or 5432 in the router or
@@ -73,9 +73,9 @@ commit `.env.production`.
 In Cloudflare Zero Trust:
 
 1. Go to **Networks > Connectors > Cloudflare Tunnels** and create a named
-   tunnel, such as `travel-journal`.
+   tunnel, such as `postcards-of-us`.
 2. Reuse the existing `yancmo.xyz` tunnel on the Ubuntu host.
-3. Add `travel.yancmo.xyz` to `/home/yancmo/.cloudflared/config.yml`, routing it
+3. Add `postcardsofus.com` to `/home/yancmo/.cloudflared/config.yml`, routing it
    to `https://localhost:443` with `noTLSVerify: true`, then restart the shared
    `cloudflared` service.
 4. Route the tunnel DNS record to the existing tunnel.
@@ -172,8 +172,8 @@ the bucket contents cannot be restored.
 
 Every push to `main` publishes `latest`. The stack's Watchtower polls every five
 minutes and updates the frontend and backend containers in its `travel-journal`
-scope. It uses anonymous access to the public Travel Journal packages, leaving
-the host's separate GHCR login untouched. Database and `cloudflared` updates
+ scope. It uses anonymous access to the public Postcards of Us packages, leaving
+ the host's separate GHCR login untouched. Database and `cloudflared` updates
 remain deliberate.
 
 To pin or roll back, set `IMAGE_TAG=sha-<commit>` in `.env.production`, then run:

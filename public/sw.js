@@ -1,4 +1,4 @@
-const CACHE_NAME = 'travel-journal-shell-v2';
+const CACHE_NAME = 'postcards-of-us-shell-v3';
 const SHELL_FILES = ['/', '/index.html', '/manifest.webmanifest', '/icon.svg', '/icon-192.png', '/icon-512.png'];
 
 self.addEventListener('message', event => {

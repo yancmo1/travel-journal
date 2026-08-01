@@ -8,7 +8,7 @@ Create a Google Cloud budget alert for the project that owns the Places API key:
 
 1. Open **Google Cloud Console → Billing → Budgets & alerts**.
 2. Select the billing account and choose **Create budget**.
-3. Scope it to the Travel Journal project and name it `Travel Journal Places API`.
+3. Scope it to the Postcards of Us project and name it `Postcards of Us Places API`.
 4. Set the monthly budget to `$0` and alert thresholds at `50%`, `75%`, `90%`,
    and `100%` of budget. With a zero budget, each threshold has a `$0` amount,
    so any reported nonzero spend triggers the earliest possible warning.

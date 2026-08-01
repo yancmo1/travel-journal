@@ -168,7 +168,7 @@ docker-compose ps
 2. ✅ Verify photo upload with real GPS photos
 3. ✅ Test trip creation from photo suggestions
 4. 🚀 Deploy to production server (100.105.31.42)
-5. 🚀 Configure nginx reverse proxy for travel.yancmo.xyz
+5. 🚀 Configure nginx reverse proxy for postcardsofus.com
 
 ---
 

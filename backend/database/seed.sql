@@ -1,4 +1,4 @@
--- Seed data for Travel Memory Tracker
+-- Seed data for Postcards of Us
 
 -- Default travelers (the couple)
 INSERT INTO travelers (name, relationship) VALUES 

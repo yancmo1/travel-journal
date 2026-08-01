@@ -1,7 +1,7 @@
-# Travel Memory Tracker - MVP Product Requirements Document
+# Postcards of Us - MVP Product Requirements Document
 
 ## Project Overview
-A web application for a married couple to log, track, and visualize all the places they've traveled together since 2001. The app should provide an interactive map with location pins, travel analytics, and a simple interface for adding memories.
+Postcards of Us is a web application for a married couple to preserve and visualize all the places they've traveled together since 2001. The app should provide an interactive map with location pins, travel analytics, and a simple interface for adding memories.
 
 ## Target Deployment
 - **Docker Container** on Ubuntu server

@@ -1,7 +1,7 @@
 {
-  "name": "Tracing Time",
-  "short_name": "Travel Memories",
-  "description": "A private family travel memory journal.",
+  "name": "Postcards of Us",
+  "short_name": "Postcards of Us",
+  "description": "A private family storybook for keeping travel memories together.",
   "id": "/",
   "lang": "en-US",
   "start_url": "/",

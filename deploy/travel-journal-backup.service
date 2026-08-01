@@ -1,5 +1,5 @@
 [Unit]
-Description=Back up Travel Journal photos and PostgreSQL to Cloudflare R2
+Description=Back up Postcards of Us photos and PostgreSQL to Cloudflare R2
 Requires=docker.service
 After=docker.service
 

@@ -1,5 +1,5 @@
 [Unit]
-Description=Nightly Travel Journal R2 backup
+Description=Nightly Postcards of Us R2 backup
 
 [Timer]
 OnCalendar=*-*-* 03:17:00

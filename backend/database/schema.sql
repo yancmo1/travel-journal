@@ -1,4 +1,4 @@
--- Travel Memory Tracker Database Schema
+-- Postcards of Us Database Schema
 
 -- Users table
 CREATE TABLE IF NOT EXISTS users (

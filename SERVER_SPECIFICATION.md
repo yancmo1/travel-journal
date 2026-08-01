@@ -1,6 +1,6 @@
-# Travel Journal Application - Server Specification Sheet
+# Postcards of Us Application - Server Specification Sheet
 
-**Application Name:** Travel Memory Tracker  
+**Application Name:** Postcards of Us
 **Repository:** https://github.com/yancmo1/travel-journal  
 **Version:** 1.0.0  
 **Date:** January 25, 2026
@@ -9,7 +9,7 @@
 
 ## 🎯 Application Overview
 
-A full-stack travel journaling application with photo intelligence, EXIF data extraction, location clustering, and analytics dashboard. Users can track trips, upload photos with automatic location extraction, and view comprehensive travel statistics.
+A full-stack family travel storybook with photo intelligence, EXIF data extraction, location clustering, and an analytics dashboard. Users can preserve trips, upload photos with automatic location extraction, and revisit their travel history.
 
 ---
 

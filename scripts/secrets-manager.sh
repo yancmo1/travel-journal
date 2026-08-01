@@ -1,5 +1,5 @@
 #!/bin/bash
-# Travel Journal - Secure Secrets Management
+# Postcards of Us - Secure Secrets Management
 # Uses OpenSSL AES-256-CBC encryption with passkey
 
 SECRETS_FILE=".env"
@@ -17,7 +17,7 @@ trap "rm -f $TEMP_DECRYPTED" EXIT
 
 show_help() {
   cat << EOF
-Travel Journal Secrets Manager
+Postcards of Us Secrets Manager
 
 Usage: $0 [command]
 
@@ -149,7 +149,7 @@ rotate_passkey() {
 }
 
 deploy_app() {
-  echo -e "${YELLOW}Deploying Travel Journal...${NC}"
+  echo -e "${YELLOW}Deploying Postcards of Us...${NC}"
   
   # Decrypt secrets
   decrypt_secrets

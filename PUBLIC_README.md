@@ -1,8 +1,8 @@
-# Tracing Time
+# Postcards of Us
 
 ## The simple version
 
-Tracing Time is a private family travel storybook.
+Postcards of Us is a private family travel storybook.
 
 It helps people take years of scattered travel photos, places, dates, and
 memories and turn them into one organized family history. People can see their
@@ -24,8 +24,8 @@ Most family travel history is spread across:
 - email messages;
 - memories that only one person still remembers.
 
-Those things are hard to search, hard to explain, and easy to lose. Tracing
-Time gives a family one calm, private place to preserve the story.
+Those things are hard to search, hard to explain, and easy to lose. Postcards
+of Us gives a family one calm, private place to preserve the story.
 
 The emotional promise is simple:
 
@@ -151,7 +151,7 @@ investment.
 
 ## The long-term possibility
 
-If the beta is successful, Tracing Time could become:
+If the beta is successful, Postcards of Us could become:
 
 - a small household subscription service;
 - a paid “we organize your memories for you” service;

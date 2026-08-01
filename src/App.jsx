@@ -5,6 +5,7 @@ import Header from './components/Header';
 import Dashboard from './pages/Dashboard';
 import TripsPage from './pages/TripsPage';
 import LoginPage from './pages/LoginPage';
+import LandingPage from './pages/LandingPage';
 import JourneysPage from './pages/JourneysPage';
 import SettingsPage from './pages/SettingsPage';
 import TimelinePage from './pages/TimelinePage';
@@ -26,7 +27,7 @@ function AppContent() {
   }
 
   if (!user) {
-    return <LoginPage />;
+    return window.location.pathname === '/login' ? <LoginPage /> : <LandingPage />;
   }
 
   return (

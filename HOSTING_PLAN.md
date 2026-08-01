@@ -1,9 +1,9 @@
-# Hosting plan for Tracing Time
+# Hosting plan for Postcards of Us
 
 ## Recommended first home
 
 Run the existing Docker application on the always-on Ubuntu machine and connect
-`travel.yancmo.xyz` through a named Cloudflare Tunnel.
+`postcardsofus.com` through a named Cloudflare Tunnel.
 
 Why this fits:
 

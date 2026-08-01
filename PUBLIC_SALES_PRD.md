@@ -1,6 +1,6 @@
 # Public Sales Product Requirements Document
 
-## Tracing Time
+## Postcards of Us
 
 **Planning baseline:** July 2026  
 **Document purpose:** Define the smallest safe, understandable path from the
@@ -8,7 +8,7 @@ current family app to an invite-only public beta and eventually a paid product.
 
 ## 1. Executive summary
 
-Tracing Time is a private family travel storybook. It turns travel places,
+Postcards of Us is a private family travel storybook. It turns travel places,
 photos, dates, people, and notes into an organized history that families can
 revisit, share privately, and preserve as a keepsake.
 
@@ -35,7 +35,7 @@ the free beta.
 
 ### 2.2 Customer-facing description
 
-> Tracing Time helps your family preserve the places you have visited and
+> Postcards of Us helps your family preserve the places you have visited and
 > the stories attached to them. Add a trip, bring in photos, group stops into a
 > journey, see your history on a map, and share a private story with the people
 > who were there.
@@ -554,7 +554,7 @@ return.
 **Headline:** Your family history, brought to life through the places, people,
 and moments you’ve shared.
 
-**Subheadline:** Tracing Time turns travel photos, places, dates, and stories
+**Subheadline:** Postcards of Us turns travel photos, places, dates, and stories
 into a private family storybook you can revisit, share, and keep.
 
 **Button:** Join the founding beta

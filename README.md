@@ -1,8 +1,8 @@
-# Tracing Time
+# Postcards of Us
 
 ## Public product planning
 
-This repository contains the technical implementation of **Tracing Time**,
+This repository contains the technical implementation of **Postcards of Us**,
 a private family travel storybook. For the plain-language business vision and
 the plan for an invite-only beta and eventual public sales, see:
 

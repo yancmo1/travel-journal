@@ -2,7 +2,7 @@
 
 ## 🎉 Implementation Complete
 
-The Travel Memory Tracker now includes a complete **Photo Intelligence System** that automatically analyzes photos and suggests trips based on GPS coordinates and dates extracted from EXIF metadata.
+Postcards of Us now includes a complete **Photo Intelligence System** that automatically analyzes photos and suggests trips based on GPS coordinates and dates extracted from EXIF metadata.
 
 ---
 
@@ -390,7 +390,7 @@ curl -X POST http://localhost:3080/api/photos/analyze \
 
 ## 🎉 Result
 
-The Travel Memory Tracker now features a **world-class Photo Intelligence System** that rivals commercial travel apps. Users can upload hundreds of photos and automatically create trips with zero manual data entry—just drag, drop, review, and click create.
+Postcards of Us now features a **world-class Photo Intelligence System** that rivals commercial travel apps. Users can upload hundreds of photos and automatically create trips with zero manual data entry—just drag, drop, review, and click create.
 
 **Access the app**: http://localhost:3080
 **Navigate to**: Photo Intelligence tab in header

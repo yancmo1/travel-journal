@@ -11,7 +11,7 @@ export default function SharedJourneyPage({ token }) {
     api.getSharedJourney(token).then(setJourney).catch(err => setError(err.message || 'This private link is unavailable.'));
   }, [token]);
 
-  if (error) return <main className="flex min-h-screen items-center justify-center bg-[#f5f0e8] p-6"><div className="rounded-2xl bg-white p-8 text-center shadow-sm"><h1 className="text-2xl font-semibold text-ocean-dark">Private journey unavailable</h1><p className="mt-2 text-gray-600">{error}</p><a className="mt-5 inline-block font-semibold text-ocean-teal" href="/">Open Travel Memories</a></div></main>;
+  if (error) return <main className="flex min-h-screen items-center justify-center bg-[#f5f0e8] p-6"><div className="rounded-2xl bg-white p-8 text-center shadow-sm"><h1 className="text-2xl font-semibold text-ocean-dark">Private journey unavailable</h1><p className="mt-2 text-gray-600">{error}</p><a className="mt-5 inline-block font-semibold text-ocean-teal" href="/">Open Postcards of Us</a></div></main>;
   if (!journey) return <main className="flex min-h-screen items-center justify-center bg-[#f5f0e8] text-ocean-dark">Loading private journey…</main>;
 
   return (
@@ -33,7 +33,7 @@ export default function SharedJourneyPage({ token }) {
           </article>
         ))}
       </div>
-      <footer className="pt-8 text-sm text-gray-500">Shared privately from Tracing Time.</footer>
+      <footer className="pt-8 text-sm text-gray-500">Shared privately from Postcards of Us.</footer>
     </main>
   );
 }
