@@ -1,5 +1,5 @@
 import { defineConfig } from 'vite'
-import { copyFileSync, mkdirSync, readFileSync } from 'node:fs'
+import { copyFileSync, cpSync, mkdirSync, readFileSync, readdirSync } from 'node:fs'
 import { resolve } from 'node:path'
 
 function sitesStaticWorker() {
@@ -7,12 +7,19 @@ function sitesStaticWorker() {
     name: 'sites-static-worker',
     apply: 'build',
     closeBundle() {
-      const serverDir = resolve(process.cwd(), 'dist/server')
+      const distDir = resolve(process.cwd(), 'dist')
+      const serverDir = resolve(distDir, 'server')
+      const clientDir = resolve(distDir, 'client')
       mkdirSync(serverDir, { recursive: true })
       copyFileSync(
         resolve(process.cwd(), 'worker/sites-static.js'),
         resolve(serverDir, 'index.js'),
       )
+      mkdirSync(clientDir, { recursive: true })
+      for (const entry of readdirSync(distDir)) {
+        if (entry === 'client' || entry === 'server') continue
+        cpSync(resolve(distDir, entry), resolve(clientDir, entry), { recursive: true })
+      }
     },
   }
 }
