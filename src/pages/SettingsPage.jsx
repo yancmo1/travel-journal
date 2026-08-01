@@ -92,7 +92,7 @@ function SettingsOverview() {
         <p className="memory-eyebrow">About this app</p>
         <div className="mt-3 flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h2 className="text-xl font-semibold text-ocean-dark">Where We’ve Been</h2>
+            <h2 className="text-xl font-semibold text-ocean-dark">Tracing Time</h2>
             <p className="mt-1 text-sm text-gray-600">Private family travel memories, available offline.</p>
           </div>
           <div className="rounded-xl bg-gray-50 px-4 py-3 text-right">

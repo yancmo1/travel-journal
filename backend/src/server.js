@@ -59,7 +59,7 @@ async function start() {
     console.log('Database initialized');
     
     app.listen(PORT, '0.0.0.0', () => {
-      console.log(`Travel Tracker API running on port ${PORT}`);
+      console.log(`Tracing Time API running on port ${PORT}`);
     });
   } catch (err) {
     console.error('Failed to start server:', err);

@@ -33,7 +33,7 @@ export default function SharedJourneyPage({ token }) {
           </article>
         ))}
       </div>
-      <footer className="pt-8 text-sm text-gray-500">Shared privately from Where We’ve Been.</footer>
+      <footer className="pt-8 text-sm text-gray-500">Shared privately from Tracing Time.</footer>
     </main>
   );
 }

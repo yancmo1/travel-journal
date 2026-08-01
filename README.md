@@ -1,4 +1,13 @@
-# Travel Memory Tracker
+# Tracing Time
+
+## Public product planning
+
+This repository contains the technical implementation of **Tracing Time**,
+a private family travel storybook. For the plain-language business vision and
+the plan for an invite-only beta and eventual public sales, see:
+
+- [Public README](PUBLIC_README.md)
+- [Public Sales PRD](PUBLIC_SALES_PRD.md)
 
 A private family storybook for revisiting travel memories, grouping individual
 stops into complete journeys, and keeping storage-friendly photo copies.

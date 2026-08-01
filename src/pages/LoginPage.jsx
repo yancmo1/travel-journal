@@ -32,8 +32,8 @@ export default function LoginPage() {
     <main className="memory-login">
       <section className="memory-login-story">
         <div className="memory-login-brand">
-          <span className="memory-brand-mark" aria-hidden="true">W</span>
-          <span>Where We’ve Been</span>
+          <span className="memory-brand-mark" aria-hidden="true">T</span>
+          <span>Tracing Time</span>
         </div>
         <div>
           <p className="memory-eyebrow">A life traveled together</p>

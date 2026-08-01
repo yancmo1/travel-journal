@@ -7,7 +7,7 @@
  */
 
 const NOMINATIM_URL = 'https://nominatim.openstreetmap.org/reverse';
-const USER_AGENT = 'WhereWeveBeen/1.0 (https://travel.yancmo.xyz)';
+const USER_AGENT = 'TracingTime/1.0 (https://travel.yancmo.xyz)';
 const REQUEST_DELAY = 1100; // >1 second to respect rate limit
 
 // In-memory cache to avoid redundant lookups

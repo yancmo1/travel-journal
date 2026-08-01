@@ -28,10 +28,10 @@ export default function Header({ currentPage, setPage }) {
             onClick={() => setPage('dashboard')}
             aria-label="Go to memories"
           >
-            <span className="memory-brand-mark" aria-hidden="true">W</span>
+            <span className="memory-brand-mark" aria-hidden="true">T</span>
             <span>
-              <span className="memory-brand-title">Where We’ve Been</span>
-              <span className="memory-brand-subtitle">our life, one trip at a time</span>
+              <span className="memory-brand-title">Tracing Time</span>
+              <span className="memory-brand-subtitle">our story, one memory at a time</span>
             </span>
           </button>
 
