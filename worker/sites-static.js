@@ -438,6 +438,52 @@ function photoJson(row) {
   };
 }
 
+function tripInput(body) {
+  const locationName = String(body?.locationName || '').trim();
+  if (!locationName || locationName.length > 200) return { error: 'Enter a location name.' };
+  const numberOrNull = value => value === '' || value == null || !Number.isFinite(Number(value)) ? null : Number(value);
+  const datePrecision = ['exact', 'year', 'unknown'].includes(body?.datePrecision) ? body.datePrecision : 'exact';
+  return {
+    value: {
+      locationName,
+      city: String(body?.city || '').trim() || null,
+      latitude: numberOrNull(body?.latitude),
+      longitude: numberOrNull(body?.longitude),
+      country: String(body?.country || '').trim() || null,
+      state: String(body?.state || '').trim() || null,
+      startDate: datePrecision === 'exact' ? body?.startDate || null : null,
+      endDate: datePrecision === 'exact' ? body?.endDate || null : null,
+      dateLabel: datePrecision === 'exact' ? null : String(body?.dateLabel || '').trim() || null,
+      datePrecision,
+      tripType: String(body?.tripType || 'Other').trim().slice(0, 80) || 'Other',
+      notes: String(body?.notes || '').slice(0, 20000) || null,
+      travelerIds: [...new Set((Array.isArray(body?.travelerIds) ? body.travelerIds : []).map(Number).filter(id => Number.isInteger(id) && id > 0))],
+    },
+  };
+}
+
+async function householdTravelerIds(env, householdId, requestedIds) {
+  if (!requestedIds.length) return [];
+  const placeholders = requestedIds.map(() => '?').join(',');
+  const rows = (await env.DB.prepare(`SELECT id FROM travelers WHERE household_id = ? AND id IN (${placeholders})`).bind(householdId, ...requestedIds).all()).results || [];
+  return rows.map(row => row.id);
+}
+
+function uploadMetadata(formData) {
+  try {
+    const parsed = JSON.parse(String(formData.get('photoMetadata') || '[]'));
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function photoMimeType(file) {
+  if (file.type) return String(file.type).toLowerCase();
+  const extension = String(file.name || '').toLowerCase().split('.').pop();
+  return { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', gif: 'image/gif', webp: 'image/webp', heic: 'image/heic', heif: 'image/heif' }[extension] || '';
+}
+
 async function decorateTrips(env, householdId, conditions = '', values = []) {
   const trips = (await env.DB.prepare(`
     SELECT t.*, j.title AS journey_title FROM trips t
@@ -935,6 +981,20 @@ export default {
         if (url.searchParams.get('travelerId')) { conditions.push('EXISTS (SELECT 1 FROM trip_travelers filter_tt WHERE filter_tt.trip_id = t.id AND filter_tt.traveler_id = ?)'); values.push(Number(url.searchParams.get('travelerId'))); }
         return json(await decorateTrips(env, user.household_id, conditions.length ? `AND ${conditions.join(' AND ')}` : '', values));
       }
+      if (url.pathname === '/api/trips' && request.method === 'POST') {
+        const parsed = tripInput(await parseJson(request));
+        if (parsed.error) return json({ error: parsed.error }, { status: 400 });
+        const input = parsed.value;
+        const created = await env.DB.prepare(`
+          INSERT INTO trips (household_id, location_name, city, latitude, longitude, country, state, start_date, end_date, date_label, date_precision, trip_type, notes, created_by)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `).bind(user.household_id, input.locationName, input.city, input.latitude, input.longitude, input.country, input.state, input.startDate, input.endDate, input.dateLabel, input.datePrecision, input.tripType, input.notes, user.id).run();
+        const tripId = Number(created.meta.last_row_id);
+        const travelerIds = await householdTravelerIds(env, user.household_id, input.travelerIds);
+        if (travelerIds.length) await env.DB.batch(travelerIds.map(travelerId => env.DB.prepare('INSERT OR IGNORE INTO trip_travelers (trip_id, traveler_id) VALUES (?, ?)').bind(tripId, travelerId)));
+        const trips = await decorateTrips(env, user.household_id, 'AND t.id = ?', [tripId]);
+        return json(trips[0], { status: 201 });
+      }
 
       const tripMatch = url.pathname.match(/^\/api\/trips\/(\d+)$/);
       if (tripMatch && request.method === 'GET') {
@@ -980,6 +1040,25 @@ export default {
 
         return json({ success: true, deleted: tripId, location_name: trip.location_name, deletedPhotoObjects: mediaKeys.length, mediaCleanupPending });
       }
+      if (tripMatch && request.method === 'PUT') {
+        const tripId = Number(tripMatch[1]);
+        const existing = await env.DB.prepare('SELECT id FROM trips WHERE id = ? AND household_id = ?').bind(tripId, user.household_id).first();
+        if (!existing) return json({ error: 'Trip not found' }, { status: 404 });
+        const parsed = tripInput(await parseJson(request));
+        if (parsed.error) return json({ error: parsed.error }, { status: 400 });
+        const input = parsed.value;
+        const travelerIds = await householdTravelerIds(env, user.household_id, input.travelerIds);
+        await env.DB.batch([
+          env.DB.prepare(`
+            UPDATE trips SET location_name = ?, city = ?, latitude = ?, longitude = ?, country = ?, state = ?, start_date = ?, end_date = ?, date_label = ?, date_precision = ?, trip_type = ?, notes = ?, updated_at = CURRENT_TIMESTAMP
+            WHERE id = ? AND household_id = ?
+          `).bind(input.locationName, input.city, input.latitude, input.longitude, input.country, input.state, input.startDate, input.endDate, input.dateLabel, input.datePrecision, input.tripType, input.notes, tripId, user.household_id),
+          env.DB.prepare('DELETE FROM trip_travelers WHERE trip_id = ?').bind(tripId),
+          ...travelerIds.map(travelerId => env.DB.prepare('INSERT OR IGNORE INTO trip_travelers (trip_id, traveler_id) VALUES (?, ?)').bind(tripId, travelerId)),
+        ]);
+        const trips = await decorateTrips(env, user.household_id, 'AND t.id = ?', [tripId]);
+        return json(trips[0]);
+      }
 
       if (url.pathname === '/api/travelers' && request.method === 'GET') {
         const includeInactive = url.searchParams.get('includeInactive') === 'true';
@@ -1022,6 +1101,65 @@ export default {
       }
 
       const photoMatch = url.pathname.match(/^\/api\/photos\/(\d+)$/);
+      if (photoMatch && request.method === 'POST') {
+        const tripId = Number(photoMatch[1]);
+        const trip = await env.DB.prepare('SELECT id FROM trips WHERE id = ? AND household_id = ?').bind(tripId, user.household_id).first();
+        if (!trip) return json({ error: 'Trip not found' }, { status: 404 });
+
+        let formData;
+        try { formData = await request.formData(); }
+        catch { return json({ error: 'The selected photos could not be read.' }, { status: 400 }); }
+        const files = formData.getAll('photos').filter(file => file && typeof file.arrayBuffer === 'function');
+        if (!files.length) return json({ error: 'No photos selected' }, { status: 400 });
+        if (files.length > 50) return json({ error: 'Upload no more than 50 photos at once.' }, { status: 400 });
+        const allowedTypes = new Set(['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/heic', 'image/heif']);
+        if (files.some(file => !allowedTypes.has(photoMimeType(file)) || file.size > 20 * 1024 * 1024)) return json({ error: 'Photos must be JPEG, PNG, GIF, WebP, or HEIC files no larger than 20 MB each.' }, { status: 400 });
+
+        const metadata = uploadMetadata(formData);
+        const nextOrder = await env.DB.prepare('SELECT COALESCE(MAX(sort_order), -1) + 1 AS next_sort_order FROM photos WHERE trip_id = ? AND household_id = ?').bind(tripId, user.household_id).first();
+        const extensionByType = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/gif': 'gif', 'image/webp': 'webp', 'image/heic': 'heic', 'image/heif': 'heif' };
+        const uploads = files.map((file, index) => ({
+          file,
+          mimeType: photoMimeType(file),
+          metadata: metadata[index] || {},
+          key: `${tripId}/original/${crypto.randomUUID()}.${extensionByType[photoMimeType(file)]}`,
+          sortOrder: Number(nextOrder?.next_sort_order || 0) + index,
+          isCover: Number(nextOrder?.next_sort_order || 0) === 0 && index === 0,
+        }));
+
+        try {
+          for (const upload of uploads) {
+            await env.MEDIA.put(upload.key, await upload.file.arrayBuffer(), { httpMetadata: { contentType: upload.mimeType } });
+          }
+          const results = await env.DB.batch(uploads.map(upload => env.DB.prepare(`
+            INSERT INTO photos (household_id, trip_id, r2_key, thumbnail_r2_key, original_filename, file_size, mime_type, date_taken, latitude, longitude, sort_order, is_cover)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          `).bind(user.household_id, tripId, upload.key, upload.key, String(upload.file.name || 'photo').slice(0, 255), upload.file.size, upload.mimeType, upload.metadata.dateTaken || null, upload.metadata.latitude ?? null, upload.metadata.longitude ?? null, upload.sortOrder, upload.isCover ? 1 : 0)));
+          const rows = uploads.map((upload, index) => ({
+            id: Number(results[index].meta.last_row_id),
+            household_id: user.household_id,
+            trip_id: tripId,
+            r2_key: upload.key,
+            thumbnail_r2_key: upload.key,
+            original_filename: String(upload.file.name || 'photo').slice(0, 255),
+            file_size: upload.file.size,
+            mime_type: upload.mimeType,
+            date_taken: upload.metadata.dateTaken || null,
+            latitude: upload.metadata.latitude ?? null,
+            longitude: upload.metadata.longitude ?? null,
+            caption: null,
+            sort_order: upload.sortOrder,
+            is_cover: upload.isCover,
+            rotation: 0,
+          }));
+          ctx.waitUntil(createBackup(env, { force: true }).catch(error => console.error('Post-upload Postcards backup failed', error)));
+          return json({ count: rows.length, photos: rows.map(photoJson) }, { status: 201 });
+        } catch (error) {
+          await deleteMediaKeys(env, uploads.map(upload => upload.key)).catch(() => null);
+          console.error('Postcards photo upload failed', error);
+          return json({ error: 'The photos could not be saved. Please try again.' }, { status: 500 });
+        }
+      }
       if (photoMatch && request.method === 'GET') {
         const rows = (await env.DB.prepare('SELECT p.* FROM photos p JOIN trips t ON t.id = p.trip_id WHERE p.trip_id = ? AND p.household_id = ? AND t.household_id = ? ORDER BY p.is_cover DESC, p.sort_order, p.date_taken, p.uploaded_at, p.id').bind(Number(photoMatch[1]), user.household_id, user.household_id).all()).results || [];
         return json(rows.map(photoJson));

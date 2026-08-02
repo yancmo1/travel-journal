@@ -1,3 +1,5 @@
+import { inspectPhotoMetadata } from './photoMetadata';
+
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 const PLACE_CACHE_TTL_MS = 5 * 60 * 1000;
 const placeSearchCache = new Map();
@@ -245,9 +247,11 @@ class ApiClient {
   }
 
   // Photos
-  async uploadPhotos(tripId, files) {
+  async uploadPhotos(tripId, files, existingMetadata = null) {
     const formData = new FormData();
     files.forEach(file => formData.append('photos', file));
+    const metadata = existingMetadata || (await inspectPhotoMetadata(files)).photos;
+    formData.append('photoMetadata', JSON.stringify(metadata));
     
     return this.request(`/photos/${tripId}`, {
       method: 'POST',
@@ -256,13 +260,7 @@ class ApiClient {
   }
 
   async getPhotoMetadataSuggestions(files) {
-    const formData = new FormData();
-    files.forEach(file => formData.append('photos', file));
-
-    return this.request('/photos/metadata-suggestions', {
-      method: 'POST',
-      body: formData,
-    });
+    return inspectPhotoMetadata(files);
   }
 
   async getPhotos(tripId) {

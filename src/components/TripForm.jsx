@@ -412,7 +412,7 @@ export default function TripForm({ trip, onClose }) {
           onClose();
           return;
         }
-        const uploadResult = await api.uploadPhotos(savedTrip.id, photoFiles);
+        const uploadResult = await api.uploadPhotos(savedTrip.id, photoFiles, photoMetadata?.photos);
         if (!uploadResult.count) {
           throw new Error('The memory was saved, but none of the selected photos could be processed.');
         }
