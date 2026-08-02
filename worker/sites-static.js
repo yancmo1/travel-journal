@@ -2,6 +2,7 @@ import bcrypt from 'bcryptjs';
 
 const jsonHeaders = { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' };
 const encoder = new TextEncoder();
+const passwordIterations = 100000;
 
 function json(body, init = {}) {
   return new Response(JSON.stringify(body), {
@@ -76,20 +77,25 @@ async function sha256(value) {
 }
 
 async function hashPassword(password) {
-  const iterations = 600000;
   const salt = crypto.getRandomValues(new Uint8Array(16));
   const key = await crypto.subtle.importKey('raw', encoder.encode(password), 'PBKDF2', false, ['deriveBits']);
-  const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt, iterations }, key, 256);
-  return `pbkdf2_sha256$${iterations}$${base64url(salt)}$${base64url(new Uint8Array(bits))}`;
+  const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt, iterations: passwordIterations }, key, 256);
+  return `pbkdf2_sha256$${passwordIterations}$${base64url(salt)}$${base64url(new Uint8Array(bits))}`;
 }
 
 async function verifyPassword(password, storedHash) {
   if (String(storedHash || '').startsWith('pbkdf2_sha256$')) {
     const [, rawIterations, rawSalt, expected] = storedHash.split('$');
     const iterations = Number(rawIterations);
-    if (!Number.isInteger(iterations) || iterations < 100000 || !rawSalt || !expected) return false;
-    const key = await crypto.subtle.importKey('raw', encoder.encode(password), 'PBKDF2', false, ['deriveBits']);
-    const bits = new Uint8Array(await crypto.subtle.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt: decodeBase64url(rawSalt), iterations }, key, 256));
+    if (!Number.isInteger(iterations) || iterations < 100000 || iterations > passwordIterations || !rawSalt || !expected) return false;
+    let bits;
+    try {
+      const key = await crypto.subtle.importKey('raw', encoder.encode(password), 'PBKDF2', false, ['deriveBits']);
+      bits = new Uint8Array(await crypto.subtle.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt: decodeBase64url(rawSalt), iterations }, key, 256));
+    } catch (error) {
+      console.error('Password verification failed safely', error);
+      return false;
+    }
     const actual = base64url(bits);
     if (actual.length !== expected.length) return false;
     let mismatch = 0;
@@ -702,29 +708,39 @@ export default {
     }
 
     if (url.pathname === '/api/auth/login' && request.method === 'POST') {
-      const body = await parseJson(request);
-      const identifier = normalizeEmail(body?.email || body?.username);
-      if (!identifier || !body?.password) return json({ error: 'Email and password required' }, { status: 400 });
-      if (!(await rateLimit(env, 'login', requestFingerprint(request, identifier), 10, 15 * 60))) {
-        return json({ error: 'Too many sign-in attempts. Please wait 15 minutes and try again.' }, { status: 429 });
+      try {
+        const body = await parseJson(request);
+        const identifier = normalizeEmail(body?.email || body?.username);
+        if (!identifier || !body?.password) return json({ error: 'Email and password required' }, { status: 400 });
+        if (!(await rateLimit(env, 'login', requestFingerprint(request, identifier), 10, 15 * 60))) {
+          return json({ error: 'Too many sign-in attempts. Please wait 15 minutes and try again.' }, { status: 429 });
+        }
+        const user = await env.DB.prepare(`
+          SELECT id, username, email, email_verified_at, password_hash, display_name
+          FROM users WHERE email = ? OR (email IS NULL AND lower(username) = ?) LIMIT 1
+        `).bind(identifier, identifier).first();
+        if (!user) {
+          await hashPassword(body.password);
+          return json({ error: 'Invalid email or password' }, { status: 401 });
+        }
+        if (!(await verifyPassword(body.password, user.password_hash))) return json({ error: 'Invalid email or password' }, { status: 401 });
+        if (!String(user.password_hash).startsWith('pbkdf2_sha256$')) {
+          try {
+            const upgradedHash = await hashPassword(body.password);
+            await env.DB.prepare('UPDATE users SET password_hash = ?, password_updated_at = CURRENT_TIMESTAMP WHERE id = ?').bind(upgradedHash, user.id).run();
+          } catch (error) {
+            console.error('Legacy password upgrade deferred', error);
+          }
+        }
+        await env.DB.prepare("DELETE FROM auth_rate_limits WHERE action = 'login' AND key = ?").bind(await sha256(`login:${requestFingerprint(request, identifier)}`)).run();
+        const session = await createSession(env, user.id);
+        const households = await userHouseholds(env, user.id);
+        const publicUser = { id: user.id, username: user.username, email: user.email, email_verified_at: user.email_verified_at, display_name: user.display_name };
+        return json({ user: publicUser, households, active_household_id: session.householdId, needs_email_upgrade: !user.email }, { headers: { 'set-cookie': sessionCookie(session.token) } });
+      } catch (error) {
+        console.error('Postcards login failed', error);
+        return json({ error: 'Sign-in is temporarily unavailable. Please try again.' }, { status: 500 });
       }
-      const user = await env.DB.prepare(`
-        SELECT id, username, email, email_verified_at, password_hash, display_name
-        FROM users WHERE email = ? OR (email IS NULL AND lower(username) = ?) LIMIT 1
-      `).bind(identifier, identifier).first();
-      if (!user) {
-        await hashPassword(body.password);
-        return json({ error: 'Invalid email or password' }, { status: 401 });
-      }
-      if (!(await verifyPassword(body.password, user.password_hash))) return json({ error: 'Invalid email or password' }, { status: 401 });
-      if (!String(user.password_hash).startsWith('pbkdf2_sha256$')) {
-        await env.DB.prepare('UPDATE users SET password_hash = ?, password_updated_at = CURRENT_TIMESTAMP WHERE id = ?').bind(await hashPassword(body.password), user.id).run();
-      }
-      await env.DB.prepare("DELETE FROM auth_rate_limits WHERE action = 'login' AND key = ?").bind(await sha256(`login:${requestFingerprint(request, identifier)}`)).run();
-      const session = await createSession(env, user.id);
-      const households = await userHouseholds(env, user.id);
-      const publicUser = { id: user.id, username: user.username, email: user.email, email_verified_at: user.email_verified_at, display_name: user.display_name };
-      return json({ user: publicUser, households, active_household_id: session.householdId, needs_email_upgrade: !user.email }, { headers: { 'set-cookie': sessionCookie(session.token) } });
     }
 
     if (url.pathname === '/api/auth/logout' && request.method === 'POST') {
