@@ -127,7 +127,44 @@ Visit the public hostname, pass the Cloudflare Access login, and create the two
 application accounts. Confirm a photo upload and thumbnail display before
 calling the launch complete.
 
-## 6. Enable nightly R2 backups
+## 6. Enable the site-admin Operations page
+
+The application has a separate `site_admin` permission for operator-only
+information such as backup health and infrastructure links. Household owners
+and household admins do not receive this permission automatically.
+
+After the updated backend image has started, it creates the `site_admin`
+column in PostgreSQL automatically. Confirm the column exists:
+
+```bash
+sudo docker compose --env-file .env.production \
+  -f docker-compose.production.yml exec -T postgres \
+  psql -U travel_user -d travel_tracker -c '\\d users'
+```
+
+Then promote the operator account:
+
+```sql
+UPDATE users SET site_admin = 1 WHERE email = 'your-admin-email@example.com';
+```
+
+You can run that SQL interactively with:
+
+```bash
+sudo docker compose --env-file .env.production \
+  -f docker-compose.production.yml exec -T postgres \
+  psql -U travel_user -d travel_tracker
+```
+
+The Cloudflare Worker/D1 deployment uses the generated migration in
+`drizzle/0002_amazing_vulture.sql` instead.
+
+Set `GRAFANA_URL` and `PROMETHEUS_URL` in the deployment environment if you
+want links to the dashboards on `ubuntumac` to appear on the Operations page.
+The URLs must be reachable from the browser; the application does not proxy
+monitoring credentials or expose Prometheus data through its API.
+
+## 7. Enable nightly R2 backups
 
 Test the first backup interactively:
 

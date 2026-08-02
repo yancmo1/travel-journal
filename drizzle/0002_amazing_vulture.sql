@@ -1,0 +1,1 @@
+ALTER TABLE `users` ADD `site_admin` integer DEFAULT false NOT NULL;

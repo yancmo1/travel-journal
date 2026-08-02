@@ -29,10 +29,10 @@ fi
 # Test 2: User Registration
 echo -n "2️⃣  Testing user registration... "
 TIMESTAMP=$(date +%s)
-TEST_USER="testuser${TIMESTAMP}"
+TEST_EMAIL="testuser${TIMESTAMP}@example.com"
 REGISTER_RESPONSE=$(curl -s -X POST "${API_URL}/auth/register" \
   -H "Content-Type: application/json" \
-  -d "{\"username\":\"${TEST_USER}\",\"password\":\"test123\",\"displayName\":\"Test User\"}")
+  -d "{\"email\":\"${TEST_EMAIL}\",\"password\":\"test123\",\"displayName\":\"Test User\"}")
 
 if echo "$REGISTER_RESPONSE" | grep -q "token"; then
   echo -e "${GREEN}✓ PASS${NC}"
@@ -47,7 +47,7 @@ fi
 echo -n "3️⃣  Testing auth/me... "
 ME_RESPONSE=$(curl -s "${API_URL}/auth/me" \
   -H "Authorization: Bearer ${TOKEN}")
-if echo "$ME_RESPONSE" | grep -q "${TEST_USER}"; then
+if echo "$ME_RESPONSE" | grep -q "${TEST_EMAIL}"; then
   echo -e "${GREEN}✓ PASS${NC}"
 else
   echo -e "${RED}✗ FAIL${NC}"

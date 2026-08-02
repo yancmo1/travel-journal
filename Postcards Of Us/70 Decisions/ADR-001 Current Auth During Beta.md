@@ -9,8 +9,8 @@ date: 2026-08-02
 
 ## Context
 
-The beta is small and invitation-only. The app already uses username/password
-authentication with bcryptjs and JWT sessions.
+The beta is small and invitation-only. The app uses email/password
+authentication with bcryptjs and session tokens.
 
 ## Decision
 

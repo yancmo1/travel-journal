@@ -58,8 +58,8 @@ export function AuthProvider({ children }) {
     }
   }
 
-  async function login(username, password) {
-    let data = await api.login(username, password);
+  async function login(email, password) {
+    let data = await api.login(email, password);
     const pendingInvitation = sessionStorage.getItem('postcards_pending_invitation');
     if (pendingInvitation) {
       await api.acceptInvitation(pendingInvitation);
@@ -75,8 +75,8 @@ export function AuthProvider({ children }) {
     return data;
   }
 
-  async function register(username, password, displayName) {
-    const data = await api.register(username, password, displayName);
+  async function register(email, password, displayName) {
+    const data = await api.register(email, password, displayName);
     setUser(data.user);
     setOffline(false);
     await Promise.all([saveSnapshot(data.user.id, { user: data.user }), saveSnapshot('last-user', { user: data.user })]);

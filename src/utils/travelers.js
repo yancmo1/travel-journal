@@ -1,5 +1,5 @@
 // Keep the family order intentional instead of depending on database insertion time.
-// The legacy aliases keep existing installations ordered until their names are corrected in People.
+// These aliases keep existing installations ordered until their names are corrected in People.
 const FAMILY_ORDER = [
   ['Yancy', 'You'],
   ['Amber', 'Wife'],

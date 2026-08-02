@@ -1,9 +1,12 @@
 import { Router } from 'express';
 import fs from 'fs/promises';
+import { siteAdminMiddleware } from '../middleware/auth.js';
 
 const router = Router();
 const statusPath = process.env.BACKUP_STATUS_PATH || '/app/maintenance/backup-status.json';
 const staleAfterHours = Number(process.env.BACKUP_STALE_AFTER_HOURS || 30);
+
+router.use(siteAdminMiddleware);
 
 router.get('/backup-status', async (req, res, next) => {
   try {

@@ -7,11 +7,13 @@ const navItems = [
   { id: 'timeline', label: 'Timeline', icon: '↗' },
   { id: 'trips', label: 'All places', icon: '○' },
   { id: 'settings', label: 'Settings', icon: '⚙' },
+  { id: 'operations', label: 'Operations', icon: '▣', adminOnly: true },
 ];
 
 export default function Header({ currentPage, setPage }) {
   const { user, households, activeHouseholdId, switchHousehold, logout } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const visibleNavItems = navItems.filter(item => !item.adminOnly || user?.site_admin);
 
   function navigate(id) {
     setPage(id);
@@ -36,7 +38,7 @@ export default function Header({ currentPage, setPage }) {
           </button>
 
           <nav className="memory-nav hidden md:flex" aria-label="Main navigation">
-            {navItems.map(item => (
+            {visibleNavItems.map(item => (
               <button
                 key={item.id}
                 type="button"
@@ -73,7 +75,7 @@ export default function Header({ currentPage, setPage }) {
               <span aria-hidden="true">{mobileMenuOpen ? '×' : '☰'}</span>
               <span>{mobileMenuOpen ? 'Close' : 'Menu'}</span>
             </button>
-            <span className="hidden sm:block">{user?.display_name || user?.username}</span>
+            <span className="hidden sm:block">{user?.display_name || user?.email}</span>
             <button type="button" onClick={logout} className="memory-signout">
               Sign out
             </button>
@@ -85,7 +87,7 @@ export default function Header({ currentPage, setPage }) {
           className={`memory-nav memory-nav-mobile md:hidden ${mobileMenuOpen ? 'is-open' : ''}`}
           aria-label="Mobile navigation"
         >
-          {navItems.map(item => (
+          {visibleNavItems.map(item => (
             <button
               key={item.id}
               type="button"

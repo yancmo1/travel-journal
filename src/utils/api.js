@@ -83,10 +83,10 @@ class ApiClient {
     return data;
   }
 
-  async register(username, password, displayName) {
+  async register(email, password, displayName) {
     const data = await this.request('/auth/register', {
       method: 'POST',
-      body: JSON.stringify({ username, password, displayName }),
+      body: JSON.stringify({ email, password, displayName }),
     });
     this.setToken(data.token);
     return data;
@@ -115,14 +115,6 @@ class ApiClient {
 
   async registerInvitation(token, displayName, password) {
     return this.request('/auth/register-invite', { method: 'POST', body: JSON.stringify({ token, displayName, password }), skipUnauthorizedRedirect: true });
-  }
-
-  async verifyEmail(token) {
-    return this.request('/auth/verify-email', { method: 'POST', body: JSON.stringify({ token }), skipUnauthorizedRedirect: true });
-  }
-
-  async startEmailVerification(email) {
-    return this.request('/account/email/start', { method: 'POST', body: JSON.stringify({ email }) });
   }
 
   async changePassword(currentPassword, newPassword) {
@@ -299,6 +291,10 @@ class ApiClient {
 
   async runBackup() {
     return this.request('/maintenance/backup-now', { method: 'POST' });
+  }
+
+  async getOperations() {
+    return this.request('/admin/operations');
   }
 
   // Places

@@ -19,6 +19,9 @@ export async function initDatabase() {
   console.log('Database connected at:', result.rows[0].now);
 
   // Small, idempotent upgrades for installations created with the original schema.
+  await query('ALTER TABLE users ADD COLUMN IF NOT EXISTS email VARCHAR(254)');
+  await query('CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email ON users(email)');
+  await query('ALTER TABLE users ADD COLUMN IF NOT EXISTS site_admin BOOLEAN NOT NULL DEFAULT FALSE');
   await query('ALTER TABLE trips ADD COLUMN IF NOT EXISTS city VARCHAR(100)');
   await query('ALTER TABLE trips ADD COLUMN IF NOT EXISTS date_label VARCHAR(100)');
   await query("ALTER TABLE trips ADD COLUMN IF NOT EXISTS date_precision VARCHAR(20) DEFAULT 'exact'");

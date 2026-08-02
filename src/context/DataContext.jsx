@@ -61,7 +61,6 @@ export function DataProvider({ children }) {
   const [travelers, setTravelers] = useState([]);
   const [journeys, setJourneys] = useState([]);
   const [analytics, setAnalytics] = useState(null);
-  const [backupStatus, setBackupStatus] = useState(null);
   const [loading, setLoading] = useState(false);
   const [offline, setOffline] = useState(!navigator.onLine);
   const [syncing, setSyncing] = useState(false);
@@ -112,15 +111,6 @@ export function DataProvider({ children }) {
     catch (err) { if (isOfflineError(err)) setOffline(true); else console.error('Failed to load analytics:', err); }
   }, [user]);
 
-  const loadBackupStatus = useCallback(async () => {
-    if (!user) return;
-    try { setBackupStatus(await api.getBackupStatus()); }
-    catch (err) {
-      if (isOfflineError(err)) setOffline(true);
-      else setBackupStatus({ configured: false, stale: true, message: 'Backup status is unavailable.' });
-    }
-  }, [user]);
-
   const refreshAll = useCallback(async () => {
     if (!user || refreshing) return;
     setRefreshing(true);
@@ -131,20 +121,19 @@ export function DataProvider({ children }) {
         loadTravelers({ includeInactive: true }),
         loadJourneys(),
         loadAnalytics(),
-        loadBackupStatus(),
       ]);
       setLastSyncedAt(new Date().toISOString());
     } finally {
       setRefreshing(false);
     }
-  }, [user, refreshing, loadTrips, loadTravelers, loadJourneys, loadAnalytics, loadBackupStatus]);
+  }, [user, refreshing, loadTrips, loadTravelers, loadJourneys, loadAnalytics]);
 
   useEffect(() => {
     let cancelled = false;
     async function bootstrap() {
       if (!user) {
         hydrated.current = false;
-        setTrips([]); setTravelers([]); setJourneys([]); setAnalytics(null); setBackupStatus(null);
+        setTrips([]); setTravelers([]); setJourneys([]); setAnalytics(null);
         setPendingCount(0); setLastSyncedAt(null); return;
       }
       hydrated.current = false;
@@ -153,17 +142,17 @@ export function DataProvider({ children }) {
       if (snapshot) {
         setTrips(snapshot.trips || []); setTravelers(snapshot.travelers || []);
         setJourneys(snapshot.journeys || []); setAnalytics(snapshot.analytics || null);
-        setBackupStatus(snapshot.backupStatus || null); setLastSyncedAt(snapshot.lastSyncedAt || null);
+        setLastSyncedAt(snapshot.lastSyncedAt || null);
       }
       hydrated.current = true;
       await refreshPendingCount();
-      await Promise.all([loadTrips(), loadTravelers({ includeInactive: true }), loadJourneys(), loadAnalytics(), loadBackupStatus()]);
+      await Promise.all([loadTrips(), loadTravelers({ includeInactive: true }), loadJourneys(), loadAnalytics()]);
       if (!navigator.onLine) setOffline(true);
       else await syncMutations();
     }
     bootstrap();
     return () => { cancelled = true; };
-  }, [user, loadTrips, loadTravelers, loadJourneys, loadAnalytics, loadBackupStatus, refreshPendingCount]);
+  }, [user, loadTrips, loadTravelers, loadJourneys, loadAnalytics, refreshPendingCount]);
 
   useEffect(() => {
     const handleOnline = () => { setOffline(false); syncMutations(); };
@@ -175,8 +164,8 @@ export function DataProvider({ children }) {
 
   useEffect(() => {
     if (!user || !hydrated.current) return;
-    saveSnapshot(user.id, { trips, travelers, journeys, analytics, backupStatus, lastSyncedAt });
-  }, [user, trips, travelers, journeys, analytics, backupStatus, lastSyncedAt]);
+    saveSnapshot(user.id, { trips, travelers, journeys, analytics, lastSyncedAt });
+  }, [user, trips, travelers, journeys, analytics, lastSyncedAt]);
 
   async function queue(entity, entityId, operation, payload) {
     await enqueueMutation({ userId: String(user.id), entity, entityId: String(entityId), operation, payload });
@@ -336,9 +325,9 @@ export function DataProvider({ children }) {
 
   return (
     <DataContext.Provider value={{
-      trips, travelers, journeys, analytics, backupStatus, loading,
+      trips, travelers, journeys, analytics, loading,
       offline, syncing, refreshing, pendingCount, syncError, lastSyncedAt, syncMutations, refreshAll,
-      loadTrips, loadTravelers, loadJourneys, loadAnalytics, loadBackupStatus,
+      loadTrips, loadTravelers, loadJourneys, loadAnalytics,
       addTrip, updateTrip, deleteTrip, deleteTrips,
       queuePhotoUpload,
       addJourney, updateJourney, deleteJourney,

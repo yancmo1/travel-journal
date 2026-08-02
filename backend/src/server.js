@@ -12,6 +12,7 @@ import analyticsRoutes from './routes/analytics.js';
 import journeysRoutes from './routes/journeys.js';
 import placesRoutes from './routes/places.js';
 import maintenanceRoutes from './routes/maintenance.js';
+import adminRoutes from './routes/admin.js';
 import sharedRoutes from './routes/shared.js';
 import { authMiddleware } from './middleware/auth.js';
 import { initDatabase } from './utils/db.js';
@@ -45,6 +46,7 @@ app.use('/api/analytics', authMiddleware, analyticsRoutes);
 app.use('/api/journeys', authMiddleware, journeysRoutes);
 app.use('/api/places', authMiddleware, placesRoutes);
 app.use('/api/maintenance', authMiddleware, maintenanceRoutes);
+app.use('/api/admin', authMiddleware, adminRoutes);
 
 // Error handler
 app.use((err, req, res, next) => {

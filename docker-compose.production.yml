@@ -39,6 +39,8 @@ services:
       GOOGLE_PLACES_API_KEY: ${GOOGLE_PLACES_API_KEY}
       BACKUP_STATUS_PATH: /app/maintenance/backup-status.json
       BACKUP_STALE_AFTER_HOURS: ${BACKUP_STALE_AFTER_HOURS:-30}
+      GRAFANA_URL: ${GRAFANA_URL:-}
+      PROMETHEUS_URL: ${PROMETHEUS_URL:-}
       PORT: 4000
       NODE_ENV: production
     volumes:

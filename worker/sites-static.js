@@ -28,15 +28,6 @@ async function signingKey(secret) {
   return crypto.subtle.importKey('raw', encoder.encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign', 'verify']);
 }
 
-async function createToken(user, secret) {
-  const now = Math.floor(Date.now() / 1000);
-  const header = base64url(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
-  const payload = base64url(JSON.stringify({ id: user.id, username: user.username, iat: now, exp: now + 7 * 86400 }));
-  const unsigned = `${header}.${payload}`;
-  const signature = await crypto.subtle.sign('HMAC', await signingKey(secret), encoder.encode(unsigned));
-  return `${unsigned}.${base64url(new Uint8Array(signature))}`;
-}
-
 async function verifyToken(token, secret) {
   const [header, payload, signature, extra] = String(token || '').split('.');
   if (!header || !payload || !signature || extra) throw new Error('Invalid token');
@@ -144,12 +135,28 @@ async function userHouseholds(env, userId) {
   `).bind(userId).all()).results || [];
 }
 
+function toPublicUser(user) {
+  return {
+    id: user.id,
+    email: user.email,
+    email_verified_at: user.email_verified_at,
+    display_name: user.display_name,
+    site_admin: Boolean(user.site_admin),
+  };
+}
+
+function siteAdminRequired(user) {
+  return user?.site_admin
+    ? null
+    : json({ error: 'Site administrator access required.' }, { status: 403 });
+}
+
 async function authenticate(request, env) {
   const sessionToken = cookieValue(request, 'postcards_session');
   if (sessionToken) {
     const tokenHash = await sha256(sessionToken);
     const user = await env.DB.prepare(`
-      SELECT u.id, u.username, u.email, u.email_verified_at, u.password_updated_at, u.display_name,
+      SELECT u.id, u.email, u.email_verified_at, u.password_updated_at, u.display_name, u.site_admin,
         s.token_hash AS session_token_hash, s.household_id,
         hm.role, h.name AS household_name
       FROM sessions s
@@ -166,7 +173,7 @@ async function authenticate(request, env) {
   try {
     const claims = await verifyToken(authorization.slice(7), env.JWT_SECRET);
     const user = await env.DB.prepare(`
-      SELECT u.id, u.username, u.email, u.email_verified_at, u.password_updated_at, u.display_name,
+      SELECT u.id, u.email, u.email_verified_at, u.password_updated_at, u.display_name, u.site_admin,
         hm.household_id, hm.role, h.name AS household_name
       FROM users u JOIN household_members hm ON hm.user_id = u.id
       JOIN households h ON h.id = hm.household_id
@@ -273,17 +280,6 @@ async function sendPasswordResetEmail(env, request, user, rawToken, tokenId) {
     text: `Use this link to reset your Postcards of Us password: ${link}\n\nThis link expires in one hour. If you did not request it, you can ignore this email.`,
     html: `<p>Use the link below to reset your Postcards of Us password.</p><p><a href="${escapeHtml(link)}">Reset password</a></p><p>This link expires in one hour. If you did not request it, you can ignore this email.</p>`,
     idempotencyKey: `postcards-reset-${tokenId}`,
-  });
-}
-
-async function sendVerificationEmail(env, request, user, email, rawToken, tokenId) {
-  const link = `${new URL(request.url).origin}/?verify-email=${encodeURIComponent(rawToken)}`;
-  return sendEmail(env, {
-    to: email,
-    subject: 'Confirm your email for Postcards of Us',
-    text: `Confirm this email address for your Postcards of Us account: ${link}\n\nThis link expires in one hour.`,
-    html: `<p>Confirm <strong>${escapeHtml(email)}</strong> for ${escapeHtml(user.display_name || 'your Postcards of Us account')}.</p><p><a href="${escapeHtml(link)}">Confirm email</a></p><p>This link expires in one hour.</p>`,
-    idempotencyKey: `postcards-verify-${tokenId}`,
   });
 }
 
@@ -596,7 +592,7 @@ function analytics(trips, travelers) {
 
 const importTables = {
   households: ['id', 'slug', 'name', 'created_at', 'updated_at'],
-  users: ['id', 'username', 'password_hash', 'display_name', 'created_at'],
+  users: ['id', 'username', 'email', 'email_verified_at', 'site_admin', 'password_hash', 'password_updated_at', 'display_name', 'created_at'],
   household_members: ['household_id', 'user_id', 'role', 'created_at'],
   travelers: ['id', 'household_id', 'name', 'relationship', 'is_active', 'created_at'],
   journeys: ['id', 'household_id', 'title', 'start_date', 'end_date', 'date_label', 'journey_type', 'summary', 'cover_photo_id', 'share_token', 'share_expires_at', 'created_by', 'created_at', 'updated_at'],
@@ -710,15 +706,15 @@ export default {
     if (url.pathname === '/api/auth/login' && request.method === 'POST') {
       try {
         const body = await parseJson(request);
-        const identifier = normalizeEmail(body?.email || body?.username);
-        if (!identifier || !body?.password) return json({ error: 'Email and password required' }, { status: 400 });
-        if (!(await rateLimit(env, 'login', requestFingerprint(request, identifier), 10, 15 * 60))) {
+        const email = normalizeEmail(body?.email);
+        if (!validEmail(email) || !body?.password) return json({ error: 'Email and password required' }, { status: 400 });
+        if (!(await rateLimit(env, 'login', requestFingerprint(request, email), 10, 15 * 60))) {
           return json({ error: 'Too many sign-in attempts. Please wait 15 minutes and try again.' }, { status: 429 });
         }
         const user = await env.DB.prepare(`
-          SELECT id, username, email, email_verified_at, password_hash, display_name
-          FROM users WHERE email = ? OR (email IS NULL AND lower(username) = ?) LIMIT 1
-        `).bind(identifier, identifier).first();
+          SELECT id, email, email_verified_at, site_admin, password_hash, display_name
+          FROM users WHERE email = ? LIMIT 1
+        `).bind(email).first();
         if (!user) {
           await hashPassword(body.password);
           return json({ error: 'Invalid email or password' }, { status: 401 });
@@ -729,14 +725,14 @@ export default {
             const upgradedHash = await hashPassword(body.password);
             await env.DB.prepare('UPDATE users SET password_hash = ?, password_updated_at = CURRENT_TIMESTAMP WHERE id = ?').bind(upgradedHash, user.id).run();
           } catch (error) {
-            console.error('Legacy password upgrade deferred', error);
+            console.error('Password hash upgrade deferred', error);
           }
         }
-        await env.DB.prepare("DELETE FROM auth_rate_limits WHERE action = 'login' AND key = ?").bind(await sha256(`login:${requestFingerprint(request, identifier)}`)).run();
+        await env.DB.prepare("DELETE FROM auth_rate_limits WHERE action = 'login' AND key = ?").bind(await sha256(`login:${requestFingerprint(request, email)}`)).run();
         const session = await createSession(env, user.id);
         const households = await userHouseholds(env, user.id);
-        const publicUser = { id: user.id, username: user.username, email: user.email, email_verified_at: user.email_verified_at, display_name: user.display_name };
-        return json({ user: publicUser, households, active_household_id: session.householdId, needs_email_upgrade: !user.email }, { headers: { 'set-cookie': sessionCookie(session.token) } });
+        const userPayload = toPublicUser(user);
+        return json({ user: userPayload, households, active_household_id: session.householdId }, { headers: { 'set-cookie': sessionCookie(session.token) } });
       } catch (error) {
         console.error('Postcards login failed', error);
         return json({ error: 'Sign-in is temporarily unavailable. Please try again.' }, { status: 500 });
@@ -777,13 +773,13 @@ export default {
         console.error('Invited registration failed', error);
         return json({ error: 'That email already has an account. Sign in instead.' }, { status: 409 });
       }
-      const user = await env.DB.prepare('SELECT id, username, email, email_verified_at, display_name FROM users WHERE email = ?').bind(invitation.email).first();
+      const user = await env.DB.prepare('SELECT id, email, email_verified_at, site_admin, display_name FROM users WHERE email = ?').bind(invitation.email).first();
       await env.DB.batch([
         env.DB.prepare('INSERT OR IGNORE INTO household_members (household_id, user_id, role) VALUES (?, ?, ?)').bind(invitation.household_id, user.id, invitation.role),
         env.DB.prepare('UPDATE invitations SET accepted_at = CURRENT_TIMESTAMP WHERE id = ?').bind(invitation.id),
       ]);
       const session = await createSession(env, user.id, invitation.household_id);
-      return json({ user, households: await userHouseholds(env, user.id), active_household_id: invitation.household_id }, { status: 201, headers: { 'set-cookie': sessionCookie(session.token) } });
+      return json({ user: toPublicUser(user), households: await userHouseholds(env, user.id), active_household_id: invitation.household_id }, { status: 201, headers: { 'set-cookie': sessionCookie(session.token) } });
     }
 
     if (url.pathname === '/api/auth/forgot-password' && request.method === 'POST') {
@@ -826,22 +822,6 @@ export default {
       return json({ success: true, message: 'Password updated. Sign in with your new password.' }, { headers: { 'set-cookie': clearSessionCookie() } });
     }
 
-    if (url.pathname === '/api/auth/verify-email' && request.method === 'POST') {
-      const body = await parseJson(request);
-      const verification = await env.DB.prepare(`
-        SELECT id, user_id, email FROM email_verification_tokens
-        WHERE token_hash = ? AND used_at IS NULL AND datetime(expires_at) > CURRENT_TIMESTAMP LIMIT 1
-      `).bind(await sha256(body?.token || '')).first();
-      if (!verification) return json({ error: 'This confirmation link is invalid or has expired.' }, { status: 400 });
-      const conflict = await env.DB.prepare('SELECT id FROM users WHERE email = ? AND id != ?').bind(verification.email, verification.user_id).first();
-      if (conflict) return json({ error: 'That email is already connected to another account.' }, { status: 409 });
-      await env.DB.batch([
-        env.DB.prepare('UPDATE users SET email = ?, username = ?, email_verified_at = CURRENT_TIMESTAMP WHERE id = ?').bind(verification.email, verification.email, verification.user_id),
-        env.DB.prepare('UPDATE email_verification_tokens SET used_at = CURRENT_TIMESTAMP WHERE id = ?').bind(verification.id),
-      ]);
-      return json({ success: true, message: 'Email confirmed. You can now sign in with it.' });
-    }
-
     if (url.pathname.startsWith('/api/shared/journeys/') && request.method === 'GET') {
       const token = decodeURIComponent(url.pathname.slice('/api/shared/journeys/'.length));
       const result = await journeys(env, null, token);
@@ -856,29 +836,37 @@ export default {
 
       if (url.pathname === '/api/auth/me' && request.method === 'GET') {
         return json({
-          user: { id: user.id, username: user.username, email: user.email, email_verified_at: user.email_verified_at, display_name: user.display_name },
+          user: toPublicUser(user),
           households: await userHouseholds(env, user.id),
           active_household_id: user.household_id,
-          needs_email_upgrade: !user.email,
         });
       }
 
-      if (url.pathname === '/api/account/email/start' && request.method === 'POST') {
-        const body = await parseJson(request);
-        const email = normalizeEmail(body?.email);
-        if (!validEmail(email)) return json({ error: 'Enter a valid email address.' }, { status: 400 });
-        if (!(await rateLimit(env, 'verify-email', requestFingerprint(request, email), 5, 60 * 60))) return json({ error: 'Too many confirmation requests. Please try again later.' }, { status: 429 });
-        const conflict = await env.DB.prepare('SELECT id FROM users WHERE email = ? AND id != ?').bind(email, user.id).first();
-        if (conflict) return json({ error: 'That email is already connected to another account.' }, { status: 409 });
-        const tokenId = crypto.randomUUID();
-        const rawToken = randomToken();
-        await env.DB.prepare('INSERT INTO email_verification_tokens (id, user_id, email, token_hash, expires_at) VALUES (?, ?, ?, ?, ?)').bind(tokenId, user.id, email, await sha256(rawToken), new Date(Date.now() + 60 * 60 * 1000).toISOString()).run();
-        try { await sendVerificationEmail(env, request, user, email, rawToken, tokenId); }
-        catch (error) {
-          await env.DB.prepare('DELETE FROM email_verification_tokens WHERE id = ?').bind(tokenId).run();
-          return json({ error: 'Confirmation email could not be sent. Please try again.' }, { status: 503 });
-        }
-        return json({ message: `We sent a confirmation link to ${email}.` });
+      if (url.pathname === '/api/admin/operations' && request.method === 'GET') {
+        const denied = siteAdminRequired(user);
+        if (denied) return denied;
+        const countResults = await env.DB.batch([
+          env.DB.prepare('SELECT COUNT(*) AS count FROM users'),
+          env.DB.prepare('SELECT COUNT(*) AS count FROM households'),
+          env.DB.prepare('SELECT COUNT(*) AS count FROM trips'),
+          env.DB.prepare('SELECT COUNT(*) AS count FROM photos'),
+        ]);
+        const latest = await readLatestBackup(env);
+        return json({
+          checkedAt: new Date().toISOString(),
+          database: {
+            status: 'connected',
+            users: Number(countResults[0].results?.[0]?.count || 0),
+            households: Number(countResults[1].results?.[0]?.count || 0),
+            trips: Number(countResults[2].results?.[0]?.count || 0),
+            photos: Number(countResults[3].results?.[0]?.count || 0),
+          },
+          backup: backupStatus(latest),
+          observability: {
+            grafanaUrl: env.GRAFANA_URL || null,
+            prometheusUrl: env.PROMETHEUS_URL || null,
+          },
+        });
       }
 
       if (url.pathname === '/api/account/password' && request.method === 'POST') {
@@ -967,7 +955,7 @@ export default {
           INSERT INTO invitations (id, household_id, email, token_hash, role, invited_by, expires_at)
           VALUES (?, ?, ?, ?, 'member', ?, ?)
         `).bind(invitationId, user.household_id, email, await sha256(rawToken), user.id, expiresAt).run();
-        const invitation = { id: invitationId, email, household_name: user.household_name, inviter_name: user.display_name || user.email || user.username };
+        const invitation = { id: invitationId, email, household_name: user.household_name, inviter_name: user.display_name || user.email };
         try { await sendInvitationEmail(env, request, invitation, rawToken); }
         catch (error) {
           await env.DB.prepare('DELETE FROM invitations WHERE id = ?').bind(invitationId).run();
@@ -1102,6 +1090,8 @@ export default {
       }
 
       if (url.pathname === '/api/maintenance/backup-status' && request.method === 'GET') {
+        const denied = siteAdminRequired(user);
+        if (denied) return denied;
         const latest = await readLatestBackup(env);
         const due = !latest?.lastSuccessfulBackupAt || Date.now() - Date.parse(latest.lastSuccessfulBackupAt) > 24 * 60 * 60 * 1000;
         if (due) ctx.waitUntil(createBackup(env).catch(error => console.error('Automatic Postcards backup failed', error)));
@@ -1109,6 +1099,8 @@ export default {
       }
 
       if (url.pathname === '/api/maintenance/backup-now' && request.method === 'POST') {
+        const denied = siteAdminRequired(user);
+        if (denied) return denied;
         try { return json(backupStatus(await createBackup(env, { force: true }))); }
         catch (error) {
           console.error('Manual Postcards backup failed', error);

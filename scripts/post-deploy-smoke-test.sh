@@ -5,12 +5,12 @@ set -Eeuo pipefail
 # variables so this test never creates disposable users in the family database.
 
 API_URL="${API_URL:-http://127.0.0.1:3080/api}"
-SMOKE_TEST_USERNAME="${SMOKE_TEST_USERNAME:-}"
+SMOKE_TEST_EMAIL="${SMOKE_TEST_EMAIL:-}"
 SMOKE_TEST_PASSWORD="${SMOKE_TEST_PASSWORD:-}"
 SAMPLE_PHOTO="${SAMPLE_PHOTO:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && printf '%s' "$PWD/sample-pic/2018-05-29_17-22-17_403.jpeg")}"
 
-if [[ -z "${SMOKE_TEST_USERNAME}" || -z "${SMOKE_TEST_PASSWORD}" ]]; then
-  echo "Set SMOKE_TEST_USERNAME and SMOKE_TEST_PASSWORD for the dedicated smoke-test account."
+if [[ -z "${SMOKE_TEST_EMAIL}" || -z "${SMOKE_TEST_PASSWORD}" ]]; then
+  echo "Set SMOKE_TEST_EMAIL and SMOKE_TEST_PASSWORD for the dedicated smoke-test account."
   exit 2
 fi
 
@@ -41,7 +41,7 @@ curl --silent --show-error --fail "${API_URL}/health" | grep -q '"status":"ok"'
 login_response="$(curl --silent --show-error --fail \
   -X POST "${API_URL}/auth/login" \
   -H 'Content-Type: application/json' \
-  -d "$(printf '{\"username\":\"%s\",\"password\":\"%s\"}' "${SMOKE_TEST_USERNAME}" "${SMOKE_TEST_PASSWORD}")")"
+  -d "$(printf '{\"email\":\"%s\",\"password\":\"%s\"}' "${SMOKE_TEST_EMAIL}" "${SMOKE_TEST_PASSWORD}")")"
 
 if command -v jq >/dev/null 2>&1; then
   TOKEN="$(printf '%s' "${login_response}" | jq -r '.token // empty')"

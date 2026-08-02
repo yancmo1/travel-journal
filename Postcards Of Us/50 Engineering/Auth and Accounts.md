@@ -12,8 +12,9 @@ status: active
 - API calls: `src/utils/api.js`
 - Backend routes: `backend/src/routes/auth.js`
 - Password hashing: `bcryptjs`
-- Sessions: JWT signed with `JWT_SECRET`
+- Sessions: JWT signed with `JWT_SECRET` or secure HTTP-only sessions
 - Default JWT lifetime: seven days unless `JWT_EXPIRES_IN` overrides it
+- Sign-in identity: verified email and password
 - Public registration: disabled unless `ALLOW_PUBLIC_REGISTRATION=true`
 
 ## Beta policy

@@ -4,7 +4,7 @@ import api from '../utils/api';
 
 export default function LoginPage() {
   const { login } = useAuth();
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -17,7 +17,7 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      await login(username, password);
+      await login(email, password);
     } catch (err) {
       setError(err.message || 'We couldn’t sign you in.');
     } finally {
@@ -31,7 +31,7 @@ export default function LoginPage() {
     setMessage('');
     setLoading(true);
     try {
-      const result = await api.forgotPassword(username);
+      const result = await api.forgotPassword(email);
       setMessage(result.message);
     } catch (err) {
       setError(err.message || 'We couldn’t send a reset link.');
@@ -66,13 +66,13 @@ export default function LoginPage() {
 
           <form onSubmit={forgot ? handleForgot : handleSubmit}>
             <label>
-              {forgot ? 'Email' : 'Email or legacy username'}
+              Email
               <input
-                type={forgot ? 'email' : 'text'}
-                value={username}
-                onChange={event => setUsername(event.target.value)}
-                placeholder={forgot ? 'you@example.com' : 'you@example.com'}
-                autoComplete="username"
+                type="email"
+                value={email}
+                onChange={event => setEmail(event.target.value)}
+                placeholder="you@example.com"
+                autoComplete="email"
                 required
               />
             </label>
