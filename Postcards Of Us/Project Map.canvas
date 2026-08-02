@@ -1,0 +1,19 @@
+{
+  "nodes": [
+    {"id":"home","type":"file","file":"Home.md","x":0,"y":0,"width":360,"height":260},
+    {"id":"product","type":"file","file":"20 Product/Product Hub.md","x":-460,"y":-40,"width":320,"height":220},
+    {"id":"research","type":"file","file":"30 Research/Research Hub.md","x":-460,"y":260,"width":320,"height":220},
+    {"id":"ux","type":"file","file":"40 UX/UX Hub.md","x":-40,"y":360,"width":320,"height":220},
+    {"id":"engineering","type":"file","file":"50 Engineering/Engineering Hub.md","x":380,"y":-40,"width":320,"height":220},
+    {"id":"delivery","type":"file","file":"60 Delivery/Delivery Hub.md","x":380,"y":260,"width":320,"height":220},
+    {"id":"decisions","type":"file","file":"70 Decisions/Decision Log.md","x":-40,"y":680,"width":320,"height":220}
+  ],
+  "edges": [
+    {"id":"e1","fromNode":"home","toNode":"product","label":"define"},
+    {"id":"e2","fromNode":"home","toNode":"research","label":"learn"},
+    {"id":"e3","fromNode":"home","toNode":"ux","label":"shape"},
+    {"id":"e4","fromNode":"home","toNode":"engineering","label":"build safely"},
+    {"id":"e5","fromNode":"home","toNode":"delivery","label":"ship and operate"},
+    {"id":"e6","fromNode":"home","toNode":"decisions","label":"remember why"}
+  ]
+}

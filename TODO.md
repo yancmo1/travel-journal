@@ -47,6 +47,7 @@ This list is intentionally small and prioritized. We can check items off as we g
 - [x] Add journey cover photos.
 - [x] Add printable or downloadable family travel books.
 - [x] Add private share links for selected journeys.
+- [ ] Add optional social login for account creation and sign-in (Google, Facebook, Apple, and other widely used providers) after the beta.
 
 ## Completed recently
 
