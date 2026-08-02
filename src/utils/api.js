@@ -56,7 +56,7 @@ class ApiClient {
       this.clearToken();
       const error = new Error('Your session has expired. Please sign in again.');
       error.isUnauthorized = true;
-      window.location.href = '/login';
+      window.location.href = '/?login=1';
       throw error;
     }
 

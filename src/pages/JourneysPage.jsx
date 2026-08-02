@@ -102,7 +102,7 @@ export default function JourneysPage() {
 }
 
 function JourneyDetail({ journey, onClose, onEdit, onDelete, onPhotos, onPrint }) {
-  const [shareLink, setShareLink] = useState(journey.share_token ? `${window.location.origin}/share/journey/${journey.share_token}` : '');
+  const [shareLink, setShareLink] = useState(journey.share_token ? `${window.location.origin}/?share=${encodeURIComponent(journey.share_token)}` : '');
   const [shareError, setShareError] = useState('');
   const [sharing, setSharing] = useState(false);
 
@@ -111,7 +111,7 @@ function JourneyDetail({ journey, onClose, onEdit, onDelete, onPhotos, onPrint }
     setShareError('');
     try {
       const result = await api.createJourneyShare(journey.id);
-      setShareLink(`${window.location.origin}/share/journey/${result.share_token}`);
+      setShareLink(`${window.location.origin}/?share=${encodeURIComponent(result.share_token)}`);
     } catch (error) {
       setShareError(error.message || 'The private link could not be created.');
     } finally {

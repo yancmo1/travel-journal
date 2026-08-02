@@ -28,7 +28,7 @@ export default function LandingPage() {
         </a>
         <div className="landing-nav-actions">
           <span className="landing-beta-label">Private beta</span>
-          <a className="landing-sign-in" href="/login">Sign in</a>
+          <a className="landing-sign-in" href="/?login=1">Sign in</a>
         </div>
       </nav>
 
@@ -41,7 +41,7 @@ export default function LandingPage() {
             album—one place, one photo, and one memory at a time.
           </p>
           <div className="landing-actions">
-            <a className="landing-primary-button" href="/login">Open your story</a>
+            <a className="landing-primary-button" href="/?login=1">Open your story</a>
             <a className="landing-text-link" href="#how-it-works">See how it works <span aria-hidden="true">↓</span></a>
           </div>
           <p className="landing-note">Private beta · Invitation required</p>
@@ -105,7 +105,7 @@ export default function LandingPage() {
         <p className="landing-kicker">Already invited?</p>
         <h2>Your family’s stories are waiting for you.</h2>
         <p>Postcards of Us is currently welcoming a small group of families by invitation.</p>
-        <a className="landing-primary-button landing-primary-button-light" href="/login">Sign in to Postcards</a>
+        <a className="landing-primary-button landing-primary-button-light" href="/?login=1">Sign in to Postcards</a>
       </section>
 
       <footer className="landing-footer">

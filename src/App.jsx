@@ -27,7 +27,8 @@ function AppContent() {
   }
 
   if (!user) {
-    return window.location.pathname === '/login' ? <LoginPage /> : <LandingPage />;
+    const params = new URLSearchParams(window.location.search);
+    return window.location.pathname === '/login' || params.get('login') === '1' ? <LoginPage /> : <LandingPage />;
   }
 
   return (
@@ -55,7 +56,8 @@ function AppContent() {
 
 export default function App() {
   const sharedMatch = window.location.pathname.match(/^\/share\/journey\/([^/]+)$/);
-  if (sharedMatch) return <SharedJourneyPage token={decodeURIComponent(sharedMatch[1])} />;
+  const sharedToken = new URLSearchParams(window.location.search).get('share');
+  if (sharedMatch || sharedToken) return <SharedJourneyPage token={sharedToken || decodeURIComponent(sharedMatch[1])} />;
 
   return (
     <AuthProvider>
