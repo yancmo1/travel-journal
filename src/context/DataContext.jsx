@@ -210,9 +210,16 @@ export function DataProvider({ children }) {
               : mutation.entity === 'traveler' ? await api.updateTraveler(payload.id, payload.data)
                 : await api.updateJourney(payload.id, payload.data);
           } else if (mutation.operation === 'delete') {
-            if (!String(payload.id).startsWith('offline-')) {
-              result = mutation.entity === 'trip' ? await api.deleteTrip(payload.id)
-                : mutation.entity === 'journey' ? await api.deleteJourney(payload.id) : await api.deleteTraveler(payload.id);
+            const resolvedId = tempIdMap.current.get(String(payload.id)) || payload.id;
+            if (!String(resolvedId).startsWith('offline-')) {
+              result = mutation.entity === 'trip' ? await api.deleteTrip(resolvedId)
+                : mutation.entity === 'journey' ? await api.deleteJourney(resolvedId) : await api.deleteTraveler(resolvedId);
+            }
+            if (mutation.entity === 'trip') {
+              const queuedUploads = await getUploads(user.id);
+              await Promise.all(queuedUploads
+                .filter(upload => String(upload.tripId) === String(mutation.entityId))
+                .map(upload => removeUpload(upload.id)));
             }
           }
           await removeMutation(mutation.id);
@@ -265,10 +272,22 @@ export function DataProvider({ children }) {
   }
 
   async function deleteTrip(id) {
-    setTrips(prev => prev.filter(t => String(t.id) !== String(id)));
-    if (String(id).startsWith('offline-') || offline || !navigator.onLine) { await queue('trip', id, 'delete', { id }); return; }
-    try { await api.deleteTrip(id); await Promise.all([loadAnalytics(), loadJourneys()]); }
-    catch (error) { if (!isOfflineError(error)) throw error; setOffline(true); await queue('trip', id, 'delete', { id }); }
+    const removeFromView = () => setTrips(prev => prev.filter(t => String(t.id) !== String(id)));
+    if (String(id).startsWith('offline-') || offline || !navigator.onLine) {
+      removeFromView();
+      await queue('trip', id, 'delete', { id });
+      return;
+    }
+    try {
+      await api.deleteTrip(id);
+      removeFromView();
+      await Promise.all([loadAnalytics(), loadJourneys()]);
+    } catch (error) {
+      if (!isOfflineError(error)) throw error;
+      setOffline(true);
+      removeFromView();
+      await queue('trip', id, 'delete', { id });
+    }
   }
 
   async function deleteTrips(ids) {

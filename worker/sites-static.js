@@ -368,6 +368,31 @@ async function createBackup(env, { force = false } = {}) {
   return manifest;
 }
 
+async function tripMediaKeys(env, tripId, photoRows = []) {
+  const keys = new Set();
+  for (const photo of photoRows) {
+    if (photo.r2_key && !photo.r2_key.startsWith(backupPrefix)) keys.add(photo.r2_key);
+    if (photo.thumbnail_r2_key && !photo.thumbnail_r2_key.startsWith(backupPrefix)) keys.add(photo.thumbnail_r2_key);
+  }
+
+  let cursor;
+  do {
+    const page = await env.MEDIA.list({ prefix: `${tripId}/`, cursor });
+    for (const object of page.objects) {
+      if (!object.key.startsWith(backupPrefix)) keys.add(object.key);
+    }
+    cursor = page.truncated ? page.cursor : undefined;
+  } while (cursor);
+
+  return [...keys];
+}
+
+async function deleteMediaKeys(env, keys) {
+  for (let index = 0; index < keys.length; index += 1000) {
+    await env.MEDIA.delete(keys.slice(index, index + 1000));
+  }
+}
+
 function backupStatus(manifest) {
   if (!manifest) {
     return {
@@ -915,6 +940,45 @@ export default {
       if (tripMatch && request.method === 'GET') {
         const trips = await decorateTrips(env, user.household_id, 'AND t.id = ?', [Number(tripMatch[1])]);
         return trips.length ? json(trips[0]) : json({ error: 'Trip not found' }, { status: 404 });
+      }
+      if (tripMatch && request.method === 'DELETE') {
+        const tripId = Number(tripMatch[1]);
+        const trip = await env.DB.prepare('SELECT id, location_name FROM trips WHERE id = ? AND household_id = ? LIMIT 1').bind(tripId, user.household_id).first();
+        if (!trip) return json({ error: 'Trip not found' }, { status: 404 });
+
+        const photoRows = (await env.DB.prepare('SELECT id, r2_key, thumbnail_r2_key FROM photos WHERE trip_id = ? AND household_id = ?').bind(tripId, user.household_id).all()).results || [];
+        let mediaKeys;
+        try {
+          await createBackup(env, { force: true });
+          mediaKeys = await tripMediaKeys(env, tripId, photoRows);
+        } catch (error) {
+          console.error('Pre-delete Postcards backup failed', error);
+          return json({ error: 'The safety backup could not be completed, so this memory was not deleted. Please try again.' }, { status: 503 });
+        }
+
+        const statements = [];
+        if (photoRows.length) {
+          const photoIds = photoRows.map(photo => photo.id);
+          statements.push(env.DB.prepare(`UPDATE journeys SET cover_photo_id = NULL, updated_at = CURRENT_TIMESTAMP WHERE household_id = ? AND cover_photo_id IN (${photoIds.map(() => '?').join(',')})`).bind(user.household_id, ...photoIds));
+        }
+        statements.push(
+          env.DB.prepare('DELETE FROM photos WHERE trip_id = ? AND household_id = ?').bind(tripId, user.household_id),
+          env.DB.prepare('DELETE FROM trip_travelers WHERE trip_id = ?').bind(tripId),
+          env.DB.prepare('DELETE FROM trips WHERE id = ? AND household_id = ?').bind(tripId, user.household_id),
+        );
+        await env.DB.batch(statements);
+
+        let mediaCleanupPending = false;
+        try {
+          await deleteMediaKeys(env, mediaKeys);
+        } catch (error) {
+          mediaCleanupPending = true;
+          console.error(`Postcards media cleanup failed for trip ${tripId}`, error);
+          ctx.waitUntil(deleteMediaKeys(env, mediaKeys).catch(retryError => console.error(`Postcards media cleanup retry failed for trip ${tripId}`, retryError)));
+        }
+        ctx.waitUntil(createBackup(env, { force: true }).catch(error => console.error('Post-delete Postcards backup failed', error)));
+
+        return json({ success: true, deleted: tripId, location_name: trip.location_name, deletedPhotoObjects: mediaKeys.length, mediaCleanupPending });
       }
 
       if (url.pathname === '/api/travelers' && request.method === 'GET') {

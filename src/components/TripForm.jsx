@@ -21,7 +21,7 @@ function hasCoordinates(latitude, longitude) {
 }
 
 export default function TripForm({ trip, onClose }) {
-  const { travelers, addTrip, updateTrip, addTraveler, loadTrips, offline, queuePhotoUpload } = useData();
+  const { travelers, addTrip, updateTrip, deleteTrip, addTraveler, loadTrips, offline, queuePhotoUpload } = useData();
   
   const [form, setForm] = useState({
     locationName: '',
@@ -43,6 +43,8 @@ export default function TripForm({ trip, onClose }) {
   const [searching, setSearching] = useState(false);
   const [activeSearchField, setActiveSearchField] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [error, setError] = useState('');
   const [showNewTraveler, setShowNewTraveler] = useState(false);
   const [newTraveler, setNewTraveler] = useState({ name: '', relationship: 'child' });
@@ -426,6 +428,22 @@ export default function TripForm({ trip, onClose }) {
     }
   }
 
+  async function handleDelete() {
+    if (!trip?.id || deleting) return;
+
+    setDeleting(true);
+    setError('');
+    try {
+      await deleteTrip(trip.id);
+      onClose();
+    } catch (err) {
+      setError(err.message || 'Failed to delete memory');
+      setConfirmingDelete(false);
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[1500]">
       <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-auto">
@@ -793,18 +811,63 @@ export default function TripForm({ trip, onClose }) {
             </div>
           )}
 
+          {trip && (
+            <div className="rounded-xl border border-red-200 bg-red-50 p-4">
+              {!confirmingDelete ? (
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-sm font-semibold text-red-900">Remove this memory</p>
+                    <p className="mt-0.5 text-xs text-red-700">Its photos will leave the active site, while protected backup copies remain available for recovery.</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setConfirmingDelete(true)}
+                    disabled={saving || deleting}
+                    className="shrink-0 rounded-lg border border-red-300 bg-white px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-100 disabled:opacity-50"
+                  >
+                    Delete memory
+                  </button>
+                </div>
+              ) : (
+                <div>
+                  <p className="text-sm font-semibold text-red-900">Delete “{trip.location_name || 'this memory'}”?</p>
+                  <p className="mt-1 text-xs text-red-700">This removes the trip and its photos from Postcards of Us.</p>
+                  <div className="mt-3 flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setConfirmingDelete(false)}
+                      disabled={deleting}
+                      className="rounded-lg border border-red-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                    >
+                      Keep memory
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleDelete}
+                      disabled={deleting}
+                      className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50"
+                    >
+                      {deleting ? 'Deleting…' : 'Yes, delete it'}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Actions */}
           <div className="flex gap-3 pt-4">
             <button
               type="button"
               onClick={onClose}
+              disabled={deleting}
               className="flex-1 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
-              disabled={saving || checkingPhotoMetadata}
+              disabled={saving || deleting || checkingPhotoMetadata}
               className="flex-1 py-3 bg-gradient-to-r from-sunset-orange to-coral-pink text-white font-semibold rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
             >
               {saving
