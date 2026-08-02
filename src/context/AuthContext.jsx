@@ -6,6 +6,8 @@ const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
+  const [households, setHouseholds] = useState([]);
+  const [activeHouseholdId, setActiveHouseholdId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [offline, setOffline] = useState(!navigator.onLine);
 
@@ -25,14 +27,11 @@ export function AuthProvider({ children }) {
   }, []);
 
   async function checkAuth() {
-    if (!api.getToken()) {
-      setLoading(false);
-      return;
-    }
-
     try {
       const data = await api.getMe();
       setUser(data.user);
+      setHouseholds(data.households || []);
+      setActiveHouseholdId(data.active_household_id || null);
       setOffline(false);
       await Promise.all([saveSnapshot(data.user.id, { user: data.user }), saveSnapshot('last-user', { user: data.user })]);
       requestPersistentStorage();
@@ -51,6 +50,8 @@ export function AuthProvider({ children }) {
       } else {
         api.logout();
         setUser(null);
+        setHouseholds([]);
+        setActiveHouseholdId(null);
       }
     } finally {
       setLoading(false);
@@ -58,8 +59,16 @@ export function AuthProvider({ children }) {
   }
 
   async function login(username, password) {
-    const data = await api.login(username, password);
+    let data = await api.login(username, password);
+    const pendingInvitation = sessionStorage.getItem('postcards_pending_invitation');
+    if (pendingInvitation) {
+      await api.acceptInvitation(pendingInvitation);
+      sessionStorage.removeItem('postcards_pending_invitation');
+      data = await api.getMe();
+    }
     setUser(data.user);
+    setHouseholds(data.households || []);
+    setActiveHouseholdId(data.active_household_id || null);
     setOffline(false);
     await Promise.all([saveSnapshot(data.user.id, { user: data.user }), saveSnapshot('last-user', { user: data.user })]);
     requestPersistentStorage();
@@ -75,15 +84,42 @@ export function AuthProvider({ children }) {
     return data;
   }
 
+  async function registerInvitation(token, displayName, password) {
+    const data = await api.registerInvitation(token, displayName, password);
+    setUser(data.user);
+    setHouseholds(data.households || []);
+    setActiveHouseholdId(data.active_household_id || null);
+    setOffline(false);
+    await Promise.all([saveSnapshot(data.user.id, { user: data.user }), saveSnapshot('last-user', { user: data.user })]);
+    requestPersistentStorage();
+    return data;
+  }
+
+  async function refreshAuth() {
+    const data = await api.getMe();
+    setUser(data.user);
+    setHouseholds(data.households || []);
+    setActiveHouseholdId(data.active_household_id || null);
+    return data;
+  }
+
+  async function switchHousehold(householdId) {
+    await api.switchHousehold(householdId);
+    setActiveHouseholdId(Number(householdId));
+    window.location.reload();
+  }
+
   function logout() {
     const currentUser = user;
     api.logout();
     setUser(null);
+    setHouseholds([]);
+    setActiveHouseholdId(null);
     if (currentUser) clearOfflineData(currentUser.id);
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, offline, login, register, logout }}>
+    <AuthContext.Provider value={{ user, households, activeHouseholdId, loading, offline, login, register, registerInvitation, refreshAuth, switchHousehold, logout }}>
       {children}
     </AuthContext.Provider>
   );

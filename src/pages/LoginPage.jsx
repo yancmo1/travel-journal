@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import api from '../utils/api';
 
 export default function LoginPage() {
   const { login } = useAuth();
@@ -7,6 +8,8 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState('');
+  const forgot = new URLSearchParams(window.location.search).get('forgot') === '1';
 
   async function handleSubmit(event) {
     event.preventDefault();
@@ -17,6 +20,21 @@ export default function LoginPage() {
       await login(username, password);
     } catch (err) {
       setError(err.message || 'We couldn’t sign you in.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleForgot(event) {
+    event.preventDefault();
+    setError('');
+    setMessage('');
+    setLoading(true);
+    try {
+      const result = await api.forgotPassword(username);
+      setMessage(result.message);
+    } catch (err) {
+      setError(err.message || 'We couldn’t send a reset link.');
     } finally {
       setLoading(false);
     }
@@ -40,26 +58,26 @@ export default function LoginPage() {
       <section className="memory-login-panel">
         <div className="memory-login-form">
           <a className="memory-login-back" href="/"><span aria-hidden="true">←</span> Back to Postcards of Us</a>
-          <p className="memory-eyebrow">Welcome back</p>
-          <h2>Open your memories</h2>
+          <p className="memory-eyebrow">{forgot ? 'Account recovery' : 'Welcome back'}</p>
+          <h2>{forgot ? 'Reset your password' : 'Open your memories'}</h2>
           <p className="memory-login-copy">
-            Sign in to return to your private family travel story.
+            {forgot ? 'Enter the verified email on your account and we’ll send a secure, one-time reset link.' : 'Sign in to return to your private family travel story.'}
           </p>
 
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={forgot ? handleForgot : handleSubmit}>
             <label>
-              Username
+              {forgot ? 'Email' : 'Email or legacy username'}
               <input
-                type="text"
+                type={forgot ? 'email' : 'text'}
                 value={username}
                 onChange={event => setUsername(event.target.value)}
-                placeholder="Your username"
+                placeholder={forgot ? 'you@example.com' : 'you@example.com'}
                 autoComplete="username"
                 required
               />
             </label>
 
-            <label>
+            {!forgot && <label>
               Password
               <input
                 type="password"
@@ -69,16 +87,19 @@ export default function LoginPage() {
                 autoComplete="current-password"
                 required
               />
-            </label>
+            </label>}
 
             {error && <div className="memory-login-error" role="alert">{error}</div>}
+            {message && <div className="rounded-lg bg-green-50 p-3 text-sm text-green-800" role="status">{message}</div>}
 
             <button type="submit" disabled={loading} className="memory-login-submit">
-              {loading ? 'One moment…' : 'Open our memories'}
+              {loading ? 'One moment…' : forgot ? 'Send reset link' : 'Open our memories'}
             </button>
           </form>
 
-          <p className="memory-login-invite">Postcards of Us is currently invitation-only.</p>
+          <p className="memory-login-invite">
+            {forgot ? <a href="/?login=1">Back to sign in</a> : <><a href="/?login=1&amp;forgot=1">Forgot password?</a><br />Postcards of Us is currently invitation-only.</>}
+          </p>
         </div>
       </section>
     </main>

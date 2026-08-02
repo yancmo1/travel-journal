@@ -7,7 +7,10 @@ const updatedAt = text('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`);
 export const users = sqliteTable('users', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   username: text('username').notNull().unique(),
+  email: text('email').unique(),
+  emailVerifiedAt: text('email_verified_at'),
   passwordHash: text('password_hash').notNull(),
+  passwordUpdatedAt: text('password_updated_at'),
   displayName: text('display_name'),
   createdAt,
 });
@@ -28,6 +31,67 @@ export const householdMembers = sqliteTable('household_members', {
 }, table => [
   uniqueIndex('idx_household_members_household_user').on(table.householdId, table.userId),
   index('idx_household_members_user_id').on(table.userId),
+]);
+
+export const sessions = sqliteTable('sessions', {
+  tokenHash: text('token_hash').primaryKey(),
+  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  householdId: integer('household_id').references(() => households.id, { onDelete: 'cascade' }),
+  expiresAt: text('expires_at').notNull(),
+  createdAt,
+  lastSeenAt: text('last_seen_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+}, table => [
+  index('idx_sessions_user_id').on(table.userId),
+  index('idx_sessions_expires_at').on(table.expiresAt),
+]);
+
+export const invitations = sqliteTable('invitations', {
+  id: text('id').primaryKey(),
+  householdId: integer('household_id').notNull().references(() => households.id, { onDelete: 'cascade' }),
+  email: text('email').notNull(),
+  tokenHash: text('token_hash').notNull().unique(),
+  role: text('role').notNull().default('member'),
+  invitedBy: integer('invited_by').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  expiresAt: text('expires_at').notNull(),
+  acceptedAt: text('accepted_at'),
+  createdAt,
+}, table => [
+  index('idx_invitations_household_email').on(table.householdId, table.email),
+  index('idx_invitations_expires_at').on(table.expiresAt),
+]);
+
+export const passwordResetTokens = sqliteTable('password_reset_tokens', {
+  id: text('id').primaryKey(),
+  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  tokenHash: text('token_hash').notNull().unique(),
+  expiresAt: text('expires_at').notNull(),
+  usedAt: text('used_at'),
+  createdAt,
+}, table => [
+  index('idx_password_reset_user_id').on(table.userId),
+  index('idx_password_reset_expires_at').on(table.expiresAt),
+]);
+
+export const emailVerificationTokens = sqliteTable('email_verification_tokens', {
+  id: text('id').primaryKey(),
+  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  email: text('email').notNull(),
+  tokenHash: text('token_hash').notNull().unique(),
+  expiresAt: text('expires_at').notNull(),
+  usedAt: text('used_at'),
+  createdAt,
+}, table => [
+  index('idx_email_verification_user_id').on(table.userId),
+  index('idx_email_verification_expires_at').on(table.expiresAt),
+]);
+
+export const authRateLimits = sqliteTable('auth_rate_limits', {
+  key: text('key').primaryKey(),
+  action: text('action').notNull(),
+  attempts: integer('attempts').notNull().default(0),
+  windowStartedAt: text('window_started_at').notNull(),
+}, table => [
+  index('idx_auth_rate_limits_action_window').on(table.action, table.windowStartedAt),
 ]);
 
 export const travelers = sqliteTable('travelers', {

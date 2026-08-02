@@ -5,15 +5,19 @@ import PeoplePage from './PeoplePage';
 import { useData } from '../context/DataContext';
 import { APP_VERSION } from '../config/app';
 import api from '../utils/api';
+import AccountAccessPanel from '../components/AccountAccessPanel';
+import { useAuth } from '../context/AuthContext';
 
 const SECTIONS = [
   { id: 'overview', label: 'Settings', description: 'Backup, storage, and app details', icon: '⚙' },
   { id: 'people', label: 'People', description: 'Manage family members and relationships', icon: '♧' },
+  { id: 'access', label: 'Family access', description: 'Accounts, invitations, and memory sites', icon: '◇' },
   { id: 'cleanup', label: 'Clean up', description: 'Review incomplete or duplicate memories', icon: '✓' },
 ];
 
 export default function SettingsPage({ setPage, setTravelerFilter }) {
-  const [section, setSection] = useState('overview');
+  const { user } = useAuth();
+  const [section, setSection] = useState(user?.email_verified_at ? 'overview' : 'access');
 
   return (
     <div className="settings-layout">
@@ -49,6 +53,7 @@ export default function SettingsPage({ setPage, setTravelerFilter }) {
           {section === 'people' && (
             <PeoplePage setPage={setPage} setTravelerFilter={setTravelerFilter} />
           )}
+          {section === 'access' && <AccountAccessPanel />}
           {section === 'cleanup' && <CleanupPage />}
         </main>
       </div>

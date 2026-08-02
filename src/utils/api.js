@@ -27,9 +27,11 @@ class ApiClient {
   async request(endpoint, options = {}) {
     const url = `${this.baseUrl}${endpoint}`;
     const token = this.getToken();
+    const { skipUnauthorizedRedirect = false, ...fetchOptions } = options;
 
     const config = {
-      ...options,
+      ...fetchOptions,
+      credentials: 'same-origin',
       headers: {
         'Content-Type': 'application/json',
         ...(token && { Authorization: `Bearer ${token}` }),
@@ -38,7 +40,7 @@ class ApiClient {
     };
 
     // Don't set Content-Type for FormData
-    if (options.body instanceof FormData) {
+    if (fetchOptions.body instanceof FormData) {
       delete config.headers['Content-Type'];
     }
 
@@ -56,7 +58,7 @@ class ApiClient {
       this.clearToken();
       const error = new Error('Your session has expired. Please sign in again.');
       error.isUnauthorized = true;
-      window.location.href = '/?login=1';
+      if (!skipUnauthorizedRedirect) window.location.href = '/?login=1';
       throw error;
     }
 
@@ -69,12 +71,13 @@ class ApiClient {
   }
 
   // Auth
-  async login(username, password) {
+  async login(email, password) {
     const data = await this.request('/auth/login', {
       method: 'POST',
-      body: JSON.stringify({ username, password }),
+      body: JSON.stringify({ email, password }),
+      skipUnauthorizedRedirect: true,
     });
-    this.setToken(data.token);
+    if (data.token) this.setToken(data.token); else this.clearToken();
     return data;
   }
 
@@ -88,11 +91,64 @@ class ApiClient {
   }
 
   async getMe() {
-    return this.request('/auth/me');
+    return this.request('/auth/me', { skipUnauthorizedRedirect: true });
   }
 
   logout() {
     this.clearToken();
+    return this.request('/auth/logout', { method: 'POST', skipUnauthorizedRedirect: true }).catch(() => null);
+  }
+
+  async forgotPassword(email) {
+    return this.request('/auth/forgot-password', { method: 'POST', body: JSON.stringify({ email }), skipUnauthorizedRedirect: true });
+  }
+
+  async resetPassword(token, password) {
+    return this.request('/auth/reset-password', { method: 'POST', body: JSON.stringify({ token, password }), skipUnauthorizedRedirect: true });
+  }
+
+  async getInvitation(token) {
+    return this.request(`/auth/invitations/${encodeURIComponent(token)}`, { skipUnauthorizedRedirect: true });
+  }
+
+  async registerInvitation(token, displayName, password) {
+    return this.request('/auth/register-invite', { method: 'POST', body: JSON.stringify({ token, displayName, password }), skipUnauthorizedRedirect: true });
+  }
+
+  async verifyEmail(token) {
+    return this.request('/auth/verify-email', { method: 'POST', body: JSON.stringify({ token }), skipUnauthorizedRedirect: true });
+  }
+
+  async startEmailVerification(email) {
+    return this.request('/account/email/start', { method: 'POST', body: JSON.stringify({ email }) });
+  }
+
+  async changePassword(currentPassword, newPassword) {
+    return this.request('/account/password', { method: 'POST', body: JSON.stringify({ currentPassword, newPassword }), skipUnauthorizedRedirect: true });
+  }
+
+  async getHouseholds() {
+    return this.request('/households');
+  }
+
+  async createHousehold(name) {
+    return this.request('/households', { method: 'POST', body: JSON.stringify({ name }) });
+  }
+
+  async switchHousehold(householdId) {
+    return this.request('/households/switch', { method: 'POST', body: JSON.stringify({ householdId }) });
+  }
+
+  async getHouseholdMembers() {
+    return this.request('/households/current/members');
+  }
+
+  async inviteHouseholdMember(email) {
+    return this.request('/households/invitations', { method: 'POST', body: JSON.stringify({ email }) });
+  }
+
+  async acceptInvitation(token) {
+    return this.request('/households/invitations/accept', { method: 'POST', body: JSON.stringify({ token }) });
   }
 
   // Trips

@@ -1,6 +1,6 @@
 import bcrypt from 'bcryptjs';
 
-const jsonHeaders = { 'content-type': 'application/json; charset=utf-8' };
+const jsonHeaders = { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' };
 const encoder = new TextEncoder();
 
 function json(body, init = {}) {
@@ -51,16 +51,122 @@ async function parseJson(request) {
   try { return await request.json(); } catch { return null; }
 }
 
+function normalizeEmail(value) {
+  return String(value || '').trim().toLowerCase();
+}
+
+function validEmail(value) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) && value.length <= 254;
+}
+
+function passwordProblem(password) {
+  if (typeof password !== 'string' || password.length < 12) return 'Use at least 12 characters.';
+  if (password.length > 128) return 'Use no more than 128 characters.';
+  const common = ['password', 'postcards', '123456789012', 'qwertyuiop'];
+  if (common.some(value => password.toLowerCase().includes(value))) return 'Choose a less predictable password.';
+  return null;
+}
+
+function randomToken(bytes = 32) {
+  return base64url(crypto.getRandomValues(new Uint8Array(bytes)));
+}
+
+async function sha256(value) {
+  return base64url(new Uint8Array(await crypto.subtle.digest('SHA-256', encoder.encode(value))));
+}
+
+async function hashPassword(password) {
+  const iterations = 600000;
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const key = await crypto.subtle.importKey('raw', encoder.encode(password), 'PBKDF2', false, ['deriveBits']);
+  const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt, iterations }, key, 256);
+  return `pbkdf2_sha256$${iterations}$${base64url(salt)}$${base64url(new Uint8Array(bits))}`;
+}
+
+async function verifyPassword(password, storedHash) {
+  if (String(storedHash || '').startsWith('pbkdf2_sha256$')) {
+    const [, rawIterations, rawSalt, expected] = storedHash.split('$');
+    const iterations = Number(rawIterations);
+    if (!Number.isInteger(iterations) || iterations < 100000 || !rawSalt || !expected) return false;
+    const key = await crypto.subtle.importKey('raw', encoder.encode(password), 'PBKDF2', false, ['deriveBits']);
+    const bits = new Uint8Array(await crypto.subtle.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt: decodeBase64url(rawSalt), iterations }, key, 256));
+    const actual = base64url(bits);
+    if (actual.length !== expected.length) return false;
+    let mismatch = 0;
+    for (let index = 0; index < actual.length; index += 1) mismatch |= actual.charCodeAt(index) ^ expected.charCodeAt(index);
+    return mismatch === 0;
+  }
+  return bcrypt.compare(password, storedHash);
+}
+
+function cookieValue(request, name) {
+  const cookies = request.headers.get('cookie') || '';
+  for (const part of cookies.split(';')) {
+    const [key, ...rest] = part.trim().split('=');
+    if (key === name) return decodeURIComponent(rest.join('='));
+  }
+  return null;
+}
+
+function sessionCookie(token) {
+  return `postcards_session=${encodeURIComponent(token)}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${7 * 86400}`;
+}
+
+function clearSessionCookie() {
+  return 'postcards_session=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0';
+}
+
+async function createSession(env, userId, requestedHouseholdId = null) {
+  let householdId = requestedHouseholdId;
+  if (householdId == null) {
+    const membership = await env.DB.prepare('SELECT household_id FROM household_members WHERE user_id = ? ORDER BY created_at, household_id LIMIT 1').bind(userId).first();
+    householdId = membership?.household_id || null;
+  }
+  const token = randomToken();
+  const tokenHash = await sha256(token);
+  const expiresAt = new Date(Date.now() + 7 * 86400 * 1000).toISOString();
+  await env.DB.prepare('INSERT INTO sessions (token_hash, user_id, household_id, expires_at) VALUES (?, ?, ?, ?)').bind(tokenHash, userId, householdId, expiresAt).run();
+  return { token, tokenHash, householdId, expiresAt };
+}
+
+async function userHouseholds(env, userId) {
+  return (await env.DB.prepare(`
+    SELECT h.id, h.slug, h.name, hm.role,
+      (SELECT COUNT(*) FROM household_members members WHERE members.household_id = h.id) AS member_count
+    FROM household_members hm JOIN households h ON h.id = hm.household_id
+    WHERE hm.user_id = ? ORDER BY h.created_at, h.id
+  `).bind(userId).all()).results || [];
+}
+
 async function authenticate(request, env) {
+  const sessionToken = cookieValue(request, 'postcards_session');
+  if (sessionToken) {
+    const tokenHash = await sha256(sessionToken);
+    const user = await env.DB.prepare(`
+      SELECT u.id, u.username, u.email, u.email_verified_at, u.password_updated_at, u.display_name,
+        s.token_hash AS session_token_hash, s.household_id,
+        hm.role, h.name AS household_name
+      FROM sessions s
+      JOIN users u ON u.id = s.user_id
+      LEFT JOIN household_members hm ON hm.user_id = u.id AND hm.household_id = s.household_id
+      LEFT JOIN households h ON h.id = s.household_id
+      WHERE s.token_hash = ? AND datetime(s.expires_at) > CURRENT_TIMESTAMP
+      LIMIT 1
+    `).bind(tokenHash).first();
+    if (user && (user.household_id == null || user.role)) return user;
+  }
   const authorization = request.headers.get('authorization') || '';
   if (!authorization.startsWith('Bearer ') || !env.JWT_SECRET) return null;
   try {
     const claims = await verifyToken(authorization.slice(7), env.JWT_SECRET);
     const user = await env.DB.prepare(`
-      SELECT u.id, u.username, u.display_name, hm.household_id
+      SELECT u.id, u.username, u.email, u.email_verified_at, u.password_updated_at, u.display_name,
+        hm.household_id, hm.role, h.name AS household_name
       FROM users u JOIN household_members hm ON hm.user_id = u.id
+      JOIN households h ON h.id = hm.household_id
       WHERE u.id = ? LIMIT 1
     `).bind(claims.id).first();
+    if (user?.password_updated_at && Date.parse(user.password_updated_at) > Number(claims.iat || 0) * 1000) return null;
     return user || null;
   } catch { return null; }
 }
@@ -83,8 +189,100 @@ function secretAuthorized(request, secret, headerName) {
   return mismatch === 0;
 }
 
+function escapeHtml(value) {
+  return String(value || '').replace(/[&<>'"]/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[character]);
+}
+
+async function sendEmail(env, { to, subject, text, html, idempotencyKey }) {
+  if (!env.RESEND_API_KEY || !env.EMAIL_FROM) throw new Error('Email delivery is not configured');
+  const response = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      authorization: `Bearer ${env.RESEND_API_KEY}`,
+      'content-type': 'application/json',
+      ...(idempotencyKey ? { 'idempotency-key': idempotencyKey } : {}),
+    },
+    body: JSON.stringify({ from: env.EMAIL_FROM, to: [to], subject, text, html }),
+  });
+  if (!response.ok) {
+    console.error('Email delivery failed', response.status, await response.text());
+    throw new Error('Email delivery failed');
+  }
+  return response.json();
+}
+
+async function rateLimit(env, action, identifier, limit, windowSeconds) {
+  const key = await sha256(`${action}:${identifier}`);
+  const now = Date.now();
+  const existing = await env.DB.prepare('SELECT attempts, window_started_at FROM auth_rate_limits WHERE key = ?').bind(key).first();
+  const started = Date.parse(existing?.window_started_at || '');
+  if (!existing || !Number.isFinite(started) || now - started >= windowSeconds * 1000) {
+    await env.DB.prepare(`
+      INSERT INTO auth_rate_limits (key, action, attempts, window_started_at) VALUES (?, ?, 1, ?)
+      ON CONFLICT(key) DO UPDATE SET action = excluded.action, attempts = 1, window_started_at = excluded.window_started_at
+    `).bind(key, action, new Date(now).toISOString()).run();
+    return true;
+  }
+  if (Number(existing.attempts) >= limit) return false;
+  await env.DB.prepare('UPDATE auth_rate_limits SET attempts = attempts + 1 WHERE key = ?').bind(key).run();
+  return true;
+}
+
+function requestFingerprint(request, identifier = '') {
+  return `${request.headers.get('cf-connecting-ip') || 'unknown'}:${identifier}`;
+}
+
+async function invitationByToken(env, rawToken) {
+  if (!rawToken) return null;
+  return env.DB.prepare(`
+    SELECT i.*, h.name AS household_name, u.display_name AS inviter_name,
+      EXISTS(SELECT 1 FROM users existing WHERE existing.email = i.email) AS account_exists
+    FROM invitations i
+    JOIN households h ON h.id = i.household_id
+    JOIN users u ON u.id = i.invited_by
+    WHERE i.token_hash = ? AND i.accepted_at IS NULL AND datetime(i.expires_at) > CURRENT_TIMESTAMP
+    LIMIT 1
+  `).bind(await sha256(rawToken)).first();
+}
+
+async function sendInvitationEmail(env, request, invitation, rawToken) {
+  const origin = new URL(request.url).origin;
+  const link = `${origin}/?invite=${encodeURIComponent(rawToken)}`;
+  const inviter = invitation.inviter_name || 'Someone in your family';
+  const household = invitation.household_name;
+  return sendEmail(env, {
+    to: invitation.email,
+    subject: `${inviter} invited you to ${household} on Postcards of Us`,
+    text: `${inviter} invited you to join ${household} on Postcards of Us. Create or connect your account: ${link}\n\nThis invitation expires in 7 days.`,
+    html: `<p>${escapeHtml(inviter)} invited you to join <strong>${escapeHtml(household)}</strong> on Postcards of Us.</p><p><a href="${escapeHtml(link)}">Accept the invitation</a></p><p>This invitation expires in 7 days.</p>`,
+    idempotencyKey: `postcards-invite-${invitation.id}`,
+  });
+}
+
+async function sendPasswordResetEmail(env, request, user, rawToken, tokenId) {
+  const link = `${new URL(request.url).origin}/?reset=${encodeURIComponent(rawToken)}`;
+  return sendEmail(env, {
+    to: user.email,
+    subject: 'Reset your Postcards of Us password',
+    text: `Use this link to reset your Postcards of Us password: ${link}\n\nThis link expires in one hour. If you did not request it, you can ignore this email.`,
+    html: `<p>Use the link below to reset your Postcards of Us password.</p><p><a href="${escapeHtml(link)}">Reset password</a></p><p>This link expires in one hour. If you did not request it, you can ignore this email.</p>`,
+    idempotencyKey: `postcards-reset-${tokenId}`,
+  });
+}
+
+async function sendVerificationEmail(env, request, user, email, rawToken, tokenId) {
+  const link = `${new URL(request.url).origin}/?verify-email=${encodeURIComponent(rawToken)}`;
+  return sendEmail(env, {
+    to: email,
+    subject: 'Confirm your email for Postcards of Us',
+    text: `Confirm this email address for your Postcards of Us account: ${link}\n\nThis link expires in one hour.`,
+    html: `<p>Confirm <strong>${escapeHtml(email)}</strong> for ${escapeHtml(user.display_name || 'your Postcards of Us account')}.</p><p><a href="${escapeHtml(link)}">Confirm email</a></p><p>This link expires in one hour.</p>`,
+    idempotencyKey: `postcards-verify-${tokenId}`,
+  });
+}
+
 const backupPrefix = '_backups/';
-const backupTables = ['users', 'households', 'household_members', 'travelers', 'journeys', 'trips', 'trip_travelers', 'photos'];
+const backupTables = ['users', 'households', 'household_members', 'invitations', 'travelers', 'journeys', 'trips', 'trip_travelers', 'photos'];
 
 async function readLatestBackup(env) {
   const object = await env.MEDIA.get(`${backupPrefix}latest.json`);
@@ -245,7 +443,7 @@ async function decorateTrips(env, householdId, conditions = '', values = []) {
 async function journeys(env, householdId, publicToken = null) {
   let statement;
   if (publicToken) {
-    statement = env.DB.prepare(`SELECT * FROM journeys WHERE share_token = ? AND (share_expires_at IS NULL OR share_expires_at > CURRENT_TIMESTAMP) LIMIT 1`).bind(publicToken);
+    statement = env.DB.prepare(`SELECT * FROM journeys WHERE share_token = ? AND (share_expires_at IS NULL OR datetime(share_expires_at) > CURRENT_TIMESTAMP) LIMIT 1`).bind(publicToken);
   } else {
     statement = env.DB.prepare(`SELECT * FROM journeys WHERE household_id = ? ORDER BY start_date DESC, id DESC`).bind(householdId);
   }
@@ -374,6 +572,11 @@ export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
 
+    if (!['GET', 'HEAD', 'OPTIONS'].includes(request.method)) {
+      const origin = request.headers.get('origin');
+      if (origin && origin !== url.origin) return json({ error: 'Cross-origin request blocked' }, { status: 403 });
+    }
+
     if (url.pathname === '/api/health' && request.method === 'GET') {
       try {
         return await health(env);
@@ -429,14 +632,128 @@ export default {
 
     if (url.pathname === '/api/auth/login' && request.method === 'POST') {
       const body = await parseJson(request);
-      if (!body?.username || !body?.password) return json({ error: 'Username and password required' }, { status: 400 });
-      const user = await env.DB.prepare('SELECT id, username, password_hash, display_name FROM users WHERE username = ?').bind(body.username).first();
-      if (!user || !(await bcrypt.compare(body.password, user.password_hash))) return json({ error: 'Invalid credentials' }, { status: 401 });
-      const publicUser = { id: user.id, username: user.username, display_name: user.display_name };
-      return json({ user: publicUser, token: await createToken(publicUser, env.JWT_SECRET) });
+      const identifier = normalizeEmail(body?.email || body?.username);
+      if (!identifier || !body?.password) return json({ error: 'Email and password required' }, { status: 400 });
+      if (!(await rateLimit(env, 'login', requestFingerprint(request, identifier), 10, 15 * 60))) {
+        return json({ error: 'Too many sign-in attempts. Please wait 15 minutes and try again.' }, { status: 429 });
+      }
+      const user = await env.DB.prepare(`
+        SELECT id, username, email, email_verified_at, password_hash, display_name
+        FROM users WHERE email = ? OR (email IS NULL AND lower(username) = ?) LIMIT 1
+      `).bind(identifier, identifier).first();
+      if (!user) {
+        await hashPassword(body.password);
+        return json({ error: 'Invalid email or password' }, { status: 401 });
+      }
+      if (!(await verifyPassword(body.password, user.password_hash))) return json({ error: 'Invalid email or password' }, { status: 401 });
+      if (!String(user.password_hash).startsWith('pbkdf2_sha256$')) {
+        await env.DB.prepare('UPDATE users SET password_hash = ?, password_updated_at = CURRENT_TIMESTAMP WHERE id = ?').bind(await hashPassword(body.password), user.id).run();
+      }
+      await env.DB.prepare("DELETE FROM auth_rate_limits WHERE action = 'login' AND key = ?").bind(await sha256(`login:${requestFingerprint(request, identifier)}`)).run();
+      const session = await createSession(env, user.id);
+      const households = await userHouseholds(env, user.id);
+      const publicUser = { id: user.id, username: user.username, email: user.email, email_verified_at: user.email_verified_at, display_name: user.display_name };
+      return json({ user: publicUser, households, active_household_id: session.householdId, needs_email_upgrade: !user.email }, { headers: { 'set-cookie': sessionCookie(session.token) } });
     }
 
-    if (url.pathname === '/api/auth/register' && request.method === 'POST') return json({ error: 'Postcards of Us is currently invitation-only.' }, { status: 403 });
+    if (url.pathname === '/api/auth/logout' && request.method === 'POST') {
+      const raw = cookieValue(request, 'postcards_session');
+      if (raw) await env.DB.prepare('DELETE FROM sessions WHERE token_hash = ?').bind(await sha256(raw)).run();
+      return json({ success: true }, { headers: { 'set-cookie': clearSessionCookie() } });
+    }
+
+    if (url.pathname === '/api/auth/register' && request.method === 'POST') return json({ error: 'An invitation is required to create an account.' }, { status: 403 });
+
+    if (url.pathname.startsWith('/api/auth/invitations/') && request.method === 'GET') {
+      const rawToken = decodeURIComponent(url.pathname.slice('/api/auth/invitations/'.length));
+      const invitation = await invitationByToken(env, rawToken);
+      if (!invitation) return json({ error: 'This invitation is invalid or has expired.' }, { status: 404 });
+      return json({ email: invitation.email, household_name: invitation.household_name, inviter_name: invitation.inviter_name, expires_at: invitation.expires_at, account_exists: Boolean(invitation.account_exists) });
+    }
+
+    if (url.pathname === '/api/auth/register-invite' && request.method === 'POST') {
+      const body = await parseJson(request);
+      const invitation = await invitationByToken(env, body?.token);
+      if (!invitation) return json({ error: 'This invitation is invalid or has expired.' }, { status: 400 });
+      if (invitation.account_exists) return json({ error: 'An account already uses this email. Sign in to accept the invitation.' }, { status: 409 });
+      const problem = passwordProblem(body?.password);
+      if (problem) return json({ error: problem }, { status: 400 });
+      const displayName = String(body?.displayName || '').trim();
+      if (displayName.length < 2 || displayName.length > 80) return json({ error: 'Enter your name.' }, { status: 400 });
+      const passwordHash = await hashPassword(body.password);
+      try {
+        await env.DB.prepare(`
+          INSERT INTO users (username, email, email_verified_at, password_hash, password_updated_at, display_name)
+          VALUES (?, ?, CURRENT_TIMESTAMP, ?, CURRENT_TIMESTAMP, ?)
+        `).bind(invitation.email, invitation.email, passwordHash, displayName).run();
+      } catch (error) {
+        console.error('Invited registration failed', error);
+        return json({ error: 'That email already has an account. Sign in instead.' }, { status: 409 });
+      }
+      const user = await env.DB.prepare('SELECT id, username, email, email_verified_at, display_name FROM users WHERE email = ?').bind(invitation.email).first();
+      await env.DB.batch([
+        env.DB.prepare('INSERT OR IGNORE INTO household_members (household_id, user_id, role) VALUES (?, ?, ?)').bind(invitation.household_id, user.id, invitation.role),
+        env.DB.prepare('UPDATE invitations SET accepted_at = CURRENT_TIMESTAMP WHERE id = ?').bind(invitation.id),
+      ]);
+      const session = await createSession(env, user.id, invitation.household_id);
+      return json({ user, households: await userHouseholds(env, user.id), active_household_id: invitation.household_id }, { status: 201, headers: { 'set-cookie': sessionCookie(session.token) } });
+    }
+
+    if (url.pathname === '/api/auth/forgot-password' && request.method === 'POST') {
+      const body = await parseJson(request);
+      const email = normalizeEmail(body?.email);
+      const generic = { message: 'If an account uses that email, a reset link is on its way.' };
+      if (!validEmail(email)) return json(generic);
+      if (!(await rateLimit(env, 'forgot-password', requestFingerprint(request, email), 5, 60 * 60))) return json(generic);
+      const user = await env.DB.prepare('SELECT id, email, display_name FROM users WHERE email = ? AND email_verified_at IS NOT NULL').bind(email).first();
+      if (user) {
+        const tokenId = crypto.randomUUID();
+        const rawToken = randomToken();
+        await env.DB.prepare('INSERT INTO password_reset_tokens (id, user_id, token_hash, expires_at) VALUES (?, ?, ?, ?)').bind(tokenId, user.id, await sha256(rawToken), new Date(Date.now() + 60 * 60 * 1000).toISOString()).run();
+        ctx.waitUntil(sendPasswordResetEmail(env, request, user, rawToken, tokenId).catch(async error => {
+          console.error('Password reset email failed', error);
+          await env.DB.prepare('DELETE FROM password_reset_tokens WHERE id = ?').bind(tokenId).run();
+        }));
+      }
+      return json(generic);
+    }
+
+    if (url.pathname === '/api/auth/reset-password' && request.method === 'POST') {
+      const body = await parseJson(request);
+      const problem = passwordProblem(body?.password);
+      if (problem) return json({ error: problem }, { status: 400 });
+      const reset = await env.DB.prepare(`
+        SELECT pr.id, pr.user_id, u.email, u.display_name
+        FROM password_reset_tokens pr JOIN users u ON u.id = pr.user_id
+        WHERE pr.token_hash = ? AND pr.used_at IS NULL AND datetime(pr.expires_at) > CURRENT_TIMESTAMP LIMIT 1
+      `).bind(await sha256(body?.token || '')).first();
+      if (!reset) return json({ error: 'This reset link is invalid or has expired.' }, { status: 400 });
+      await env.DB.batch([
+        env.DB.prepare('UPDATE users SET password_hash = ?, password_updated_at = CURRENT_TIMESTAMP WHERE id = ?').bind(await hashPassword(body.password), reset.user_id),
+        env.DB.prepare('UPDATE password_reset_tokens SET used_at = CURRENT_TIMESTAMP WHERE id = ?').bind(reset.id),
+        env.DB.prepare('DELETE FROM sessions WHERE user_id = ?').bind(reset.user_id),
+      ]);
+      try {
+        await sendEmail(env, { to: reset.email, subject: 'Your Postcards of Us password was changed', text: 'Your Postcards of Us password was changed. If this was not you, reply to this email immediately.', html: '<p>Your Postcards of Us password was changed.</p><p>If this was not you, reply to this email immediately.</p>', idempotencyKey: `postcards-password-changed-${reset.id}` });
+      } catch (error) { console.error('Password change confirmation failed', error); }
+      return json({ success: true, message: 'Password updated. Sign in with your new password.' }, { headers: { 'set-cookie': clearSessionCookie() } });
+    }
+
+    if (url.pathname === '/api/auth/verify-email' && request.method === 'POST') {
+      const body = await parseJson(request);
+      const verification = await env.DB.prepare(`
+        SELECT id, user_id, email FROM email_verification_tokens
+        WHERE token_hash = ? AND used_at IS NULL AND datetime(expires_at) > CURRENT_TIMESTAMP LIMIT 1
+      `).bind(await sha256(body?.token || '')).first();
+      if (!verification) return json({ error: 'This confirmation link is invalid or has expired.' }, { status: 400 });
+      const conflict = await env.DB.prepare('SELECT id FROM users WHERE email = ? AND id != ?').bind(verification.email, verification.user_id).first();
+      if (conflict) return json({ error: 'That email is already connected to another account.' }, { status: 409 });
+      await env.DB.batch([
+        env.DB.prepare('UPDATE users SET email = ?, username = ?, email_verified_at = CURRENT_TIMESTAMP WHERE id = ?').bind(verification.email, verification.email, verification.user_id),
+        env.DB.prepare('UPDATE email_verification_tokens SET used_at = CURRENT_TIMESTAMP WHERE id = ?').bind(verification.id),
+      ]);
+      return json({ success: true, message: 'Email confirmed. You can now sign in with it.' });
+    }
 
     if (url.pathname.startsWith('/api/shared/journeys/') && request.method === 'GET') {
       const token = decodeURIComponent(url.pathname.slice('/api/shared/journeys/'.length));
@@ -450,7 +767,140 @@ export default {
       const user = await authenticate(request, env);
       if (!user) return json({ error: 'Invalid or expired session' }, { status: 401 });
 
-      if (url.pathname === '/api/auth/me' && request.method === 'GET') return json({ user: { id: user.id, username: user.username, display_name: user.display_name } });
+      if (url.pathname === '/api/auth/me' && request.method === 'GET') {
+        return json({
+          user: { id: user.id, username: user.username, email: user.email, email_verified_at: user.email_verified_at, display_name: user.display_name },
+          households: await userHouseholds(env, user.id),
+          active_household_id: user.household_id,
+          needs_email_upgrade: !user.email,
+        });
+      }
+
+      if (url.pathname === '/api/account/email/start' && request.method === 'POST') {
+        const body = await parseJson(request);
+        const email = normalizeEmail(body?.email);
+        if (!validEmail(email)) return json({ error: 'Enter a valid email address.' }, { status: 400 });
+        if (!(await rateLimit(env, 'verify-email', requestFingerprint(request, email), 5, 60 * 60))) return json({ error: 'Too many confirmation requests. Please try again later.' }, { status: 429 });
+        const conflict = await env.DB.prepare('SELECT id FROM users WHERE email = ? AND id != ?').bind(email, user.id).first();
+        if (conflict) return json({ error: 'That email is already connected to another account.' }, { status: 409 });
+        const tokenId = crypto.randomUUID();
+        const rawToken = randomToken();
+        await env.DB.prepare('INSERT INTO email_verification_tokens (id, user_id, email, token_hash, expires_at) VALUES (?, ?, ?, ?, ?)').bind(tokenId, user.id, email, await sha256(rawToken), new Date(Date.now() + 60 * 60 * 1000).toISOString()).run();
+        try { await sendVerificationEmail(env, request, user, email, rawToken, tokenId); }
+        catch (error) {
+          await env.DB.prepare('DELETE FROM email_verification_tokens WHERE id = ?').bind(tokenId).run();
+          return json({ error: 'Confirmation email could not be sent. Please try again.' }, { status: 503 });
+        }
+        return json({ message: `We sent a confirmation link to ${email}.` });
+      }
+
+      if (url.pathname === '/api/account/password' && request.method === 'POST') {
+        const body = await parseJson(request);
+        const problem = passwordProblem(body?.newPassword);
+        if (problem) return json({ error: problem }, { status: 400 });
+        if (!(await rateLimit(env, 'change-password', requestFingerprint(request, String(user.id)), 8, 30 * 60))) return json({ error: 'Too many attempts. Please wait and try again.' }, { status: 429 });
+        const account = await env.DB.prepare('SELECT password_hash FROM users WHERE id = ?').bind(user.id).first();
+        if (!account || !(await verifyPassword(body?.currentPassword || '', account.password_hash))) return json({ error: 'Your current password is incorrect.' }, { status: 401 });
+        const newHash = await hashPassword(body.newPassword);
+        const statements = [env.DB.prepare('UPDATE users SET password_hash = ?, password_updated_at = CURRENT_TIMESTAMP WHERE id = ?').bind(newHash, user.id)];
+        if (user.session_token_hash) statements.push(env.DB.prepare('DELETE FROM sessions WHERE user_id = ? AND token_hash != ?').bind(user.id, user.session_token_hash));
+        else statements.push(env.DB.prepare('DELETE FROM sessions WHERE user_id = ?').bind(user.id));
+        await env.DB.batch(statements);
+        if (user.session_token_hash) return json({ success: true, message: 'Password updated. Other sessions were signed out.' });
+        const session = await createSession(env, user.id, user.household_id);
+        return json({ success: true, message: 'Password updated. Other sessions were signed out.' }, { headers: { 'set-cookie': sessionCookie(session.token) } });
+      }
+
+      if (url.pathname === '/api/households' && request.method === 'GET') {
+        return json({ households: await userHouseholds(env, user.id), active_household_id: user.household_id });
+      }
+
+      if (url.pathname === '/api/households' && request.method === 'POST') {
+        const body = await parseJson(request);
+        const name = String(body?.name || '').trim();
+        if (name.length < 2 || name.length > 80) return json({ error: 'Enter a site name between 2 and 80 characters.' }, { status: 400 });
+        const baseSlug = name.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'memories';
+        const slug = `${baseSlug}-${randomToken(5).toLowerCase()}`;
+        const created = await env.DB.prepare('INSERT INTO households (slug, name) VALUES (?, ?)').bind(slug, name).run();
+        const householdId = Number(created.meta.last_row_id);
+        await env.DB.prepare("INSERT INTO household_members (household_id, user_id, role) VALUES (?, ?, 'owner')").bind(householdId, user.id).run();
+        if (user.session_token_hash) {
+          await env.DB.prepare('UPDATE sessions SET household_id = ?, last_seen_at = CURRENT_TIMESTAMP WHERE token_hash = ?').bind(householdId, user.session_token_hash).run();
+          return json({ household: { id: householdId, slug, name, role: 'owner', member_count: 1 }, households: await userHouseholds(env, user.id), active_household_id: householdId }, { status: 201 });
+        }
+        const session = await createSession(env, user.id, householdId);
+        return json({ household: { id: householdId, slug, name, role: 'owner', member_count: 1 }, households: await userHouseholds(env, user.id), active_household_id: householdId }, { status: 201, headers: { 'set-cookie': sessionCookie(session.token) } });
+      }
+
+      if (url.pathname === '/api/households/switch' && request.method === 'POST') {
+        const body = await parseJson(request);
+        const householdId = Number(body?.householdId);
+        const membership = await env.DB.prepare('SELECT role FROM household_members WHERE user_id = ? AND household_id = ?').bind(user.id, householdId).first();
+        if (!membership) return json({ error: 'You do not have access to that memory site.' }, { status: 403 });
+        if (user.session_token_hash) {
+          await env.DB.prepare('UPDATE sessions SET household_id = ?, last_seen_at = CURRENT_TIMESTAMP WHERE token_hash = ?').bind(householdId, user.session_token_hash).run();
+          return json({ success: true, active_household_id: householdId });
+        }
+        const session = await createSession(env, user.id, householdId);
+        return json({ success: true, active_household_id: householdId }, { headers: { 'set-cookie': sessionCookie(session.token) } });
+      }
+
+      if (url.pathname === '/api/households/current/members' && request.method === 'GET') {
+        const [members, pending] = await Promise.all([
+          env.DB.prepare(`
+            SELECT u.id, u.email, u.display_name, hm.role, hm.created_at
+            FROM household_members hm JOIN users u ON u.id = hm.user_id
+            WHERE hm.household_id = ? ORDER BY hm.created_at, u.id
+          `).bind(user.household_id).all(),
+          env.DB.prepare(`
+            SELECT id, email, role, expires_at, created_at
+            FROM invitations WHERE household_id = ? AND accepted_at IS NULL AND datetime(expires_at) > CURRENT_TIMESTAMP
+            ORDER BY created_at DESC
+          `).bind(user.household_id).all(),
+        ]);
+        return json({ members: members.results || [], invitations: pending.results || [], role: user.role });
+      }
+
+      if (url.pathname === '/api/households/invitations' && request.method === 'POST') {
+        if (!['owner', 'admin'].includes(user.role)) return json({ error: 'Only site owners can invite people.' }, { status: 403 });
+        const body = await parseJson(request);
+        const email = normalizeEmail(body?.email);
+        if (!validEmail(email)) return json({ error: 'Enter a valid email address.' }, { status: 400 });
+        if (!(await rateLimit(env, 'invite', `${user.id}:${user.household_id}`, 20, 60 * 60))) return json({ error: 'Too many invitations were sent. Please try again later.' }, { status: 429 });
+        const existingMember = await env.DB.prepare(`
+          SELECT 1 FROM household_members hm JOIN users u ON u.id = hm.user_id
+          WHERE hm.household_id = ? AND u.email = ? LIMIT 1
+        `).bind(user.household_id, email).first();
+        if (existingMember) return json({ error: 'That person already belongs to this memory site.' }, { status: 409 });
+        await env.DB.prepare('UPDATE invitations SET accepted_at = CURRENT_TIMESTAMP WHERE household_id = ? AND email = ? AND accepted_at IS NULL').bind(user.household_id, email).run();
+        const invitationId = crypto.randomUUID();
+        const rawToken = randomToken();
+        const expiresAt = new Date(Date.now() + 7 * 86400 * 1000).toISOString();
+        await env.DB.prepare(`
+          INSERT INTO invitations (id, household_id, email, token_hash, role, invited_by, expires_at)
+          VALUES (?, ?, ?, ?, 'member', ?, ?)
+        `).bind(invitationId, user.household_id, email, await sha256(rawToken), user.id, expiresAt).run();
+        const invitation = { id: invitationId, email, household_name: user.household_name, inviter_name: user.display_name || user.email || user.username };
+        try { await sendInvitationEmail(env, request, invitation, rawToken); }
+        catch (error) {
+          await env.DB.prepare('DELETE FROM invitations WHERE id = ?').bind(invitationId).run();
+          return json({ error: 'The invitation email could not be sent. Please try again.' }, { status: 503 });
+        }
+        return json({ invitation: { id: invitationId, email, role: 'member', expires_at: expiresAt }, message: `Invitation sent to ${email}.` }, { status: 201 });
+      }
+
+      if (url.pathname === '/api/households/invitations/accept' && request.method === 'POST') {
+        const body = await parseJson(request);
+        const invitation = await invitationByToken(env, body?.token);
+        if (!invitation) return json({ error: 'This invitation is invalid or has expired.' }, { status: 400 });
+        if (!user.email || user.email !== invitation.email) return json({ error: 'Sign in with the email address that received this invitation.' }, { status: 403 });
+        await env.DB.batch([
+          env.DB.prepare('INSERT OR IGNORE INTO household_members (household_id, user_id, role) VALUES (?, ?, ?)').bind(invitation.household_id, user.id, invitation.role),
+          env.DB.prepare('UPDATE invitations SET accepted_at = CURRENT_TIMESTAMP WHERE id = ?').bind(invitation.id),
+        ]);
+        if (user.session_token_hash) await env.DB.prepare('UPDATE sessions SET household_id = ? WHERE token_hash = ?').bind(invitation.household_id, user.session_token_hash).run();
+        return json({ success: true, active_household_id: invitation.household_id, households: await userHouseholds(env, user.id) });
+      }
 
       if (url.pathname === '/api/trips' && request.method === 'GET') {
         const conditions = [];

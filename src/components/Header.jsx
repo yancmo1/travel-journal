@@ -10,7 +10,7 @@ const navItems = [
 ];
 
 export default function Header({ currentPage, setPage }) {
-  const { user, logout } = useAuth();
+  const { user, households, activeHouseholdId, switchHousehold, logout } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   function navigate(id) {
@@ -51,6 +51,18 @@ export default function Header({ currentPage, setPage }) {
           </nav>
 
           <div className="memory-user">
+            {households.length > 0 && (
+              <label className="hidden sm:block">
+                <span className="sr-only">Memory site</span>
+                <select
+                  value={activeHouseholdId || ''}
+                  onChange={event => switchHousehold(event.target.value)}
+                  className="max-w-44 rounded-lg border border-white/20 bg-white/10 px-2 py-1 text-sm text-white"
+                >
+                  {households.map(household => <option key={household.id} value={household.id} className="text-gray-900">{household.name}</option>)}
+                </select>
+              </label>
+            )}
             <button
               type="button"
               className="memory-mobile-menu"
