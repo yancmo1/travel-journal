@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Upload, X, Image as ImageIcon, CheckCircle, AlertCircle } from 'lucide-react';
 import api from '../utils/api';
 
@@ -9,9 +9,19 @@ export default function PhotoUploader({ tripId, onUploadComplete, showAnalyzer =
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [uploadResults, setUploadResults] = useState(null);
+  const [quota, setQuota] = useState(null);
   const [error, setError] = useState('');
   const fileInputRef = useRef(null);
   const cameraInputRef = useRef(null);
+
+  useEffect(() => {
+    if (showAnalyzer) return undefined;
+    let cancelled = false;
+    api.getPhotoQuota().then(result => {
+      if (!cancelled) setQuota(result);
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [showAnalyzer, tripId]);
 
   // Handle file selection
   const handleFiles = (selectedFiles) => {
@@ -198,6 +208,14 @@ export default function PhotoUploader({ tripId, onUploadComplete, showAnalyzer =
           </div>
         </div>
       </div>
+
+      {quota?.warning && (
+        <div className={`rounded-lg border p-3 text-sm ${quota.blocked ? 'border-red-200 bg-red-50 text-red-700' : 'border-amber-200 bg-amber-50 text-amber-800'}`} role="status">
+          {quota.blocked
+            ? 'This memory site has reached its photo storage allowance. Remove older photos before adding more.'
+            : `This memory site is using ${quota.storage_usage_percent}% of its photo storage allowance.`}
+        </div>
+      )}
 
       {error && (
         <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700" role="alert" aria-live="polite">

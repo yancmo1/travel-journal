@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useRef, useState, useCallback } from 'react';
-import api from '../utils/api';
+import api, { newIdempotencyKey } from '../utils/api';
 import { useAuth } from './AuthContext';
 import { sortTravelers } from '../utils/travelers';
 import {
@@ -55,6 +55,12 @@ function replaceIds(value, replacements) {
   return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, replaceIds(item, replacements)]));
 }
 
+function mutationRequestPayload(payload) {
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return payload;
+  const { _idempotencyKey, ...requestPayload } = payload;
+  return requestPayload;
+}
+
 export function DataProvider({ children }) {
   const { user } = useAuth();
   const [trips, setTrips] = useState([]);
@@ -81,7 +87,7 @@ export function DataProvider({ children }) {
     if (!user) return;
     setLoading(true);
     try {
-      const data = await api.getTrips(filters);
+      const data = await api.getAllTrips(filters);
       setTrips(data);
       setOffline(false);
     } catch (err) {
@@ -101,7 +107,7 @@ export function DataProvider({ children }) {
 
   const loadJourneys = useCallback(async () => {
     if (!user) return;
-    try { setJourneys(await api.getJourneys()); setOffline(false); }
+    try { setJourneys(await api.getAllJourneys()); setOffline(false); }
     catch (err) { if (isOfflineError(err)) setOffline(true); else console.error('Failed to load journeys:', err); }
   }, [user]);
 
@@ -187,12 +193,14 @@ export function DataProvider({ children }) {
       const mutations = (await getMutations(user.id)).sort((a, b) => a.createdAt - b.createdAt);
       for (const mutation of mutations) {
         const payload = replaceIds(mutation.payload, tempIdMap.current);
+        const idempotencyKey = payload?._idempotencyKey || newIdempotencyKey();
+        const requestPayload = mutationRequestPayload(payload);
         try {
           let result;
           if (mutation.operation === 'create') {
-            result = mutation.entity === 'trip' ? await api.createTrip(payload)
-              : mutation.entity === 'traveler' ? await api.createTraveler(payload)
-                : await api.createJourney(payload);
+            result = mutation.entity === 'trip' ? await api.createTrip(requestPayload, idempotencyKey)
+              : mutation.entity === 'traveler' ? await api.createTraveler(requestPayload, idempotencyKey)
+                : await api.createJourney(requestPayload, idempotencyKey);
             if (String(mutation.entityId).startsWith('offline-') && result?.id) tempIdMap.current.set(String(mutation.entityId), result.id);
           } else if (mutation.operation === 'update') {
             result = mutation.entity === 'trip' ? await api.updateTrip(payload.id, payload.data)
@@ -201,8 +209,8 @@ export function DataProvider({ children }) {
           } else if (mutation.operation === 'delete') {
             const resolvedId = tempIdMap.current.get(String(payload.id)) || payload.id;
             if (!String(resolvedId).startsWith('offline-')) {
-              result = mutation.entity === 'trip' ? await api.deleteTrip(resolvedId)
-                : mutation.entity === 'journey' ? await api.deleteJourney(resolvedId) : await api.deleteTraveler(resolvedId);
+              result = mutation.entity === 'trip' ? await api.deleteTrip(resolvedId, idempotencyKey)
+                : mutation.entity === 'journey' ? await api.deleteJourney(resolvedId, idempotencyKey) : await api.deleteTraveler(resolvedId, idempotencyKey);
             }
             if (mutation.entity === 'trip') {
               const queuedUploads = await getUploads(user.id);
@@ -241,12 +249,12 @@ export function DataProvider({ children }) {
     } finally { syncInFlight.current = false; setSyncing(false); }
   }
 
-  async function addTrip(data) {
+  async function addTrip(data, idempotencyKey = newIdempotencyKey()) {
     if (offline || !navigator.onLine) {
-      const trip = localTrip(data); setTrips(prev => [trip, ...prev]); await queue('trip', trip.id, 'create', data); return trip;
+      const trip = localTrip(data); setTrips(prev => [trip, ...prev]); await queue('trip', trip.id, 'create', { ...data, _idempotencyKey: idempotencyKey }); return trip;
     }
-    try { const trip = await api.createTrip(data); setTrips(prev => [trip, ...prev]); await loadAnalytics(); return trip; }
-    catch (error) { if (!isOfflineError(error)) throw error; setOffline(true); return addTrip(data); }
+    try { const trip = await api.createTrip(data, idempotencyKey); setTrips(prev => [trip, ...prev]); await loadAnalytics(); return trip; }
+    catch (error) { if (!isOfflineError(error)) throw error; setOffline(true); return addTrip(data, idempotencyKey); }
   }
 
   async function updateTrip(id, data) {
@@ -260,22 +268,22 @@ export function DataProvider({ children }) {
     catch (error) { if (!isOfflineError(error)) throw error; setOffline(true); return updateTrip(id, data); }
   }
 
-  async function deleteTrip(id) {
+  async function deleteTrip(id, idempotencyKey = newIdempotencyKey()) {
     const removeFromView = () => setTrips(prev => prev.filter(t => String(t.id) !== String(id)));
     if (String(id).startsWith('offline-') || offline || !navigator.onLine) {
       removeFromView();
-      await queue('trip', id, 'delete', { id });
+      await queue('trip', id, 'delete', { id, _idempotencyKey: idempotencyKey });
       return;
     }
     try {
-      await api.deleteTrip(id);
+      await api.deleteTrip(id, idempotencyKey);
       removeFromView();
       await Promise.all([loadAnalytics(), loadJourneys()]);
     } catch (error) {
       if (!isOfflineError(error)) throw error;
       setOffline(true);
       removeFromView();
-      await queue('trip', id, 'delete', { id });
+      await queue('trip', id, 'delete', { id, _idempotencyKey: idempotencyKey });
     }
   }
 
@@ -284,10 +292,10 @@ export function DataProvider({ children }) {
     return { deletedIds: ids, count: ids.length };
   }
 
-  async function addTraveler(data) {
-    if (offline || !navigator.onLine) { const traveler = localTraveler(data); setTravelers(prev => sortTravelers([...prev, traveler])); await queue('traveler', traveler.id, 'create', data); return traveler; }
-    try { const traveler = await api.createTraveler(data); setTravelers(prev => sortTravelers([...prev, traveler])); return traveler; }
-    catch (error) { if (!isOfflineError(error)) throw error; setOffline(true); return addTraveler(data); }
+  async function addTraveler(data, idempotencyKey = newIdempotencyKey()) {
+    if (offline || !navigator.onLine) { const traveler = localTraveler(data); setTravelers(prev => sortTravelers([...prev, traveler])); await queue('traveler', traveler.id, 'create', { ...data, _idempotencyKey: idempotencyKey }); return traveler; }
+    try { const traveler = await api.createTraveler(data, idempotencyKey); setTravelers(prev => sortTravelers([...prev, traveler])); return traveler; }
+    catch (error) { if (!isOfflineError(error)) throw error; setOffline(true); return addTraveler(data, idempotencyKey); }
   }
 
   async function updateTraveler(id, data) {
@@ -299,16 +307,16 @@ export function DataProvider({ children }) {
     catch (error) { if (!isOfflineError(error)) throw error; setOffline(true); return updateTraveler(id, data); }
   }
 
-  async function deleteTraveler(id) {
+  async function deleteTraveler(id, idempotencyKey = newIdempotencyKey()) {
     setTravelers(prev => prev.filter(t => String(t.id) !== String(id)));
-    if (String(id).startsWith('offline-') || offline || !navigator.onLine) return queue('traveler', id, 'delete', { id });
-    try { await api.deleteTraveler(id); } catch (error) { if (!isOfflineError(error)) throw error; setOffline(true); await queue('traveler', id, 'delete', { id }); }
+    if (String(id).startsWith('offline-') || offline || !navigator.onLine) return queue('traveler', id, 'delete', { id, _idempotencyKey: idempotencyKey });
+    try { await api.deleteTraveler(id, idempotencyKey); } catch (error) { if (!isOfflineError(error)) throw error; setOffline(true); await queue('traveler', id, 'delete', { id, _idempotencyKey: idempotencyKey }); }
   }
 
-  async function addJourney(data) {
-    if (offline || !navigator.onLine) { const journey = localJourney(data); setJourneys(prev => [journey, ...prev]); await queue('journey', journey.id, 'create', data); return journey; }
-    try { const journey = await api.createJourney(data); setJourneys(prev => [journey, ...prev]); await loadTrips(); return journey; }
-    catch (error) { if (!isOfflineError(error)) throw error; setOffline(true); return addJourney(data); }
+  async function addJourney(data, idempotencyKey = newIdempotencyKey()) {
+    if (offline || !navigator.onLine) { const journey = localJourney(data); setJourneys(prev => [journey, ...prev]); await queue('journey', journey.id, 'create', { ...data, _idempotencyKey: idempotencyKey }); return journey; }
+    try { const journey = await api.createJourney(data, idempotencyKey); setJourneys(prev => [journey, ...prev]); await loadTrips(); return journey; }
+    catch (error) { if (!isOfflineError(error)) throw error; setOffline(true); return addJourney(data, idempotencyKey); }
   }
 
   async function updateJourney(id, data) {
@@ -317,10 +325,10 @@ export function DataProvider({ children }) {
     catch (error) { if (!isOfflineError(error)) throw error; setOffline(true); return updateJourney(id, data); }
   }
 
-  async function deleteJourney(id) {
+  async function deleteJourney(id, idempotencyKey = newIdempotencyKey()) {
     setJourneys(prev => prev.filter(item => String(item.id) !== String(id)));
-    if (String(id).startsWith('offline-') || offline || !navigator.onLine) return queue('journey', id, 'delete', { id });
-    try { await api.deleteJourney(id); await loadTrips(); } catch (error) { if (!isOfflineError(error)) throw error; setOffline(true); await queue('journey', id, 'delete', { id }); }
+    if (String(id).startsWith('offline-') || offline || !navigator.onLine) return queue('journey', id, 'delete', { id, _idempotencyKey: idempotencyKey });
+    try { await api.deleteJourney(id, idempotencyKey); await loadTrips(); } catch (error) { if (!isOfflineError(error)) throw error; setOffline(true); await queue('journey', id, 'delete', { id, _idempotencyKey: idempotencyKey }); }
   }
 
   return (

@@ -135,16 +135,29 @@ export default function PhotoGallery({ photos = [], onDelete, onUpdate, onReorde
               className="relative block aspect-square w-full cursor-pointer group overflow-hidden hover:border-ocean-blue"
               aria-label={`Open ${photo.filename || `photo ${index + 1}`}`}
             >
-              <img
-                src={`/photos/${photo.thumbnail_path}`}
-                alt={photo.caption || photo.filename || ''}
-                style={getPhotoImageStyle(photo)}
-                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-              />
+              {photo.thumbnail_path ? (
+                <img
+                  src={`/photos/${photo.thumbnail_path}`}
+                  alt={photo.caption || photo.filename || ''}
+                  style={getPhotoImageStyle(photo)}
+                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                />
+              ) : (
+                <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-slate-100 px-3 text-center text-xs font-semibold text-slate-600">
+                  <span aria-hidden="true">◌</span>
+                  <span>{photo.processing_status === 'processing_failed' ? 'Processing failed' : 'Processing pending'}</span>
+                </div>
+              )}
 
               {photo.is_cover && (
                 <span className="absolute left-2 top-2 flex items-center gap-1 rounded-full bg-amber-400 px-2 py-1 text-[10px] font-semibold text-amber-950 shadow">
                   <Star className="h-3 w-3 fill-current" /> Cover
+                </span>
+              )}
+
+              {photo.processing_status && photo.processing_status !== 'ready' && (
+                <span className="absolute left-2 bottom-10 rounded-full bg-black/75 px-2 py-1 text-[10px] font-semibold text-white">
+                  {photo.processing_status === 'processing_failed' ? 'Processing failed' : 'Processing pending'}
                 </span>
               )}
 

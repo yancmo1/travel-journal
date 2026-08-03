@@ -123,6 +123,7 @@ export const journeys = sqliteTable('journeys', {
   updatedAt,
 }, table => [
   index('idx_journeys_household_id').on(table.householdId),
+  index('idx_journeys_household_start_date_id').on(table.householdId, table.startDate, table.id),
   uniqueIndex('idx_journeys_share_token').on(table.shareToken),
 ]);
 
@@ -150,6 +151,7 @@ export const trips = sqliteTable('trips', {
 }, table => [
   index('idx_trips_household_id').on(table.householdId),
   index('idx_trips_household_start_date').on(table.householdId, table.startDate),
+  index('idx_trips_household_start_date_id').on(table.householdId, table.startDate, table.id),
   index('idx_trips_journey_id').on(table.journeyId),
 ]);
 
@@ -166,10 +168,19 @@ export const photos = sqliteTable('photos', {
   householdId: integer('household_id').notNull().references(() => households.id, { onDelete: 'cascade' }),
   tripId: integer('trip_id').notNull().references(() => trips.id, { onDelete: 'cascade' }),
   r2Key: text('r2_key').notNull().unique(),
+  clientUploadId: text('client_upload_id').unique(),
+  displayR2Key: text('display_r2_key'),
   thumbnailR2Key: text('thumbnail_r2_key'),
   originalFilename: text('original_filename').notNull(),
   fileSize: integer('file_size'),
   mimeType: text('mime_type'),
+  width: integer('width'),
+  height: integer('height'),
+  checksum: text('checksum'),
+  processingStatus: text('processing_status').notNull().default('ready'),
+  processingVersion: integer('processing_version').notNull().default(1),
+  processingError: text('processing_error'),
+  metadataSource: text('metadata_source').notNull().default('client'),
   dateTaken: text('date_taken'),
   latitude: real('latitude'),
   longitude: real('longitude'),
@@ -181,4 +192,147 @@ export const photos = sqliteTable('photos', {
 }, table => [
   index('idx_photos_household_id').on(table.householdId),
   index('idx_photos_trip_sort_order').on(table.tripId, table.sortOrder),
+  index('idx_photos_household_trip_cover_sort').on(table.householdId, table.tripId, table.isCover, table.sortOrder, table.id),
+  index('idx_photos_processing_status').on(table.processingStatus, table.uploadedAt),
+]);
+
+export const uploadReservations = sqliteTable('upload_reservations', {
+  id: text('id').primaryKey(),
+  householdId: integer('household_id').notNull().references(() => households.id, { onDelete: 'cascade' }),
+  tripId: integer('trip_id').notNull().references(() => trips.id, { onDelete: 'cascade' }),
+  clientUploadId: text('client_upload_id').notNull(),
+  reservationToken: text('reservation_token').notNull(),
+  fileSize: integer('file_size').notNull(),
+  mimeType: text('mime_type').notNull(),
+  expiresAt: text('expires_at').notNull(),
+  createdAt,
+}, table => [
+  uniqueIndex('idx_upload_reservations_household_client').on(table.householdId, table.clientUploadId),
+  index('idx_upload_reservations_household_expires_at').on(table.householdId, table.expiresAt),
+]);
+
+export const photoUploadSessions = sqliteTable('photo_upload_sessions', {
+  id: text('id').primaryKey(),
+  householdId: integer('household_id').notNull().references(() => households.id, { onDelete: 'cascade' }),
+  tripId: integer('trip_id').notNull().references(() => trips.id, { onDelete: 'cascade' }),
+  clientUploadId: text('client_upload_id').notNull(),
+  reservationToken: text('reservation_token').notNull(),
+  originalKey: text('original_key').notNull().unique(),
+  displayKey: text('display_key').unique(),
+  thumbnailKey: text('thumbnail_key').unique(),
+  originalFilename: text('original_filename').notNull(),
+  mimeType: text('mime_type').notNull(),
+  originalBytes: integer('original_bytes').notNull(),
+  displayBytes: integer('display_bytes'),
+  thumbnailBytes: integer('thumbnail_bytes'),
+  originalChecksum: text('original_checksum'),
+  displayChecksum: text('display_checksum'),
+  thumbnailChecksum: text('thumbnail_checksum'),
+  status: text('status').notNull().default('pending'),
+  originalUploadedAt: text('original_uploaded_at'),
+  displayUploadedAt: text('display_uploaded_at'),
+  thumbnailUploadedAt: text('thumbnail_uploaded_at'),
+  expiresAt: text('expires_at').notNull(),
+  createdAt,
+  updatedAt,
+}, table => [
+  uniqueIndex('idx_photo_upload_sessions_household_client').on(table.householdId, table.clientUploadId),
+  index('idx_photo_upload_sessions_household_expires_at').on(table.householdId, table.expiresAt),
+  index('idx_photo_upload_sessions_status_expires_at').on(table.status, table.expiresAt),
+]);
+
+export const dataExports = sqliteTable('data_exports', {
+  id: text('id').primaryKey(),
+  householdId: integer('household_id').notNull().references(() => households.id, { onDelete: 'cascade' }),
+  requestedBy: integer('requested_by').references(() => users.id, { onDelete: 'set null' }),
+  status: text('status').notNull().default('pending'),
+  phase: text('phase').notNull().default('preparing'),
+  manifestKey: text('manifest_key'),
+  mediaTotal: integer('media_total').notNull().default(0),
+  mediaCopied: integer('media_copied').notNull().default(0),
+  expiresAt: text('expires_at').notNull(),
+  lastError: text('last_error'),
+  createdAt,
+  updatedAt,
+}, table => [
+  index('idx_data_exports_household_created_at').on(table.householdId, table.createdAt),
+  index('idx_data_exports_status_updated_at').on(table.status, table.updatedAt),
+]);
+
+export const dataDeletions = sqliteTable('data_deletions', {
+  id: text('id').primaryKey(),
+  householdId: integer('household_id').references(() => households.id, { onDelete: 'set null' }),
+  targetHouseholdId: integer('target_household_id').notNull(),
+  requestedBy: integer('requested_by').references(() => users.id, { onDelete: 'set null' }),
+  status: text('status').notNull().default('pending'),
+  phase: text('phase').notNull().default('preparing'),
+  mediaPrefixIndex: integer('media_prefix_index').notNull().default(0),
+  mediaCursor: text('media_cursor'),
+  mediaDeleted: integer('media_deleted').notNull().default(0),
+  lastError: text('last_error'),
+  createdAt,
+  updatedAt,
+}, table => [
+  index('idx_data_deletions_target_status').on(table.targetHouseholdId, table.status),
+  index('idx_data_deletions_status_updated_at').on(table.status, table.updatedAt),
+]);
+
+export const jobs = sqliteTable('jobs', {
+  id: text('id').primaryKey(),
+  householdId: integer('household_id').references(() => households.id, { onDelete: 'cascade' }),
+  type: text('type').notNull(),
+  status: text('status').notNull().default('pending'),
+  payload: text('payload').notNull(),
+  attempts: integer('attempts').notNull().default(0),
+  availableAt: text('available_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  leaseExpiresAt: text('lease_expires_at'),
+  idempotencyKey: text('idempotency_key').unique(),
+  lastError: text('last_error'),
+  createdAt,
+  updatedAt,
+}, table => [
+  index('idx_jobs_household_status').on(table.householdId, table.status),
+  index('idx_jobs_status_available_at').on(table.status, table.availableAt),
+  index('idx_jobs_lease_expires_at').on(table.leaseExpiresAt),
+]);
+
+export const idempotencyKeys = sqliteTable('idempotency_keys', {
+  scopeKey: text('scope_key').primaryKey(),
+  requestHash: text('request_hash').notNull(),
+  status: text('status').notNull().default('pending'),
+  responseStatus: integer('response_status'),
+  responseBody: text('response_body'),
+  expiresAt: text('expires_at').notNull(),
+  createdAt,
+  updatedAt,
+}, table => [
+  index('idx_idempotency_keys_expires_at').on(table.expiresAt),
+  index('idx_idempotency_keys_status_updated_at').on(table.status, table.updatedAt),
+]);
+
+export const auditEvents = sqliteTable('audit_events', {
+  id: text('id').primaryKey(),
+  userId: integer('user_id').references(() => users.id, { onDelete: 'set null' }),
+  householdId: integer('household_id').references(() => households.id, { onDelete: 'set null' }),
+  action: text('action').notNull(),
+  resourceType: text('resource_type'),
+  resourceId: text('resource_id'),
+  metadata: text('metadata'),
+  createdAt,
+}, table => [
+  index('idx_audit_events_household_created_at').on(table.householdId, table.createdAt),
+  index('idx_audit_events_user_created_at').on(table.userId, table.createdAt),
+  index('idx_audit_events_action_created_at').on(table.action, table.createdAt),
+]);
+
+export const providerCache = sqliteTable('provider_cache', {
+  cacheKey: text('cache_key').primaryKey(),
+  provider: text('provider').notNull(),
+  value: text('value').notNull(),
+  expiresAt: text('expires_at').notNull(),
+  createdAt,
+  updatedAt,
+}, table => [
+  index('idx_provider_cache_provider_updated_at').on(table.provider, table.updatedAt),
+  index('idx_provider_cache_expires_at').on(table.expiresAt),
 ]);

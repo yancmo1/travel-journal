@@ -46,7 +46,7 @@ export default function JourneysPage() {
               <article key={journey.id} className="journey-card">
                 <button type="button" className="journey-card-open" onClick={() => setSelected(journey)}>
                   <div className={`journey-cover ${cover ? 'has-photo' : ''}`}>
-                    {cover ? (
+                    {cover?.thumbnail_path ? (
                       <img src={`/photos/${cover.thumbnail_path}`} alt="" style={getPhotoImageStyle(cover)} />
                     ) : (
                       <div className="journey-cover-art" aria-hidden="true"><span>✦</span></div>
@@ -170,7 +170,7 @@ function JourneyDetail({ journey, onClose, onEdit, onDelete, onPhotos, onPrint }
                 {memory.photos?.length > 0 && (
                   <div className="journey-photo-strip">
                     {memory.photos.slice(0, 4).map(photo => (
-                      <img key={photo.id} src={`/photos/${photo.thumbnail_path}`} alt={photo.caption || photo.filename} style={getPhotoImageStyle(photo)} />
+                      photo.thumbnail_path ? <img key={photo.id} src={`/photos/${photo.thumbnail_path}`} alt={photo.caption || photo.filename} style={getPhotoImageStyle(photo)} /> : <div key={photo.id} className="flex aspect-square items-center justify-center rounded-lg bg-slate-100 text-xs text-slate-500">Processing</div>
                     ))}
                   </div>
                 )}
@@ -207,15 +207,16 @@ function JourneyDetail({ journey, onClose, onEdit, onDelete, onPhotos, onPrint }
 function findCover(journey) {
   if (journey.cover_photo_id) {
     const selected = journey.memories.flatMap(memory => memory.photos || [])
-      .find(photo => String(photo.id) === String(journey.cover_photo_id));
+      .find(photo => String(photo.id) === String(journey.cover_photo_id) && photo.thumbnail_path);
     if (selected) return selected;
   }
   for (const memory of journey.memories) {
-    const cover = memory.photos?.find(photo => photo.is_cover);
+    const cover = memory.photos?.find(photo => photo.is_cover && photo.thumbnail_path);
     if (cover) return cover;
   }
   for (const memory of journey.memories) {
-    if (memory.photos?.length) return memory.photos[0];
+    const firstReady = memory.photos?.find(photo => photo.thumbnail_path);
+    if (firstReady) return firstReady;
   }
   return null;
 }

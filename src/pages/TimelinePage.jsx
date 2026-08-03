@@ -57,7 +57,8 @@ export default function TimelinePage({ setPage }) {
 }
 
 function TimelineCard({ memory, timeline = false, onEdit }) {
-  const photo = memory.photos?.find(item => item.is_cover) || memory.photos?.[0];
+  const photo = memory.photos?.find(item => item.is_cover && item.thumbnail_path)
+    || memory.photos?.find(item => item.thumbnail_path);
   return (
     <button
       type="button"

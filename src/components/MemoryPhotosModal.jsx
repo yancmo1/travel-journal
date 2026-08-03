@@ -13,7 +13,7 @@ export default function MemoryPhotosModal({ memory, onClose }) {
   async function loadPhotos() {
     setLoading(true);
     try {
-      setPhotos(await api.getPhotos(memory.id));
+      setPhotos(await api.getAllPhotos(memory.id));
     } catch (error) {
       setActionError(error.message || 'Saved photos could not be loaded. Please try again.');
     } finally {

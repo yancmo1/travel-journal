@@ -1,6 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Upload, Sparkles, MapPin, Calendar, Image, CheckCircle, AlertTriangle } from 'lucide-react';
 import PhotoUploader from '../components/PhotoUploader';
+import api from '../utils/api';
+import { inspectPhotoMetadata } from '../utils/photoMetadata';
+import { reverseGeocode } from '../utils/geocoding';
+import { smartCluster } from '../utils/photoClustering';
 
 export default function PhotoAnalyzerPage({ setPage }) {
   const [analyzing, setAnalyzing] = useState(false);
@@ -10,31 +14,49 @@ export default function PhotoAnalyzerPage({ setPage }) {
   const [editedSuggestions, setEditedSuggestions] = useState({});
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+  const [analysisFiles, setAnalysisFiles] = useState([]);
+  const [analysisPreviewUrls, setAnalysisPreviewUrls] = useState([]);
+
+  useEffect(() => {
+    const urls = analysisFiles.map(file => URL.createObjectURL(file));
+    setAnalysisPreviewUrls(urls);
+    return () => urls.forEach(url => URL.revokeObjectURL(url));
+  }, [analysisFiles]);
 
   const handleAnalyze = async (files) => {
     setAnalyzing(true);
     setError('');
     setSuccessMessage('');
 
-    const formData = new FormData();
-    files.forEach(file => {
-      formData.append('photos', file);
-    });
-
     try {
-      const response = await fetch('/api/photos/analyze', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('travel_token')}`
-        },
-        body: formData
+      const selectedFiles = Array.from(files);
+      setAnalysisFiles(selectedFiles);
+      const inspected = await inspectPhotoMetadata(selectedFiles);
+      const photoRecords = inspected.photos.map((metadata, fileIndex) => ({
+        filename: selectedFiles[fileIndex]?.name || metadata.filename || `photo-${fileIndex + 1}`,
+        fileIndex,
+        size: selectedFiles[fileIndex]?.size || 0,
+        mimetype: selectedFiles[fileIndex]?.type || '',
+        metadata,
+      }));
+      const suggestedTrips = await smartCluster(photoRecords, 'normal', {
+        resolveLocation: (latitude, longitude) => api.reverseGeocode(latitude, longitude)
+          .catch(() => reverseGeocode(latitude, longitude)),
       });
-
-      if (!response.ok) {
-        throw new Error('Analysis failed');
-      }
-
-      const results = await response.json();
+      const results = {
+        success: true,
+        totalPhotos: selectedFiles.length,
+        validPhotos: photoRecords.filter(photo => photo.metadata?.dateTaken && photo.metadata?.hasGPS).length,
+        photosWithoutMetadata: photoRecords.filter(photo => !photo.metadata?.dateTaken || !photo.metadata?.hasGPS).length,
+        suggestedTrips,
+        allPhotos: photoRecords.map(photo => ({
+          filename: photo.filename,
+          hasGPS: Boolean(photo.metadata?.hasGPS),
+          hasDate: Boolean(photo.metadata?.dateTaken),
+          dateTaken: photo.metadata?.dateTaken || null,
+          location: photo.metadata?.hasGPS ? { lat: photo.metadata.latitude, lon: photo.metadata.longitude } : null,
+        })),
+      };
       setAnalysisResults(results);
       
       // Auto-select all high confidence suggestions
@@ -55,8 +77,8 @@ export default function PhotoAnalyzerPage({ setPage }) {
       });
       setEditedSuggestions(edits);
 
-    } catch (error) {
-      console.error('Analysis error:', error);
+    } catch (analysisError) {
+      console.error('Analysis error:', analysisError);
       setError('We couldn’t analyze these photos. Keep the selected files and try again, or check that they are readable image files.');
     } finally {
       setAnalyzing(false);
@@ -106,16 +128,11 @@ export default function PhotoAnalyzerPage({ setPage }) {
           homeDistance: null // Will be calculated server-side
         };
 
-        const photoFilenames = suggestion.photos.map(p => p.tempFilename);
-
-        await fetch('/api/photos/create-from-analysis', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('travel_token')}`
-          },
-          body: JSON.stringify({ tripData, photoFilenames })
-        });
+        const createdTrip = await api.createTrip(tripData);
+        const files = suggestion.photos
+          .map(photo => analysisFiles[photo.fileIndex])
+          .filter(Boolean);
+        if (files.length) await api.uploadPhotos(createdTrip.id, files);
       }
 
       setSuccessMessage(`Successfully created ${selectedSuggestions.length} trip${selectedSuggestions.length === 1 ? '' : 's'}!`);
@@ -222,9 +239,9 @@ export default function PhotoAnalyzerPage({ setPage }) {
                         <div className="flex-1 flex gap-4">
                           {/* Thumbnail */}
                           <div className="w-28 h-20 bg-gray-100 rounded overflow-hidden flex-shrink-0">
-                            {suggestion.photos && suggestion.photos[0] ? (
-                              <img
-                                src={`/api/photos/temp/${suggestion.photos[0].tempFilename}`}
+                    {suggestion.photos && suggestion.photos[0] ? (
+                      <img
+                                src={analysisPreviewUrls[suggestion.photos[0].fileIndex]}
                                 alt={suggestion.photos[0].filename}
                                 className="w-full h-full object-cover"
                               />

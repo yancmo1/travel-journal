@@ -90,12 +90,16 @@ export default function TripsPage({ initialTravelerFilter = 'all' }) {
     try {
       const result = await api.backfillPhotoLocations();
       await Promise.all([loadTrips(), loadJourneys()]);
-      setBackfillCount(result.skipped.length);
-      setBackfillMessage(
-        result.updated.length
-          ? `Found places for ${result.updated.length} ${result.updated.length === 1 ? 'memory' : 'memories'}.`
-          : 'No additional places could be identified.'
-      );
+      if (result.queued) {
+        setBackfillMessage('Location lookup queued. The background runner will process a few memories at a time so larger photo libraries stay responsive. Refresh this page to see the results.');
+      } else {
+        setBackfillCount(result.skipped?.length || 0);
+        setBackfillMessage(
+          result.updated?.length
+            ? `Found places for ${result.updated.length} ${result.updated.length === 1 ? 'memory' : 'memories'}.`
+            : 'No additional places could be identified.'
+        );
+      }
     } catch (error) {
       setBackfillMessage(error.message || 'The location lookup could not finish.');
     } finally {

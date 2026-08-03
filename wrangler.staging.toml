@@ -1,0 +1,53 @@
+name = "travel-journal-staging"
+main = "dist/server/index.js"
+compatibility_date = "2026-08-03"
+workers_dev = true
+preview_urls = false
+
+[observability]
+enabled = true
+head_sampling_rate = 0.1
+
+# Isolated staging target for migration rehearsals and clean-room restores.
+# This file intentionally has no custom domain and no production bindings.
+[assets]
+directory = "./dist/client"
+binding = "ASSETS"
+not_found_handling = "single-page-application"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "postcards-of-us-staging-db"
+database_id = "99f58f09-2bd0-49ec-aec5-9e290af239c3"
+migrations_dir = "drizzle"
+
+[[r2_buckets]]
+binding = "MEDIA"
+bucket_name = "postcards-of-us-staging-media"
+
+[vars]
+ALLOW_PUBLIC_REGISTRATION = "false"
+EMAIL_FROM = "Postcards of Us <postcards@shepswork.com>"
+ENABLE_BACKGROUND_JOBS = "false"
+ENABLE_AUTOMATIC_BACKUPS = "false"
+ENABLE_UPLOADS = "true"
+ENABLE_INVITATIONS = "true"
+ENABLE_SHARING = "true"
+ENABLE_PLACES = "false"
+ENABLE_LOCATION_LOOKUPS = "false"
+ENABLE_HOUSEHOLD_DELETION = "false"
+ENABLE_MIGRATION_ENDPOINTS = "false"
+ENABLE_BACKUP_RUNNER = "false"
+PHOTO_PROCESSOR_MODE = "browser"
+MAX_LOCATION_BACKFILL_PER_RUN = "3"
+MAX_STORAGE_BYTES_PER_HOUSEHOLD = "1073741824"
+MAX_UPLOAD_BYTES = "20971520"
+MAX_UPLOADS_PER_REQUEST = "5"
+MAX_UPLOADS_PER_DAY = "0"
+MAX_UPLOAD_BYTES_PER_DAY = "0"
+MAX_ANALYTICS_TRIPS = "5000"
+EXPORT_MEDIA_PER_JOB = "10"
+GOOGLE_PLACES_CACHE_TTL_MS = "300000"
+GOOGLE_PLACES_CACHE_MAX_ENTRIES = "200"
+LOCATION_CACHE_MAX_ENTRIES = "5000"
+LOCATION_USER_AGENT = "postcardsofus-staging/1.0"

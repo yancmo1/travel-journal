@@ -6,6 +6,10 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "test": "node --test test/*.test.js",
+    "preflight": "scripts/cloudflare-deployment-preflight.sh",
+    "load:staging": "node scripts/cloudflare-staging-load-test.mjs",
+    "load:staging:auth": "node scripts/cloudflare-authenticated-load-test.mjs",
     "preview": "vite preview",
     "db:generate": "drizzle-kit generate"
   },

@@ -56,6 +56,20 @@ export default function AccountAccessPanel() {
     </section>
 
     <section className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+      <p className="memory-eyebrow">Session security</p>
+      <h2 className="mt-1 text-xl font-semibold text-ocean-dark">Control where you are signed in</h2>
+      <p className="mt-2 max-w-2xl text-sm text-gray-600">Sign out other devices after changing a password or if you no longer recognize a session.</p>
+      <div className="mt-4 flex flex-wrap gap-2">
+        <button type="button" onClick={() => run('sessions', async () => { const result = await api.revokeOtherSessions(); setMessage(result.message); })} disabled={working === 'sessions'} className="rounded-lg border border-ocean-blue px-4 py-2 text-sm font-semibold text-ocean-blue disabled:opacity-60">
+          {working === 'sessions' ? 'Signing out…' : 'Sign out other devices'}
+        </button>
+        <button type="button" onClick={() => { if (window.confirm('Sign out everywhere, including this device?')) run('all-sessions', async () => { await api.revokeAllSessions(); window.location.href = '/?login=1'; }); }} disabled={working === 'all-sessions'} className="rounded-lg border border-red-200 px-4 py-2 text-sm font-semibold text-red-700 disabled:opacity-60">
+          Sign out everywhere
+        </button>
+      </div>
+    </section>
+
+    <section className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
       <p className="memory-eyebrow">Your own story</p>
       <h2 className="mt-1 text-xl font-semibold text-ocean-dark">Start another memory site</h2>
       <p className="mt-2 max-w-2xl text-sm text-gray-600">Everyone can belong to several family sites and own one of their own. Memories and photos stay separated between sites.</p>
