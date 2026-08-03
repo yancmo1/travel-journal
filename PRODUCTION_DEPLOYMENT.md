@@ -1,4 +1,8 @@
-# Ubuntu production deployment
+# Ubuntu rollback deployment (historical)
+
+> Cloudflare Worker `travel-journal` is the current production runtime for
+> `postcardsofus.com`. This runbook is retained only for an owner-approved
+> rollback or archival recovery operation; Ubuntu is not an active origin.
 
 This deployment keeps the application and photos on the Ubuntu machine, exposes
 only the frontend through a named Cloudflare Tunnel, publishes application

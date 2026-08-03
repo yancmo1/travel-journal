@@ -23,7 +23,9 @@ status: active
 
 - [ ] Verify tenant isolation across all customer-owned records.
 - [ ] Verify private photo access and shared journey boundaries.
-- [ ] Complete a clean-environment backup restore drill.
+- [x] Complete and document an isolated staging backup restore drill.
+- [ ] Repeat the restore from a scheduled production backup in fresh resources
+      and record retention/off-account-copy decisions.
 - [ ] Reconcile account lifecycle endpoints.
 - [ ] Test the core workflow on both primary phones.
 - [ ] Run the post-deploy smoke test after the next release.

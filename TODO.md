@@ -4,14 +4,16 @@ This list is intentionally small and prioritized. We can check items off as we g
 
 ## Next up
 
+- [ ] Stabilize the live Cloudflare beta: run authenticated workflow checks,
+      verify both primary phones, and review logs, backups, and usage.
 - [x] Run a live end-to-end check: sign in as Amber, add a memory, search a landmark, select a grandkid, upload a photo, edit it, and view the photo full-screen.
 - [x] Verify the first R2 backup and complete a small restore drill so the backup is proven, not just configured.
 - [x] Add Google Places guardrails: cache repeated searches, debounce requests, and set a billing budget alert.
 - [x] Fix the memory form's initial `0.0000, 0.0000` coordinate display before a location is selected.
 - [ ] Show the selected landmark's business name and address clearly after a Google Places result is chosen.
-- [ ] Deploy commit `0d11061` to Ubuntu, run the post-deploy smoke test, and verify backup status, PWA install, and private sharing.
 - [ ] Test the main workflows on both your phone and Amber's phone.
-- [ ] Rotate the Ubuntu GHCR credential to a least-privilege package-read token when convenient.
+- [ ] Rotate or revoke the retired Ubuntu GHCR credential after the rollback
+      window, if it is no longer needed.
 
 ## Photo controls
 

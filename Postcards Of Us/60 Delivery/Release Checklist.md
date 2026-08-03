@@ -31,4 +31,6 @@ status: active
 - [ ] Database backup is fresh.
 - [ ] Photo backup is fresh.
 - [ ] Rollback or recovery path is known.
+- [ ] Cloudflare Worker, D1, R2, email, and error telemetry are reviewed.
+- [ ] Authenticated smoke test passes on desktop and both primary phones.
 - [ ] [[60 Delivery/Build Log|Build Log]] and [[60 Delivery/Journals/Production Journal|Production Journal]] are updated.

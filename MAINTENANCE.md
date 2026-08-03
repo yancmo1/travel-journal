@@ -1,12 +1,14 @@
 # Postcards of Us maintenance
 
-This is the short operational checklist for the private Ubuntu deployment. The
+This is the short rollback/archive checklist for the former private Ubuntu
+deployment. The
 full architecture and first-time setup are documented in
 [PRODUCTION_DEPLOYMENT.md](./PRODUCTION_DEPLOYMENT.md).
 
 ## Routine checks
 
-Run these commands on the Ubuntu host:
+Run these commands on the Ubuntu host only during an owner-approved rollback,
+archive, or recovery operation:
 
 ```bash
 ssh ubuntumac-ip

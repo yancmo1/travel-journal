@@ -10,7 +10,10 @@ status: active
 
 - [ ] Verify tenant isolation across trips, journeys, travelers, photos, analytics, exports, and shared links.
 - [ ] Verify that photo URLs cannot bypass ownership checks.
-- [ ] Complete and document a clean-environment backup restore drill.
+- [x] Restore the production snapshot into isolated staging and verify table
+      counts and referenced private media.
+- [ ] Complete a repeatable clean-room restore from a scheduled backup and
+      decide retention plus off-account-copy policy.
 - [ ] Confirm the invitation-only signup path works end to end.
 - [ ] Test the main workflows on both primary phones.
 
