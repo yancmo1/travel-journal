@@ -11,11 +11,10 @@
 - Email verification now has resend and one-time verification endpoints.
 - The historical Sites project has a configured but non-exportable
   `RESEND_API_KEY` secret. The direct Worker cannot inherit that secret.
-- The local ShepsWork hub key was tested against Resend and returned HTTP 401,
-  so it was removed from both direct Workers rather than leaving a known-invalid
-  key configured.
-- Staging and production currently expose only the `JWT_SECRET` Worker secret;
-  real delivery validation remains blocked until a current Resend key is added.
+- The refreshed local ShepsWork hub key was validated with a controlled send
+  from `postcards@shepswork.com` and Resend returned HTTP 200.
+- `RESEND_API_KEY` is now configured in both the staging and production direct
+  Workers. Its value is never stored in this repository.
 
 ## DNS observations
 
