@@ -347,8 +347,11 @@ For every read, create, update, delete, reorder, share, export, and media route:
       attempts.
 - [ ] Add CSRF protection for cookie-authenticated state-changing requests,
       alongside same-origin validation.
-- [ ] Complete email verification, invitation, forgotten-password, changed-
-      password notification, and expired-token flows.
+- [x] Implement email verification, invitation, forgotten-password, changed-
+      password notification, and expired-token endpoints with local integration
+      coverage.
+- [ ] Verify invitation, verification, recovery, and changed-password email
+      delivery in staging with the configured Resend sender.
 - [ ] Add Resend idempotency keys, bounded retries, failure logging, and handling
       for bounces/complaints. Resend requests now use stable operation keys and
       retry transient provider failures three times without logging message
@@ -596,6 +599,11 @@ an outage.
 - [ ] Verify logs never contain passwords, session tokens, reset/share tokens,
       raw photo bytes, unnecessary GPS coordinates, or secret headers.
 - [x] Add an append-only audit trail for admin and high-risk actions.
+- [x] Add application-level counters for failed logins, upload failures, backup
+      failures, email failures, and unhandled Worker errors; surface the last
+      24 hours in the site-admin Operations page.
+- [ ] Connect Workers Logs and the Operations counters to alert thresholds and
+      test the alert path with a safe synthetic failure.
 - [ ] Define privacy policy, beta terms, acceptable use, retention, export,
       account deletion, and incident-contact expectations before inviting users
       outside the family.

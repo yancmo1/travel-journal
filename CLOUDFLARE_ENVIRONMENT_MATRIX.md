@@ -39,7 +39,7 @@ attachment was removed without deleting its project history.
 | `ENABLE_MIGRATION_ENDPOINTS` | `false` after the one-time beta import |
 | `JWT_SECRET` | Configured as a Worker secret; value not recorded |
 | `MIGRATION_TOKEN` | Temporary secret deleted after the beta import; endpoint disabled |
-| `RESEND_API_KEY` | Not configured; invitation/password-recovery email test remains open |
+| `RESEND_API_KEY` | Not configured; invitation/password-recovery/email-verification delivery test remains open |
 
 The beta import produced 1 household, 2 users, 12 travelers, 3 journeys, 96
 trips, 158 trip-traveler links, 41 photos, and 112 private R2 objects. No
