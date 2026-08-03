@@ -13,6 +13,7 @@ import TimelinePage from './pages/TimelinePage';
 import SharedJourneyPage from './pages/SharedJourneyPage';
 import InvitationPage from './pages/InvitationPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
+import VerifyEmailPage from './pages/VerifyEmailPage';
 import PwaStatus from './components/PwaStatus';
 import PullToRefresh from './components/PullToRefresh';
 
@@ -62,11 +63,13 @@ function AppRouter() {
   const params = new URLSearchParams(window.location.search);
   const invitationToken = params.get('invite');
   const resetToken = params.get('reset');
+  const verificationToken = params.get('verify');
   const sharedMatch = window.location.pathname.match(/^\/share\/journey\/([^/]+)$/);
   const sharedToken = params.get('share');
   if (sharedMatch || sharedToken) return <SharedJourneyPage token={sharedToken || decodeURIComponent(sharedMatch[1])} />;
   if (invitationToken) return <InvitationPage token={invitationToken} />;
   if (resetToken) return <ResetPasswordPage token={resetToken} />;
+  if (verificationToken) return <VerifyEmailPage token={verificationToken} />;
 
   return <AppContent />;
 }

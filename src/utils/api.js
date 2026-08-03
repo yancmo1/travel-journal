@@ -128,6 +128,14 @@ class ApiClient {
     return this.request('/auth/reset-password', { method: 'POST', body: JSON.stringify({ token, password }), skipUnauthorizedRedirect: true });
   }
 
+  async verifyEmail(token) {
+    return this.request('/auth/verify-email', { method: 'POST', body: JSON.stringify({ token }), skipUnauthorizedRedirect: true });
+  }
+
+  async resendVerification() {
+    return this.request('/auth/resend-verification', { method: 'POST' });
+  }
+
   async getInvitation(token) {
     return this.request(`/auth/invitations/${encodeURIComponent(token)}`, { skipUnauthorizedRedirect: true });
   }

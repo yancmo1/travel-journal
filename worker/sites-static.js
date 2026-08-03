@@ -20,6 +20,17 @@ async function recordAudit(env, { userId = null, householdId = null, action, res
   }
 }
 
+async function recordOperationalEvent(env, { action, requestId = null, route = null, status = null, userId = null, householdId = null, metadata = null }) {
+  return recordAudit(env, {
+    action: `ops.${action}`,
+    userId,
+    householdId,
+    resourceType: 'operations',
+    resourceId: requestId,
+    metadata: { route, status, ...metadata },
+  });
+}
+
 function json(body, init = {}) {
   return new Response(JSON.stringify(body), {
     ...init,
@@ -588,6 +599,17 @@ async function sendPasswordResetEmail(env, request, user, rawToken, tokenId) {
     text: `Use this link to reset your Postcards of Us password: ${link}\n\nThis link expires in one hour. If you did not request it, you can ignore this email.`,
     html: `<p>Use the link below to reset your Postcards of Us password.</p><p><a href="${escapeHtml(link)}">Reset password</a></p><p>This link expires in one hour. If you did not request it, you can ignore this email.</p>`,
     idempotencyKey: `postcards-reset-${tokenId}`,
+  });
+}
+
+async function sendVerificationEmail(env, request, user, rawToken, tokenId) {
+  const link = `${new URL(request.url).origin}/?verify=${encodeURIComponent(rawToken)}`;
+  return sendEmail(env, {
+    to: user.email,
+    subject: 'Verify your Postcards of Us email',
+    text: `Verify your Postcards of Us email address: ${link}\n\nThis link expires in 24 hours. If you did not request it, you can ignore this email.`,
+    html: `<p>Verify your Postcards of Us email address.</p><p><a href="${escapeHtml(link)}">Verify email address</a></p><p>This link expires in 24 hours. If you did not request it, you can ignore this email.</p>`,
+    idempotencyKey: `postcards-verify-${tokenId}`,
   });
 }
 
@@ -1935,6 +1957,25 @@ async function handleFetch(request, env, ctx) {
       return json(generic);
     }
 
+    if (url.pathname === '/api/auth/verify-email' && request.method === 'POST') {
+      const body = await parseJson(request);
+      if (!(await rateLimit(env, 'verify-email', requestFingerprint(request), 10, 60 * 60))) {
+        return json({ error: 'Too many verification attempts. Please wait before trying again.' }, { status: 429 });
+      }
+      const token = await env.DB.prepare(`
+        SELECT id, user_id
+        FROM email_verification_tokens
+        WHERE token_hash = ? AND used_at IS NULL AND datetime(expires_at) > CURRENT_TIMESTAMP
+        LIMIT 1
+      `).bind(await sha256(body?.token || '')).first();
+      if (!token) return json({ error: 'This verification link is invalid or has expired.' }, { status: 400 });
+      await env.DB.batch([
+        env.DB.prepare('UPDATE users SET email_verified_at = CURRENT_TIMESTAMP WHERE id = ?').bind(token.user_id),
+        env.DB.prepare('UPDATE email_verification_tokens SET used_at = CURRENT_TIMESTAMP WHERE id = ?').bind(token.id),
+      ]);
+      return json({ success: true, message: 'Your email has been verified. You can sign in and recover your account with it.' });
+    }
+
     if (url.pathname === '/api/auth/reset-password' && request.method === 'POST') {
       const body = await parseJson(request);
       if (!(await rateLimit(env, 'reset-password', requestFingerprint(request), 10, 60 * 60))) {
@@ -1977,6 +2018,20 @@ async function handleFetch(request, env, ctx) {
           households: await userHouseholds(env, user.id),
           active_household_id: user.household_id,
         });
+      }
+
+      if (url.pathname === '/api/auth/resend-verification' && request.method === 'POST') {
+        if (user.email_verified_at) return json({ success: true, message: 'Your email is already verified.' });
+        if (!validEmail(user.email)) return json({ error: 'A valid account email is required before verification can be sent.' }, { status: 400 });
+        const tokenId = crypto.randomUUID();
+        const rawToken = randomToken();
+        await env.DB.prepare('INSERT INTO email_verification_tokens (id, user_id, email, token_hash, expires_at) VALUES (?, ?, ?, ?, ?)').bind(tokenId, user.id, user.email, await sha256(rawToken), new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()).run();
+        ctx.waitUntil(sendVerificationEmail(env, request, user, rawToken, tokenId).catch(async error => {
+          console.error('Verification email failed', error);
+          await recordOperationalEvent(env, { action: 'email_failed', requestId: tokenId, route: '/api/auth/resend-verification', userId: user.id, householdId: user.household_id, metadata: { kind: 'verification' } });
+          await env.DB.prepare('DELETE FROM email_verification_tokens WHERE id = ?').bind(tokenId).run();
+        }));
+        return json({ success: true, message: 'If your account email can receive mail, a verification link is on its way.' });
       }
 
       const deletionRoute = url.pathname.startsWith('/api/households/current/deletion');
@@ -2116,6 +2171,17 @@ async function handleFetch(request, env, ctx) {
         ]);
         const latest = await readLatestBackup(env);
         const jobCounts = (await env.DB.prepare('SELECT status, COUNT(*) AS count FROM jobs GROUP BY status').all()).results || [];
+        const operationalRows = (await env.DB.prepare(`
+          SELECT action, COUNT(*) AS count, MAX(created_at) AS latest_at
+          FROM audit_events
+          WHERE action IN ('ops.login_failed', 'ops.upload_failed', 'ops.backup_failed', 'ops.worker_error', 'ops.email_failed')
+            AND datetime(created_at) > datetime('now', '-24 hours')
+          GROUP BY action
+        `).all()).results || [];
+        const operational = Object.fromEntries(operationalRows.map(row => [row.action.replace(/^ops\./, ''), {
+          count: Number(row.count || 0),
+          latest_at: row.latest_at,
+        }]));
         return json({
           checkedAt: new Date().toISOString(),
           database: {
@@ -2130,6 +2196,14 @@ async function handleFetch(request, env, ctx) {
           observability: {
             grafanaUrl: env.GRAFANA_URL || null,
             prometheusUrl: env.PROMETHEUS_URL || null,
+            windowHours: 24,
+            failures: {
+              logins: operational.login_failed || { count: 0, latest_at: null },
+              uploads: operational.upload_failed || { count: 0, latest_at: null },
+              backups: operational.backup_failed || { count: 0, latest_at: null },
+              workerErrors: operational.worker_error || { count: 0, latest_at: null },
+              email: operational.email_failed || { count: 0, latest_at: null },
+            },
           },
           email: emailConfiguration(env),
         });
@@ -3400,21 +3474,33 @@ export default {
   async fetch(request, env, ctx) {
     const requestId = requestIdFor(request);
     try {
-      return withSecurityHeaders(await handleFetch(request, env, ctx), request, requestId);
+      const response = withSecurityHeaders(await handleFetch(request, env, ctx), request, requestId);
+      const path = new URL(request.url).pathname;
+      if (response.status >= 500) {
+        ctx.waitUntil(recordOperationalEvent(env, { action: 'worker_error', requestId, route: path, status: response.status }));
+      } else if (path === '/api/auth/login' && response.status >= 400) {
+        ctx.waitUntil(recordOperationalEvent(env, { action: 'login_failed', requestId, route: path, status: response.status }));
+      } else if ((path === '/api/photos' || path.startsWith('/api/photos/upload-sessions')) && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(request.method) && response.status >= 400) {
+        ctx.waitUntil(recordOperationalEvent(env, { action: 'upload_failed', requestId, route: path, status: response.status }));
+      } else if (path.startsWith('/api/maintenance/backup') && response.status >= 400) {
+        ctx.waitUntil(recordOperationalEvent(env, { action: 'backup_failed', requestId, route: path, status: response.status }));
+      }
+      return response;
     } catch (error) {
       console.error('Postcards unhandled request failure', { requestId, path: new URL(request.url).pathname, error: String(error?.message || error) });
+      ctx.waitUntil(recordOperationalEvent(env, { action: 'worker_error', requestId, route: new URL(request.url).pathname, status: 500 }));
       return withSecurityHeaders(json({ error: 'The request could not be completed.' }, { status: 500 }), request, requestId);
     }
   },
 
   async scheduled(controller, env, ctx) {
     if (!featureEnabled(env, 'ENABLE_BACKGROUND_JOBS')) return;
-    ctx.waitUntil(drainJobs(env, 5).catch(error => console.error('Postcards scheduled jobs failed', error)));
-    ctx.waitUntil(cleanupOperationalRows(env).catch(error => console.error('Postcards operational cleanup failed', error)));
-    ctx.waitUntil(cleanupExpiredPhotoUploadSessions(env).catch(error => console.error('Postcards upload-session cleanup failed', error)));
-    ctx.waitUntil(cleanupExpiredDataExports(env).catch(error => console.error('Postcards export cleanup failed', error)));
+    ctx.waitUntil(drainJobs(env, 5).catch(async error => { console.error('Postcards scheduled jobs failed', error); await recordOperationalEvent(env, { action: 'worker_error', route: 'scheduled:jobs', status: 500 }); }));
+    ctx.waitUntil(cleanupOperationalRows(env).catch(async error => { console.error('Postcards operational cleanup failed', error); await recordOperationalEvent(env, { action: 'worker_error', route: 'scheduled:cleanup', status: 500 }); }));
+    ctx.waitUntil(cleanupExpiredPhotoUploadSessions(env).catch(async error => { console.error('Postcards upload-session cleanup failed', error); await recordOperationalEvent(env, { action: 'worker_error', route: 'scheduled:photo-cleanup', status: 500 }); }));
+    ctx.waitUntil(cleanupExpiredDataExports(env).catch(async error => { console.error('Postcards export cleanup failed', error); await recordOperationalEvent(env, { action: 'worker_error', route: 'scheduled:export-cleanup', status: 500 }); }));
     if (featureEnabled(env, 'ENABLE_AUTOMATIC_BACKUPS')) {
-      ctx.waitUntil(createBackup(env).catch(error => console.error('Postcards scheduled backup failed', error)));
+      ctx.waitUntil(createBackup(env).catch(async error => { console.error('Postcards scheduled backup failed', error); await recordOperationalEvent(env, { action: 'backup_failed', route: 'scheduled:backup', status: 500 }); }));
     }
   },
 };

@@ -143,6 +143,80 @@ test('password recovery uses a generic response, rotates sessions, and consumes 
   DB.close();
 });
 
+test('email verification can be resent and consumed once', async () => {
+  const DB = createD1Database();
+  const MEDIA = new MemoryR2();
+  const passwordHash = bcrypt.hashSync('correct horse battery staple', 4);
+  await DB.batch([
+    DB.prepare('INSERT INTO users (username, email, password_hash, display_name) VALUES (?, ?, ?, ?)').bind('unverified', 'unverified@example.com', passwordHash, 'Unverified User'),
+    DB.prepare('INSERT INTO households (slug, name) VALUES (?, ?)').bind('verification-family', 'Verification Family'),
+    DB.prepare('INSERT INTO household_members (household_id, user_id, role) VALUES (1, 1, ?)').bind('owner'),
+  ]);
+  const env = { DB, MEDIA, RESEND_API_KEY: 'test-key', EMAIL_FROM: 'postcards@example.com' };
+  const originalFetch = globalThis.fetch;
+  const emailRequests = [];
+  const pending = [];
+  globalThis.fetch = async (_url, options) => {
+    emailRequests.push(JSON.parse(options.body));
+    return new Response(JSON.stringify({ id: `email-${emailRequests.length}` }), { status: 200, headers: { 'content-type': 'application/json' } });
+  };
+  try {
+    const login = await worker.fetch(request('/api/auth/login', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ email: 'unverified@example.com', password: 'correct horse battery staple' }),
+    }), env, context());
+    const cookie = cookieFrom(login);
+    const resend = await worker.fetch(request('/api/auth/resend-verification', {
+      method: 'POST', headers: { cookie },
+    }), env, { waitUntil(promise) { pending.push(promise); } });
+    assert.equal(resend.status, 200);
+    await Promise.all(pending);
+    assert.equal(emailRequests.length, 1);
+    const verificationLink = new URL(emailRequests[0].text.match(/https?:\/\/\S+/)[0]);
+    const rawToken = verificationLink.searchParams.get('verify');
+    assert.ok(rawToken);
+    const verified = await worker.fetch(request('/api/auth/verify-email', {
+      method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ token: rawToken }),
+    }), env, context());
+    assert.equal(verified.status, 200);
+    assert.ok((await DB.prepare('SELECT email_verified_at FROM users WHERE id = 1').first()).email_verified_at);
+    const replay = await worker.fetch(request('/api/auth/verify-email', {
+      method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ token: rawToken }),
+    }), env, context());
+    assert.equal(replay.status, 400);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+  DB.close();
+});
+
+test('admin operations exposes recent failed-login monitoring counters', async () => {
+  const DB = createD1Database();
+  const MEDIA = new MemoryR2();
+  const passwordHash = bcrypt.hashSync('correct horse battery staple', 4);
+  await DB.batch([
+    DB.prepare('INSERT INTO users (username, email, email_verified_at, password_hash, display_name, site_admin) VALUES (?, ?, CURRENT_TIMESTAMP, ?, ?, 1)').bind('monitor-owner', 'monitor@example.com', passwordHash, 'Monitor Owner'),
+    DB.prepare('INSERT INTO households (slug, name) VALUES (?, ?)').bind('monitor-family', 'Monitor Family'),
+    DB.prepare('INSERT INTO household_members (household_id, user_id, role) VALUES (1, 1, ?)').bind('owner'),
+  ]);
+  const env = { DB, MEDIA };
+  const pending = [];
+  const failedLogin = await worker.fetch(request('/api/auth/login', {
+    method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email: 'monitor@example.com', password: 'wrong password' }),
+  }), env, { waitUntil(promise) { pending.push(promise); } });
+  assert.equal(failedLogin.status, 401);
+  await Promise.all(pending);
+  const login = await worker.fetch(request('/api/auth/login', {
+    method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email: 'monitor@example.com', password: 'correct horse battery staple' }),
+  }), env, context());
+  const operations = await worker.fetch(request('/api/admin/operations', { headers: { cookie: cookieFrom(login) } }), env, context());
+  const body = await operations.json();
+  assert.ok(body.observability.failures.logins.count >= 1);
+  assert.equal(body.observability.windowHours, 24);
+  DB.close();
+});
+
 test('invitation acceptance replays safely after session rotation', async () => {
   const DB = createD1Database();
   const MEDIA = new MemoryR2();

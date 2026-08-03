@@ -53,7 +53,7 @@ export default function OperationsPage() {
         <div>
           <p className="memory-eyebrow">Private operator area</p>
           <h1>Operations</h1>
-          <p>Monitor the app, backups, and the home infrastructure that keeps it running.</p>
+          <p>Monitor the app, backups, Cloudflare runtime, and account delivery health.</p>
         </div>
         <button
           type="button"
@@ -102,9 +102,16 @@ export default function OperationsPage() {
           </section>
 
           <section className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
-            <p className="memory-eyebrow">Infrastructure monitoring</p>
-            <h2 className="mt-2 text-xl font-semibold text-ocean-dark">Grafana and Prometheus</h2>
-            <p className="mt-1 text-sm text-gray-600">Use the full dashboards on ubuntumac for CPU, memory, disk, containers, and network history.</p>
+            <p className="memory-eyebrow">Cloudflare monitoring</p>
+            <h2 className="mt-2 text-xl font-semibold text-ocean-dark">Recent failure signals</h2>
+            <p className="mt-1 text-sm text-gray-600">These counters cover the last {operations?.observability?.windowHours || 24} hours. Use Workers Logs for request-level details.</p>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+              <FailureMetric label="Failed logins" data={operations?.observability?.failures?.logins} />
+              <FailureMetric label="Failed uploads" data={operations?.observability?.failures?.uploads} />
+              <FailureMetric label="Failed backups" data={operations?.observability?.failures?.backups} />
+              <FailureMetric label="Worker errors" data={operations?.observability?.failures?.workerErrors} />
+              <FailureMetric label="Email failures" data={operations?.observability?.failures?.email} />
+            </div>
             <div className="mt-4 flex flex-wrap gap-3">
               <ObservabilityLink label="Open Grafana" href={operations?.observability?.grafanaUrl} />
               <ObservabilityLink label="Open Prometheus" href={operations?.observability?.prometheusUrl} />
@@ -136,6 +143,11 @@ function StatusCard({ label, value, detail, tone }) {
 
 function Metric({ label, value }) {
   return <div className="rounded-xl bg-white/60 px-3 py-2"><p className="text-[10px] font-semibold uppercase tracking-[0.12em] opacity-60">{label}</p><p className="mt-1 font-semibold">{value}</p></div>;
+}
+
+function FailureMetric({ label, data }) {
+  const count = Number(data?.count || 0);
+  return <div className={`rounded-xl border px-3 py-3 ${count ? 'border-amber-200 bg-amber-50 text-amber-950' : 'border-gray-100 bg-gray-50 text-gray-700'}`}><p className="text-xs font-semibold">{label}</p><p className="mt-1 text-2xl font-semibold">{count}</p><p className="mt-1 text-[11px] opacity-70">{data?.latest_at ? `Latest ${formatStatusDate(data.latest_at)}` : 'None recorded'}</p></div>;
 }
 
 function ObservabilityLink({ label, href }) {
