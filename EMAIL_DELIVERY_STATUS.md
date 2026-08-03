@@ -9,8 +9,13 @@
 - Invitation and password-recovery email code exists, with bounded retries and
   stable Resend idempotency keys.
 - Email verification now has resend and one-time verification endpoints.
+- The historical Sites project has a configured but non-exportable
+  `RESEND_API_KEY` secret. The direct Worker cannot inherit that secret.
+- The local ShepsWork hub key was tested against Resend and returned HTTP 401,
+  so it was removed from both direct Workers rather than leaving a known-invalid
+  key configured.
 - Staging and production currently expose only the `JWT_SECRET` Worker secret;
-  `RESEND_API_KEY` is not configured, so real delivery validation is blocked.
+  real delivery validation remains blocked until a current Resend key is added.
 
 ## DNS observations
 
