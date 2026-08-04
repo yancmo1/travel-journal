@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { DataProvider } from './context/DataContext';
 import Header from './components/Header';
@@ -21,6 +21,16 @@ function AppContent() {
   const { user, loading } = useAuth();
   const [page, setPage] = useState('dashboard');
   const [travelerFilter, setTravelerFilter] = useState('all');
+
+  useEffect(() => {
+    if (!user) return;
+
+    const url = new URL(window.location.href);
+    if (url.searchParams.get('login') !== '1') return;
+
+    url.searchParams.delete('login');
+    window.history.replaceState({}, document.title, `${url.pathname}${url.search}${url.hash}`);
+  }, [user]);
 
   if (loading) {
     return (
