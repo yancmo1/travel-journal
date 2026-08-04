@@ -37,7 +37,10 @@ services:
       - GRAFANA_URL=${GRAFANA_URL:-}
       - PROMETHEUS_URL=${PROMETHEUS_URL:-}
       - PORT=4000
-      - NODE_ENV=production
+      - NODE_ENV=${NODE_ENV:-development}
+      - DEV_USER_EMAIL=${DEV_USER_EMAIL:-}
+      - DEV_USER_PASSWORD=${DEV_USER_PASSWORD:-}
+      - DEV_USER_DISPLAY_NAME=${DEV_USER_DISPLAY_NAME:-}
     volumes:
       - photo_storage:/app/media/travel-photos
       - ./data/maintenance:/app/maintenance:ro

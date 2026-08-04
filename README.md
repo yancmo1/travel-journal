@@ -67,6 +67,12 @@ HOME_LONGITUDE=-97.5164
 JWT_SECRET=your-super-secret-jwt-key-here
 POSTGRES_PASSWORD=your-db-password
 
+# Local Docker login (development only)
+NODE_ENV=development
+DEV_USER_EMAIL=you@example.com
+DEV_USER_PASSWORD=use-a-local-password-at-least-10-characters
+DEV_USER_DISPLAY_NAME=Your Name
+
 # Database
 POSTGRES_DB=travel_tracker
 POSTGRES_USER=travel_user
@@ -82,10 +88,10 @@ docker-compose up --build -d
 
 Open http://localhost:3080
 
-Public registration is closed by default for the invite-only beta. Restore an
-existing database or provision the initial account as an operator, then sign in
-with those credentials. Do not enable registration for unrelated households
-until tenant isolation is complete.
+Public registration is closed by default. When `NODE_ENV=development`, the
+local Docker backend creates or updates the account configured by
+`DEV_USER_EMAIL` and `DEV_USER_PASSWORD`; those credentials never affect
+production. Do not point local development at the production database.
 
 ## Development
 

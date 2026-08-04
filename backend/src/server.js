@@ -16,6 +16,7 @@ import adminRoutes from './routes/admin.js';
 import sharedRoutes from './routes/shared.js';
 import { authMiddleware } from './middleware/auth.js';
 import { initDatabase } from './utils/db.js';
+import { ensureDevelopmentUser } from './utils/dev-user.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -58,6 +59,7 @@ app.use((err, req, res, next) => {
 async function start() {
   try {
     await initDatabase();
+    await ensureDevelopmentUser();
     console.log('Database initialized');
     
     app.listen(PORT, '0.0.0.0', () => {
