@@ -18,6 +18,13 @@ status: active
 See the repository's [production deployment runbook](../../PRODUCTION_DEPLOYMENT.md)
 for commands and environment details.
 
+Production releases now come from `main` through
+`.github/workflows/cloudflare-deploy.yml`. The workflow runs migration
+consistency checks, tests, and the production build before deploying the
+`travel-journal` Worker. The GitHub `production` environment must contain
+`CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`. The `dev` branch is for
+local integration and does not deploy production.
+
 ## Operational checklist
 
 - [ ] Run the authenticated post-deploy smoke test after releases.

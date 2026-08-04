@@ -1,6 +1,6 @@
 # Cloudflare Deployment Inventory
 
-**Last reviewed:** 2026-08-03  
+**Last reviewed:** 2026-08-04
 **Environment:** Repository, public live-site, and Sites control-plane inspection  
 **Status:** Direct Cloudflare Worker beta is live production; the former Sites and Ubuntu routes are retired as active origins; rollback retention remains active
 
@@ -111,6 +111,19 @@ Read-only Wrangler inspection recorded the current resource baseline:
   `empty:false`. It has no custom domain and is not the production route.
 
 ## Repository deployment surfaces
+
+### GitHub Actions production deployment
+
+- Production source branch: `main`
+- Deployment workflow: `.github/workflows/cloudflare-deploy.yml`
+- Trigger: push to `main` or manual workflow dispatch
+- Required GitHub Actions environment: `production`
+- Required environment secrets: `CLOUDFLARE_API_TOKEN` and
+  `CLOUDFLARE_ACCOUNT_ID`
+- The workflow installs dependencies, verifies generated migrations, runs the
+  test suite, builds the Worker assets, and deploys `wrangler.toml` to Worker
+  `travel-journal`.
+- `dev` is the local integration branch. It does not deploy production.
 
 | Surface | Current evidence | Intended role |
 | --- | --- | --- |
