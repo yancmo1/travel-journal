@@ -324,7 +324,10 @@ export default function TripForm({ trip, onClose }) {
       ...prev,
       locationName: location?.locationName || prev.locationName || 'Photo location',
       city: location?.city || location?.locationName || prev.city,
-      state: location?.state || prev.state,
+      // Do not preserve a stale form value when the photo has no region.
+      // The blank form uses a placeholder, so clearing this is safer than
+      // carrying unrelated location data into an EXIF-derived memory.
+      state: location?.state || '',
       country: location?.country || prev.country,
       latitude: photoMetadata.latitude,
       longitude: photoMetadata.longitude,
