@@ -135,14 +135,14 @@ export default function PhotoAnalyzerPage({ setPage }) {
         if (files.length) await api.uploadPhotos(createdTrip.id, files);
       }
 
-      setSuccessMessage(`Successfully created ${selectedSuggestions.length} trip${selectedSuggestions.length === 1 ? '' : 's'}!`);
+      setSuccessMessage(`Successfully created ${selectedSuggestions.length} memor${selectedSuggestions.length === 1 ? 'y' : 'ies'}!`);
       if (setPage) {
         setPage('trips');
       }
 
     } catch (error) {
       console.error('Trip creation error:', error);
-      setError('We couldn’t create the selected trips. Your analysis is still here; review the suggestions and try again.');
+      setError('We couldn’t create the selected memories. Your analysis is still here; review the suggestions and try again.');
     } finally {
       setCreatingTrips(false);
     }
@@ -158,7 +158,7 @@ export default function PhotoAnalyzerPage({ setPage }) {
             <h1 className="text-4xl font-bold text-gray-900">Photo Intelligence</h1>
           </div>
           <p className="text-lg text-gray-600">
-            Upload photos and we'll automatically suggest trips based on GPS data and dates
+            Upload photos and we'll automatically suggest memories based on GPS data and dates
           </p>
           {error && <div className="mx-auto mt-4 max-w-2xl rounded-lg border border-red-200 bg-red-50 p-3 text-left text-sm text-red-700" role="alert">{error}</div>}
           {successMessage && <div className="mx-auto mt-4 max-w-2xl rounded-lg border border-green-200 bg-green-50 p-3 text-left text-sm text-green-700" role="status">{successMessage}</div>}
@@ -181,7 +181,7 @@ export default function PhotoAnalyzerPage({ setPage }) {
           <div className="bg-white rounded-xl shadow-lg p-12 text-center">
             <div className="animate-spin rounded-full h-16 w-16 border-4 border-ocean-blue border-t-transparent mx-auto mb-4"></div>
             <h3 className="text-xl font-bold text-gray-900">Analyzing Photos...</h3>
-            <p className="text-gray-600 mt-2">Extracting GPS data, dates, and clustering trips</p>
+            <p className="text-gray-600 mt-2">Extracting GPS data, dates, and clustering memories</p>
           </div>
         )}
 
@@ -208,7 +208,7 @@ export default function PhotoAnalyzerPage({ setPage }) {
                 <div className="bg-purple-50 rounded-lg p-4">
                   <Sparkles className="h-8 w-8 text-purple-600 mb-2" />
                   <div className="text-3xl font-bold text-purple-600">{analysisResults.suggestedTrips.length}</div>
-                  <div className="text-sm text-gray-600">Suggested Trips</div>
+                    <div className="text-sm text-gray-600">Suggested Memories</div>
                 </div>
 
                 <div className="bg-orange-50 rounded-lg p-4">
@@ -219,10 +219,10 @@ export default function PhotoAnalyzerPage({ setPage }) {
               </div>
             </div>
 
-            {/* Suggested Trips */}
+            {/* Suggested Memories */}
             {analysisResults.suggestedTrips.length > 0 && (
               <div className="bg-white rounded-xl shadow-lg p-6">
-                <h3 className="text-xl font-bold text-gray-900 mb-4">Suggested Trips</h3>
+                <h3 className="text-xl font-bold text-gray-900 mb-4">Suggested Memories</h3>
                 
                 <div className="space-y-4">
                   {analysisResults.suggestedTrips.map((suggestion, index) => (
@@ -331,12 +331,12 @@ export default function PhotoAnalyzerPage({ setPage }) {
                     {creatingTrips ? (
                       <>
                         <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
-                        Creating Trips...
+                        Creating Memories...
                       </>
                     ) : (
                       <>
                         <CheckCircle className="h-5 w-5" />
-                        Create {selectedSuggestions.length} Selected Trip{selectedSuggestions.length > 1 ? 's' : ''}
+                    Create {selectedSuggestions.length} Selected Memor{selectedSuggestions.length === 1 ? 'y' : 'ies'}
                       </>
                     )}
                   </button>
@@ -359,10 +359,10 @@ export default function PhotoAnalyzerPage({ setPage }) {
             {analysisResults.suggestedTrips.length === 0 && (
               <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-8 text-center">
                 <AlertTriangle className="mx-auto h-12 w-12 text-yellow-600 mb-3" />
-                <h3 className="text-xl font-bold text-gray-900 mb-2">No Trips Detected</h3>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">No Memories Detected</h3>
                 <p className="text-gray-600">
-                  Photos need GPS coordinates and date/time data for automatic trip detection.
-                  You can still add trips manually and upload these photos later.
+                  Photos need GPS coordinates and date/time data for automatic memory detection.
+                  You can still add memories manually and upload these photos later.
                 </p>
               </div>
             )}

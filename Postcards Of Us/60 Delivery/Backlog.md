@@ -8,7 +8,8 @@ status: active
 
 ## Now — beta readiness
 
-- [ ] Verify tenant isolation across trips, journeys, travelers, photos, analytics, exports, and shared links.
+- [ ] Verify tenant isolation across memories, journeys, travelers, photos,
+  analytics, exports, and shared links.
 - [ ] Verify that photo URLs cannot bypass ownership checks.
 - [x] Restore the production snapshot into isolated staging and verify table
       counts and referenced private media.

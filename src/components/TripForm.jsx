@@ -605,10 +605,10 @@ export default function TripForm({ trip, onClose }) {
             </div>
           )}
 
-          {/* Trip Type */}
+          {/* Memory Type */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Trip Type
+              Memory Type
             </label>
             <select
               name="tripType"
@@ -799,7 +799,7 @@ export default function TripForm({ trip, onClose }) {
               value={form.notes}
               onChange={handleChange}
               rows={3}
-              placeholder="What made this trip special?"
+              placeholder="What made this memory special?"
               className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-ocean-teal resize-none"
             />
           </div>
@@ -831,7 +831,7 @@ export default function TripForm({ trip, onClose }) {
               ) : (
                 <div>
                   <p className="text-sm font-semibold text-red-900">Delete “{trip.location_name || 'this memory'}”?</p>
-                  <p className="mt-1 text-xs text-red-700">This removes the trip and its photos from Postcards of Us.</p>
+                  <p className="mt-1 text-xs text-red-700">This removes the memory and its photos from Postcards of Us.</p>
                   <div className="mt-3 flex gap-2">
                     <button
                       type="button"

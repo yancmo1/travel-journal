@@ -32,7 +32,7 @@ export default function JourneysPage() {
         <div>
           <p className="memory-eyebrow">The bigger stories</p>
           <h1>Our journeys</h1>
-          <p>Bring every stop, photo, and little memory from one trip together.</p>
+          <p>Bring every stop, photo, and little memory from one journey together.</p>
         </div>
         <button type="button" onClick={() => setShowForm(true)}>+ Create a journey</button>
       </section>

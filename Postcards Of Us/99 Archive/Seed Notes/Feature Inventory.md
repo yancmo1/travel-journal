@@ -3,7 +3,7 @@
 ## Available now
 
 - Daily memory view
-- Journeys for grouping stops into complete trips
+- Memories as the primary records, with journeys for grouping related stops
 - Interactive map and routes
 - Place and landmark suggestions
 - Flexible date precision

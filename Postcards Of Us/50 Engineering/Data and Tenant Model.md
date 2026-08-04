@@ -15,7 +15,8 @@ boundary.
 ## Records to verify
 
 - Users and household memberships
-- Trips and journeys
+- Memories and journeys (the current memory records use the legacy `trips`
+  table internally)
 - Travelers
 - Photos and private file paths
 - Analytics
@@ -26,7 +27,7 @@ boundary.
 
 - [ ] User A cannot read User B's records by changing an ID.
 - [ ] User A cannot update or delete User B's records.
-- [ ] User A cannot attach a photo to User B's trip.
+- [ ] User A cannot attach a photo to User B's memory.
 - [ ] Shared links expose only the intended journey.
 - [ ] Direct photo URLs cannot bypass ownership.
 

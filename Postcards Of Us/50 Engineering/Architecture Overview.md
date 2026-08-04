@@ -20,7 +20,8 @@ flowchart LR
 
 - **Frontend:** React, Vite, Tailwind, page and context state.
 - **API:** Express routes and authenticated ownership checks.
-- **Database:** PostgreSQL records for users, households, journeys, trips, travelers, and related data.
+- **Database:** PostgreSQL records for users, households, journeys, memories
+  (legacy table name: `trips`), travelers, and related data.
 - **Photos:** resized display images, thumbnails, metadata, and private storage.
 - **Authentication:** username/password, bcryptjs, and JWT during beta.
 - **Operations:** Docker on Ubuntu with Cloudflare Tunnel and encrypted backups.

@@ -5,7 +5,7 @@ const navItems = [
   { id: 'dashboard', label: 'Memories', icon: '✦' },
   { id: 'journeys', label: 'Our journeys', icon: '⌁' },
   { id: 'timeline', label: 'Timeline', icon: '↗' },
-  { id: 'trips', label: 'All places', icon: '○' },
+  { id: 'trips', label: 'Memories', icon: '○' },
   { id: 'settings', label: 'Settings', icon: '⚙' },
   { id: 'operations', label: 'Operations', icon: '▣', adminOnly: true },
 ];

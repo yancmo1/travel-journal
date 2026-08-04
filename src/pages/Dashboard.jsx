@@ -19,7 +19,7 @@ export default function Dashboard() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <StatCard
           icon="✈️"
-          label="Total Trips"
+          label="Total Memories"
           value={summary.totalTrips || 0}
           color="ocean"
         />
@@ -56,12 +56,12 @@ export default function Dashboard() {
             <MapView trips={trips} onSelectTrip={setSelectedTrip} />
           </div>
           
-          {/* Add Trip Button - Below Map */}
+          {/* Add Memory Button - Below Map */}
           <button
             onClick={() => setShowForm(true)}
             className="w-full mt-4 px-6 py-4 bg-gradient-to-r from-sunset-orange to-coral-pink hover:from-sunset-orange/90 hover:to-coral-pink/90 text-white rounded-xl transition-all shadow-lg hover:shadow-xl text-lg font-semibold flex items-center justify-center gap-3"
           >
-            <span className="text-2xl">+</span> Add New Trip
+            <span className="text-2xl">+</span> Add New Memory
           </button>
         </div>
 
@@ -125,7 +125,7 @@ export default function Dashboard() {
                       {funStats.busiestMonth.month}
                     </div>
                     <div className="text-xs text-gray-500">
-                      {funStats.busiestMonth.count} trips
+                      {funStats.busiestMonth.count} memories
                     </div>
                   </div>
                 </div>
@@ -133,10 +133,10 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Recent Trips */}
+          {/* Recent Memories */}
           <div className="bg-white rounded-xl shadow-lg p-5">
             <h3 className="text-lg font-semibold text-ocean-dark mb-4 flex items-center gap-2">
-              <span>🕐</span> Recent Trips
+              <span>🕐</span> Recent Memories
             </h3>
             <div className="space-y-2 max-h-64 overflow-auto">
               {trips.slice(0, 5).map(trip => (
@@ -158,7 +158,7 @@ export default function Dashboard() {
               ))}
               {trips.length === 0 && (
                 <p className="text-gray-500 text-center py-4">
-                  No trips yet. Add your first adventure!
+                  No memories yet. Add your first adventure!
                 </p>
               )}
             </div>
@@ -166,7 +166,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Trip Form Modal */}
+      {/* Memory Form Modal */}
       {showForm && (
         <TripForm
           trip={null}
@@ -174,7 +174,7 @@ export default function Dashboard() {
         />
       )}
 
-      {/* Trip Detail Modal */}
+      {/* Memory Detail Modal */}
       {selectedTrip && (
         <TripDetailModal
           trip={selectedTrip}

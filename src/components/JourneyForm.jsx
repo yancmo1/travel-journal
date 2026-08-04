@@ -127,7 +127,7 @@ export default function JourneyForm({ journey, onClose }) {
               rows="3"
               value={form.summary}
               onChange={event => setForm({ ...form, summary: event.target.value })}
-              placeholder="What made this trip special?"
+              placeholder="What made this journey special?"
             />
           </label>
 

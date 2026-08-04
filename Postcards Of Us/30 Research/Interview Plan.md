@@ -13,7 +13,7 @@ find difficult, and which improvements would justify a hosted product.
 
 ## Conversation prompts
 
-- Tell me about the last time you looked back at a family trip.
+- Tell me about the last time you looked back at a family memory.
 - Where are the photos, dates, and notes today?
 - What would make this story feel complete?
 - What would make you trust a private family archive?

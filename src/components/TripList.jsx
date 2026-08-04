@@ -4,7 +4,7 @@ import { formatDateDisplay } from '../utils/format'
 export default function TripList({ trips = [], onEdit, onDelete }) {
   return (
     <div>
-      <h3 className="font-medium mb-2">Trips ({trips.length})</h3>
+      <h3 className="font-medium mb-2">Memories ({trips.length})</h3>
       <div className="space-y-2 max-h-64 overflow-auto">
         {trips.map(t => (
           <div key={t.id} className="p-2 border rounded flex justify-between items-start">

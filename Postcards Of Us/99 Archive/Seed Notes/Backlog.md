@@ -2,7 +2,8 @@
 
 ## P0 — Beta and public-safety blockers
 
-- [ ] Verify tenant isolation across trips, journeys, travelers, photos, analytics, exports, and shared links.
+- [ ] Verify tenant isolation across memories, journeys, travelers, photos,
+  analytics, exports, and shared links.
 - [ ] Verify that photo URLs cannot bypass ownership checks.
 - [ ] Complete and document a clean-environment backup restore drill.
 - [ ] Confirm the invitation-only signup path works end to end.

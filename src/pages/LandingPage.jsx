@@ -37,7 +37,7 @@ export default function LandingPage() {
           <p className="landing-kicker">A private family travel storybook</p>
           <h1>Keep the places, people, and stories that made you.</h1>
           <p className="landing-lede">
-            Postcards of Us turns the trips you have taken into a living family
+            Postcards of Us turns the places and moments you remember into a living family
             album—one place, one photo, and one memory at a time.
           </p>
           <div className="landing-actions">
@@ -83,8 +83,8 @@ export default function LandingPage() {
       </section>
 
       <section className="landing-belief" id="how-it-works">
-        <p className="landing-kicker">Not a trip planner</p>
-        <h2>A home for the trips that already happened.</h2>
+        <p className="landing-kicker">A memory keeper, not a planner</p>
+        <h2>A home for the places and moments that matter.</h2>
         <p>
           Your family’s best stories should not be buried in a camera roll,
           scattered across old devices, or remembered by only one person.

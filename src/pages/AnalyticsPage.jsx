@@ -45,7 +45,7 @@ export default function AnalyticsPage() {
   const tripsPerYearData = {
     labels: Object.keys(frequency.tripsByYear || {}).sort(),
     datasets: [{
-      label: 'Trips per Year',
+      label: 'Memories per Year',
       data: Object.keys(frequency.tripsByYear || {}).sort().map(y => frequency.tripsByYear[y]),
       backgroundColor: 'rgba(30, 58, 138, 0.7)',
       borderColor: 'rgb(30, 58, 138)',
@@ -70,7 +70,7 @@ export default function AnalyticsPage() {
   const tripsByDecadeData = {
     labels: Object.keys(frequency.tripsByDecade || {}).sort().map(d => `${d}s`),
     datasets: [{
-      label: 'Trips per Decade',
+      label: 'Memories per Decade',
       data: Object.keys(frequency.tripsByDecade || {}).sort().map(d => frequency.tripsByDecade[d]),
       backgroundColor: 'rgba(244, 114, 182, 0.7)',
       borderColor: 'rgb(244, 114, 182)',
@@ -97,7 +97,7 @@ export default function AnalyticsPage() {
 
       {/* Summary Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard icon="✈️" label="Total Trips" value={summary.totalTrips} color="ocean" />
+        <StatCard icon="✈️" label="Total Memories" value={summary.totalTrips} color="ocean" />
         <StatCard icon="📍" label="Locations" value={summary.uniqueLocations} color="teal" />
         <StatCard icon="🌍" label="Countries" value={summary.countries} color="sunset" />
         <StatCard icon="🏛️" label="States" value={summary.states} color="coral" />
@@ -112,15 +112,15 @@ export default function AnalyticsPage() {
           <div className="grid grid-cols-2 gap-4">
             <div className="p-4 bg-gradient-to-br from-ocean-blue/10 to-transparent rounded-lg">
               <div className="text-2xl font-bold text-ocean-dark">{duration.avgTripLength}</div>
-              <div className="text-sm text-gray-500">Avg Trip Length (days)</div>
+              <div className="text-sm text-gray-500">Avg Memory Span (days)</div>
             </div>
             <div className="p-4 bg-gradient-to-br from-ocean-teal/10 to-transparent rounded-lg">
               <div className="text-2xl font-bold text-ocean-dark">{duration.longestTrip}</div>
-              <div className="text-sm text-gray-500">Longest Trip (days)</div>
+              <div className="text-sm text-gray-500">Longest Memory Span (days)</div>
             </div>
             <div className="p-4 bg-gradient-to-br from-sunset-orange/10 to-transparent rounded-lg">
               <div className="text-2xl font-bold text-ocean-dark">{duration.shortestTrip}</div>
-              <div className="text-sm text-gray-500">Shortest Trip (days)</div>
+              <div className="text-sm text-gray-500">Shortest Memory Span (days)</div>
             </div>
             <div className="p-4 bg-gradient-to-br from-coral-pink/10 to-transparent rounded-lg">
               <div className="text-2xl font-bold text-ocean-dark">{duration.totalDays}</div>
@@ -161,9 +161,9 @@ export default function AnalyticsPage() {
 
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Trips Per Year */}
+        {/* Memories Per Year */}
         <div className="bg-white rounded-xl shadow-lg p-6">
-          <h2 className="text-lg font-semibold text-ocean-dark mb-4">Trips Per Year</h2>
+          <h2 className="text-lg font-semibold text-ocean-dark mb-4">Memories Per Year</h2>
           <div className="h-64">
             <Bar
               data={tripsPerYearData}
@@ -182,9 +182,9 @@ export default function AnalyticsPage() {
           )}
         </div>
 
-        {/* Trip Types */}
+        {/* Memory Types */}
         <div className="bg-white rounded-xl shadow-lg p-6">
-          <h2 className="text-lg font-semibold text-ocean-dark mb-4">Trip Types</h2>
+          <h2 className="text-lg font-semibold text-ocean-dark mb-4">Memory Types</h2>
           <div className="h-64 flex items-center justify-center">
             <Doughnut
               data={tripTypeData}
@@ -200,9 +200,9 @@ export default function AnalyticsPage() {
 
       {/* More Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Trips by Decade */}
+        {/* Memories by Decade */}
         <div className="bg-white rounded-xl shadow-lg p-6">
-          <h2 className="text-lg font-semibold text-ocean-dark mb-4">Trips Per Decade</h2>
+          <h2 className="text-lg font-semibold text-ocean-dark mb-4">Memories Per Decade</h2>
           <div className="h-64">
             <Bar
               data={tripsByDecadeData}
@@ -264,14 +264,14 @@ export default function AnalyticsPage() {
               <div className="text-3xl mb-2">📅</div>
               <div className="text-sm text-gray-500">Favorite Travel Month</div>
               <div className="font-semibold text-ocean-dark">{funStats.busiestMonth.month}</div>
-              <div className="text-sm text-gray-400">{funStats.busiestMonth.count} trips</div>
+              <div className="text-sm text-gray-400">{funStats.busiestMonth.count} memories</div>
             </div>
           )}
 
           {travelers.coupleOnlyTrips > 0 && (
             <div className="p-4 bg-gradient-to-br from-sunset-orange/20 to-transparent rounded-lg">
               <div className="text-3xl mb-2">💕</div>
-              <div className="text-sm text-gray-500">Couple Only Trips</div>
+              <div className="text-sm text-gray-500">Couple Only Memories</div>
               <div className="font-semibold text-ocean-dark">{travelers.coupleOnlyTrips}</div>
               <div className="text-sm text-gray-400">romantic getaways</div>
             </div>
@@ -279,14 +279,14 @@ export default function AnalyticsPage() {
 
           <div className="p-4 bg-gradient-to-br from-ocean-blue/20 to-transparent rounded-lg">
             <div className="text-3xl mb-2">📆</div>
-            <div className="text-sm text-gray-500">Trips This Year</div>
+              <div className="text-sm text-gray-500">Memories This Year</div>
             <div className="font-semibold text-ocean-dark">{frequency.tripsThisYear}</div>
             <div className="text-sm text-gray-400">{new Date().getFullYear()}</div>
           </div>
 
           <div className="p-4 bg-gradient-to-br from-purple-200/40 to-transparent rounded-lg">
             <div className="text-3xl mb-2">🗓️</div>
-            <div className="text-sm text-gray-500">Trips This Decade</div>
+              <div className="text-sm text-gray-500">Memories This Decade</div>
             <div className="font-semibold text-ocean-dark">{frequency.tripsThisDecade}</div>
             <div className="text-sm text-gray-400">2020s</div>
           </div>

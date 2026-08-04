@@ -9,7 +9,7 @@ the plan for an invite-only beta and eventual public sales, see:
 - [Public README](PUBLIC_README.md)
 - [Public Sales PRD](PUBLIC_SALES_PRD.md)
 
-A private family storybook for revisiting travel memories, grouping individual
+A private family storybook for revisiting memories, grouping individual
 stops into complete journeys, and keeping storage-friendly photo copies.
 
 ## Features

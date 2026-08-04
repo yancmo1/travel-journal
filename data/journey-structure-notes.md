@@ -4,7 +4,7 @@
 
 A journey is the actual vacation or travel event. A journey can contain several
 memories or stops. Photo-derived locations should not automatically become
-independent trips.
+independent memories without user confirmation.
 
 Example:
 

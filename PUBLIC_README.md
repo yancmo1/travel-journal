@@ -10,7 +10,7 @@ travels on a map, group individual stops into complete journeys, add the people
 who went with them, revisit a daily memory, share a private journey link, and
 print a journey as a keepsake.
 
-This is not mainly a trip-planning app. It is for remembering the trips that
+This is not a trip-planning app. It is for preserving the memories that
 already happened.
 
 ## Why we think it could matter

@@ -10,7 +10,7 @@ status: active
 
 Postcards of Us is a private family travel storybook. It turns places, photos,
 dates, people, and notes into organized memories that can be grouped into
-journeys, explored on a map, and shared privately.
+memories, grouped into journeys, explored on a map, and shared privately.
 
 ## Audience
 

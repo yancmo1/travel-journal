@@ -112,7 +112,7 @@ export default function TripsPage({ initialTravelerFilter = 'all' }) {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <h1 className="text-2xl font-bold text-ocean-dark flex items-center gap-2">
-          <span>✦</span> All Places & Memories
+          <span>✦</span> Memories
           <span className="text-base font-normal text-gray-500">
             ({filteredTrips.length})
           </span>
@@ -203,13 +203,13 @@ export default function TripsPage({ initialTravelerFilter = 'all' }) {
         </div>
       </div>
 
-      {/* Trips Grid */}
+      {/* Memories Grid */}
       {loading ? (
-        <div className="text-center py-12 text-gray-500">Loading trips...</div>
+        <div className="text-center py-12 text-gray-500">Loading memories...</div>
       ) : filteredTrips.length === 0 ? (
         <div className="bg-white rounded-xl shadow-lg p-12 text-center">
           <span className="text-5xl mb-4 block">🗺️</span>
-          <h3 className="text-xl font-semibold text-gray-700 mb-2">No trips found</h3>
+          <h3 className="text-xl font-semibold text-gray-700 mb-2">No memories found</h3>
           <p className="text-gray-500 mb-6">
             {search || filter !== 'All' 
               ? 'Try adjusting your filters' 
@@ -219,7 +219,7 @@ export default function TripsPage({ initialTravelerFilter = 'all' }) {
             onClick={() => setShowForm(true)}
             className="px-6 py-3 bg-sunset-orange text-white rounded-lg hover:bg-coral-pink transition-colors"
           >
-            Add Your First Trip
+            Add Your First Memory
           </button>
         </div>
       ) : (
@@ -252,7 +252,7 @@ export default function TripsPage({ initialTravelerFilter = 'all' }) {
       {deleteConfirm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[1500]">
           <div className="bg-white rounded-xl p-6 max-w-md w-full">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Delete Trip?</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Delete Memory?</h3>
             <p className="text-gray-600 mb-6">
               Are you sure you want to delete "{deleteConfirm.location_name}"? This action cannot be undone.
             </p>
