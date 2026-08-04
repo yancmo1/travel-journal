@@ -478,7 +478,7 @@ export default function TripForm({ trip, onClose }) {
                 name="locationName"
                 value={form.locationName}
                 onChange={handleChange}
-                placeholder="Start typing St. Louis or Gateway Arch"
+                placeholder="Start typing a city or landmark"
                 autoComplete="off"
                 aria-autocomplete="list"
                 aria-expanded={activeSearchField === 'locationName' && searchResults.length > 0}
@@ -513,7 +513,7 @@ export default function TripForm({ trip, onClose }) {
                 name="city"
                 value={form.city}
                 onChange={handleChange}
-                placeholder="St. Louis"
+                placeholder="City or town"
                 autoComplete="off"
                 aria-autocomplete="list"
                 aria-expanded={activeSearchField === 'city' && searchResults.length > 0}
@@ -528,7 +528,7 @@ export default function TripForm({ trip, onClose }) {
                 name="state"
                 value={form.state}
                 onChange={handleChange}
-                placeholder="Missouri"
+                placeholder="State, province, island, or region"
                 autoComplete="off"
                 aria-autocomplete="list"
                 aria-expanded={activeSearchField === 'state' && searchResults.length > 0}
@@ -543,7 +543,7 @@ export default function TripForm({ trip, onClose }) {
                 name="country"
                 value={form.country}
                 onChange={handleChange}
-                placeholder="United States"
+                placeholder="Country"
                 className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-ocean-teal"
               />
             </div>
