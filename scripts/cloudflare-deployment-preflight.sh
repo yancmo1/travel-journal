@@ -13,8 +13,8 @@ cd "${root}"
 [[ -s dist/server/index.js ]] || { echo "Missing dist/server/index.js; run npm run build" >&2; exit 1; }
 [[ -s dist/client/index.html ]] || { echo "Missing dist/client/index.html; run npm run build" >&2; exit 1; }
 [[ -s dist/client/_headers ]] || { echo "Missing static asset cache policy dist/client/_headers; run npm run build" >&2; exit 1; }
-rg -q '^/assets/\*$' dist/client/_headers || { echo "Static asset cache policy is missing the hashed asset rule" >&2; exit 1; }
-rg -q 'Cache-Control: public, max-age=31536000, immutable' dist/client/_headers || { echo "Static asset cache policy is missing immutable caching" >&2; exit 1; }
+grep -Eq '^/assets/\*$' dist/client/_headers || { echo "Static asset cache policy is missing the hashed asset rule" >&2; exit 1; }
+grep -Eq 'Cache-Control: public, max-age=31536000, immutable' dist/client/_headers || { echo "Static asset cache policy is missing immutable caching" >&2; exit 1; }
 [[ -d drizzle ]] || { echo "Missing drizzle migration directory" >&2; exit 1; }
 [[ -s drizzle/meta/_journal.json ]] || { echo "Missing Drizzle migration journal" >&2; exit 1; }
 
@@ -23,8 +23,8 @@ node --check scripts/cloudflare-migration-prepare.mjs
 node --check scripts/cloudflare-migration-import.mjs
 git diff --check
 
-secret_hits="$(rg -n --hidden --glob '!node_modules/**' --glob '!dist/**' \
-  '^(JWT_SECRET|RESEND_API_KEY|MIGRATION_TOKEN|BACKUP_TOKEN|CLOUDFLARE_API_TOKEN)=.{8,}' . || true)"
+secret_hits="$(git grep -nE \
+  '^(JWT_SECRET|RESEND_API_KEY|MIGRATION_TOKEN|BACKUP_TOKEN|CLOUDFLARE_API_TOKEN)=.{8,}' || true)"
 real_secret_hits="$(printf '%s\n' "${secret_hits}" | grep -E -v 'your[-_]|replace_|GENERATE|change_this|<GENERATE|^$' || true)"
 if [[ -n "${real_secret_hits}" ]]; then
   echo "${real_secret_hits}"
