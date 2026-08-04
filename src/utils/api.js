@@ -365,24 +365,14 @@ class ApiClient {
   async uploadPhotoBatch(tripId, files, metadata) {
     if (USE_UPLOAD_SESSIONS) return this.uploadPhotoBatchWithSessions(tripId, files, metadata);
     const formData = new FormData();
-    const variants = await preparePhotoVariants(files);
-    const displayVariantIndexes = [];
-    const thumbnailVariantIndexes = [];
     const uploadIds = files.map(() => crypto.randomUUID());
     const uploadAttemptId = crypto.randomUUID();
-    files.forEach((file, index) => {
+    // The legacy Docker API accepts the original files under `photos` and
+    // creates its own processed copies. Variant fields belong to the upload
+    // session path above; sending them here makes Multer reject the request.
+    files.forEach(file => {
       formData.append('photos', file);
-      if (variants[index]?.display) {
-        formData.append('displayPhotos', variants[index].display.blob, `${file.name || 'photo'}-display.jpg`);
-        displayVariantIndexes.push(index);
-      }
-      if (variants[index]?.thumbnail) {
-        formData.append('thumbnailPhotos', variants[index].thumbnail.blob, `${file.name || 'photo'}-thumbnail.jpg`);
-        thumbnailVariantIndexes.push(index);
-      }
     });
-    formData.append('displayVariantIndexes', JSON.stringify(displayVariantIndexes));
-    formData.append('thumbnailVariantIndexes', JSON.stringify(thumbnailVariantIndexes));
     formData.append('photoUploadIds', JSON.stringify(uploadIds));
     formData.append('uploadAttemptId', uploadAttemptId);
     formData.append('photoMetadata', JSON.stringify(metadata));
