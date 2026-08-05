@@ -153,7 +153,7 @@ Read-only Wrangler inspection recorded the current resource baseline:
 | Direct beta account | `ed7a3a18b893e8de24e7e0ab063c1c72` (`Yancmo's Account`) |
 | Direct beta D1 | `postcards-of-us-beta-db`, `d0b69e24-03e0-49cf-8205-265958dfd441` |
 | Direct beta R2 | `postcards-of-us-beta-media`, private access |
-| Resend sender/domain | Configured as `Postcards of Us <postcards@shepswork.com>`; verify sender domain |
+| Resend sender/domain | Configured as `Postcards of Us <postcards@mail.postcardsofus.com>`; domain verified in Resend |
 
 ## Current source data
 

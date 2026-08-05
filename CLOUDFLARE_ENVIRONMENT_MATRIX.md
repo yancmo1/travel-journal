@@ -11,7 +11,7 @@ Observed from the Sites control plane on 2026-08-03:
 | --- | --- | --- | --- |
 | `DB` | D1 binding | Declared in `.openai/hosting.json` | Verify target/resource identity through the selected owner account |
 | `MEDIA` | R2 binding | Declared in `.openai/hosting.json` | Verify bucket identity, retention, and backup separation |
-| `EMAIL_FROM` | Non-secret env | Present as `Postcards of Us <postcards@shepswork.com>` | Verify SPF/DKIM/DMARC and sender authorization |
+| `EMAIL_FROM` | Non-secret env | Present as `Postcards of Us <postcards@mail.postcardsofus.com>` | Verify SPF/DKIM/DMARC and sender authorization |
 | `JWT_SECRET` | Secret | Secret entry present; value intentionally unavailable | Rotate/retain according to the final session strategy |
 | `RESEND_API_KEY` | Secret | Secret entry present; value intentionally unavailable | Verify delivery with a staging test address |
 | `LEGACY_BACKUP_AT` | Non-secret env | Present with the last Ubuntu backup timestamp | Replace with structured backup metadata once Cloudflare backups are active |
@@ -39,7 +39,7 @@ attachment was removed without deleting its project history.
 | `ENABLE_MIGRATION_ENDPOINTS` | `false` after the one-time beta import |
 | `JWT_SECRET` | Configured as a Worker secret; value not recorded |
 | `MIGRATION_TOKEN` | Temporary secret deleted after the beta import; endpoint disabled |
-| `RESEND_API_KEY` | Not configured; invitation/password-recovery/email-verification delivery test remains open |
+| `RESEND_API_KEY` | Configured in production and staging; post-cutover delivery test remains open |
 
 The beta import produced 1 household, 2 users, 12 travelers, 3 journeys, 96
 trips, 158 trip-traveler links, 41 photos, and 112 private R2 objects. No

@@ -49,6 +49,8 @@ export default function TripForm({ trip, onClose }) {
   const [deleting, setDeleting] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [error, setError] = useState('');
+  const [errorRequestId, setErrorRequestId] = useState('');
+  const [reportableError, setReportableError] = useState(false);
   const [showNewTraveler, setShowNewTraveler] = useState(false);
   const [newTraveler, setNewTraveler] = useState({ name: '', relationship: 'child' });
   const [photoFiles, setPhotoFiles] = useState([]);
@@ -359,6 +361,8 @@ export default function TripForm({ trip, onClose }) {
   async function handleSubmit(e) {
     e.preventDefault();
     setError('');
+    setErrorRequestId('');
+    setReportableError(false);
 
     if (!form.locationName.trim()) {
       setError('Location is required');
@@ -443,9 +447,21 @@ export default function TripForm({ trip, onClose }) {
     } catch (err) {
       const prefix = memorySaved || savedTripId ? 'The memory was saved. ' : '';
       setError(`${prefix}${err.message || 'Failed to save memory'}`);
+      setErrorRequestId(err.requestId || '');
+      setReportableError(true);
     } finally {
       setSaving(false);
     }
+  }
+
+  function reportSaveError() {
+    window.dispatchEvent(new CustomEvent('postcards-open-bug-reporter', {
+      detail: {
+        title: 'Could not save a memory',
+        details: 'I tried to save a new memory and the request could not be completed.',
+        requestId: errorRequestId,
+      },
+    }));
   }
 
   async function handleDelete() {
@@ -458,6 +474,8 @@ export default function TripForm({ trip, onClose }) {
       onClose();
     } catch (err) {
       setError(err.message || 'Failed to delete memory');
+      setErrorRequestId(err.requestId || '');
+      setReportableError(true);
       setConfirmingDelete(false);
     } finally {
       setDeleting(false);
@@ -838,8 +856,17 @@ export default function TripForm({ trip, onClose }) {
 
           {/* Error */}
           {error && (
-            <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
-              {error}
+            <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm" role="alert">
+              <p>{error}</p>
+              {reportableError && (
+                <button
+                  type="button"
+                  onClick={reportSaveError}
+                  className="mt-2 font-semibold underline underline-offset-2 hover:no-underline"
+                >
+                  Report this problem
+                </button>
+              )}
             </div>
           )}
 

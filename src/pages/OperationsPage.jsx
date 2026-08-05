@@ -120,6 +120,28 @@ export default function OperationsPage() {
               <p className="mt-3 text-xs text-gray-500">Add GRAFANA_URL and PROMETHEUS_URL to the server environment to show these links here.</p>
             )}
           </section>
+
+          <section className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+            <p className="memory-eyebrow">Feedback inbox</p>
+            <h2 className="mt-2 text-xl font-semibold text-ocean-dark">Recent bug reports</h2>
+            <p className="mt-1 text-sm text-gray-600">Reports include the user’s description plus a request reference and browser context when available.</p>
+            {operations?.bugReports?.length ? (
+              <div className="mt-4 space-y-3">
+                {operations.bugReports.map(report => (
+                  <article key={report.id} className="rounded-xl border border-gray-100 bg-gray-50 p-4">
+                    <div className="flex flex-wrap items-baseline justify-between gap-2">
+                      <h3 className="font-semibold text-ocean-dark">{report.title}</h3>
+                      <time className="text-xs text-gray-500">{formatStatusDate(report.created_at)}</time>
+                    </div>
+                    <p className="mt-2 whitespace-pre-wrap text-sm text-gray-700">{report.details}</p>
+                    {report.requestId && <p className="mt-2 text-xs text-gray-500">Request reference: <code>{report.requestId}</code></p>}
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <p className="mt-4 rounded-xl bg-gray-50 p-4 text-sm text-gray-500">No bug reports yet.</p>
+            )}
+          </section>
         </>
       )}
     </div>
@@ -147,7 +169,11 @@ function Metric({ label, value }) {
 
 function FailureMetric({ label, data }) {
   const count = Number(data?.count || 0);
-  return <div className={`rounded-xl border px-3 py-3 ${count ? 'border-amber-200 bg-amber-50 text-amber-950' : 'border-gray-100 bg-gray-50 text-gray-700'}`}><p className="text-xs font-semibold">{label}</p><p className="mt-1 text-2xl font-semibold">{count}</p><p className="mt-1 text-[11px] opacity-70">{data?.latest_at ? `Latest ${formatStatusDate(data.latest_at)}` : 'None recorded'}</p></div>;
+  const latest = data?.latest_at ? `Latest ${formatStatusDate(data.latest_at)}` : 'None recorded';
+  if (count) {
+    return <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-3 text-amber-950"><p className="text-xs font-semibold">{label}</p><p className="mt-1 text-2xl font-semibold">{count}</p><p className="mt-1 text-[11px] text-amber-800">{latest}</p></div>;
+  }
+  return <div className="rounded-xl border border-gray-100 bg-gray-50 px-3 py-3 text-gray-700"><p className="text-xs font-semibold">{label}</p><p className="mt-1 text-2xl font-semibold">{count}</p><p className="mt-1 text-[11px] text-gray-600">{latest}</p></div>;
 }
 
 function ObservabilityLink({ label, href }) {

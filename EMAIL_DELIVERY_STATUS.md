@@ -1,7 +1,7 @@
 # Postcards of Us email delivery status
 
-**Last checked:** 2026-08-04
-**Configured sender:** `Postcards of Us <postcards@shepswork.com>`
+**Last checked:** 2026-08-05
+**Configured sender:** `Postcards of Us <postcards@mail.postcardsofus.com>`
 **Provider:** Resend
 
 ## Application status
@@ -13,6 +13,9 @@
   `RESEND_API_KEY` secret. The direct Worker cannot inherit that secret.
 - The refreshed local ShepsWork hub key was validated with a controlled send
   from `postcards@shepswork.com` and Resend returned HTTP 200.
+- `mail.postcardsofus.com` is now verified in Resend and is the new transactional
+  sending domain for the application. A post-cutover controlled send remains
+  the final delivery check.
 - `RESEND_API_KEY` is now configured in both the staging and production direct
   Workers. Its value is never stored in this repository.
 
@@ -33,9 +36,9 @@ policy after a real message passes SPF/DKIM alignment.
 
 ## Staging validation sequence
 
-1. Verify `shepswork.com` (or the selected sending subdomain) in Resend.
+1. Confirm `mail.postcardsofus.com` remains verified in Resend.
 2. Add `RESEND_API_KEY` to both the staging and production Worker secrets.
-3. Confirm the sender address is accepted by Resend.
+3. Confirm `postcards@mail.postcardsofus.com` is accepted by Resend.
 4. Invite a controlled staging address and verify receipt.
 5. Exercise password reset, changed-password notification, and email
    verification; inspect the received headers for `spf=pass`, `dkim=pass`, and

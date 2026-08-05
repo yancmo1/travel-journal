@@ -2027,6 +2027,38 @@ async function handleFetch(request, env, ctx) {
         });
       }
 
+      if (url.pathname === '/api/feedback/bugs' && request.method === 'POST') {
+        if (!(await rateLimit(env, 'bug-report', requestFingerprint(request, String(user.id)), 5, 60 * 60))) {
+          return json({ error: 'You have sent several reports recently. Please try again later.' }, { status: 429 });
+        }
+        const body = await parseJson(request);
+        const title = String(body?.title || '').trim();
+        const details = String(body?.details || '').trim();
+        if (!title || title.length > 120) return json({ error: 'Add a short bug title.' }, { status: 400 });
+        if (!details || details.length > 4000) return json({ error: 'Add details in 4,000 characters or fewer.' }, { status: 400 });
+        const suppliedContext = body?.context && typeof body.context === 'object' && !Array.isArray(body.context)
+          ? body.context
+          : {};
+        const reportId = crypto.randomUUID();
+        await recordAudit(env, {
+          userId: user.id,
+          householdId: user.household_id,
+          action: 'bug.reported',
+          resourceType: 'bug_report',
+          resourceId: reportId,
+          metadata: {
+            title,
+            details,
+            requestId: String(suppliedContext.requestId || '').slice(0, 120) || null,
+            page: String(suppliedContext.page || '').slice(0, 200) || null,
+            url: String(suppliedContext.url || '').slice(0, 500) || null,
+            appVersion: String(suppliedContext.appVersion || '').slice(0, 40) || null,
+            userAgent: String(suppliedContext.userAgent || request.headers.get('user-agent') || '').slice(0, 500) || null,
+          },
+        });
+        return json({ id: reportId, message: 'Thanks — your report was saved.' }, { status: 201 });
+      }
+
       if (url.pathname === '/api/auth/resend-verification' && request.method === 'POST') {
         if (user.email_verified_at) return json({ success: true, message: 'Your email is already verified.' });
         if (!validEmail(user.email)) return json({ error: 'A valid account email is required before verification can be sent.' }, { status: 400 });
@@ -2185,6 +2217,23 @@ async function handleFetch(request, env, ctx) {
             AND datetime(created_at) > datetime('now', '-24 hours')
           GROUP BY action
         `).all()).results || [];
+        const bugRows = (await env.DB.prepare(`
+          SELECT id, resource_id, metadata, created_at
+          FROM audit_events
+          WHERE action = 'bug.reported'
+          ORDER BY created_at DESC
+          LIMIT 20
+        `).all()).results || [];
+        const bugReports = bugRows.map(row => {
+          let metadata = {};
+          try { metadata = JSON.parse(row.metadata || '{}'); } catch { /* Keep the report visible if metadata is malformed. */ }
+          return {
+            id: row.id,
+            report_id: row.resource_id,
+            created_at: row.created_at,
+            ...metadata,
+          };
+        });
         const operational = Object.fromEntries(operationalRows.map(row => [row.action.replace(/^ops\./, ''), {
           count: Number(row.count || 0),
           latest_at: row.latest_at,
@@ -2212,6 +2261,7 @@ async function handleFetch(request, env, ctx) {
               email: operational.email_failed || { count: 0, latest_at: null },
             },
           },
+          bugReports,
           email: emailConfiguration(env),
         });
       }

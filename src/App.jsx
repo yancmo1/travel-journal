@@ -16,6 +16,7 @@ import ResetPasswordPage from './pages/ResetPasswordPage';
 import VerifyEmailPage from './pages/VerifyEmailPage';
 import PwaStatus from './components/PwaStatus';
 import PullToRefresh from './components/PullToRefresh';
+import BugReporter from './components/BugReporter';
 import paperBackground from '../assets/travel-paper-background.webp';
 
 function AppContent() {
@@ -55,6 +56,7 @@ function AppContent() {
         <Header currentPage={page} setPage={setPage} />
         <PwaStatus />
         <PullToRefresh />
+        <BugReporter />
         <main className="memory-main">
           {page === 'dashboard' && <Dashboard setPage={setPage} />}
           {page === 'journeys' && <JourneysPage />}

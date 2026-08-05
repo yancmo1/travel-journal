@@ -71,18 +71,25 @@ class ApiClient {
         const body = await response.json().catch(() => ({}));
         const error = new Error(body.error || 'Invalid email or password');
         error.isUnauthorized = true;
+        error.status = response.status;
+        error.requestId = response.headers.get('x-request-id') || null;
         throw error;
       }
       this.clearToken();
       const error = new Error('Your session has expired. Please sign in again.');
       error.isUnauthorized = true;
+      error.status = response.status;
+      error.requestId = response.headers.get('x-request-id') || null;
       if (!skipUnauthorizedRedirect) window.location.href = '/?login=1';
       throw error;
     }
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ error: 'Request failed' }));
-      throw new Error(error.error || 'Request failed');
+      const body = await response.json().catch(() => ({ error: 'Request failed' }));
+      const error = new Error(body.error || 'Request failed');
+      error.status = response.status;
+      error.requestId = response.headers.get('x-request-id') || null;
+      throw error;
     }
 
     return response.json();
@@ -543,6 +550,13 @@ class ApiClient {
 
   async getOperations() {
     return this.request('/admin/operations');
+  }
+
+  async submitBugReport(report) {
+    return this.request('/feedback/bugs', {
+      method: 'POST',
+      body: JSON.stringify(report),
+    });
   }
 
   // Places

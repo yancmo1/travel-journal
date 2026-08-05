@@ -27,7 +27,7 @@ bucket_name = "postcards-of-us-staging-media"
 
 [vars]
 ALLOW_PUBLIC_REGISTRATION = "false"
-EMAIL_FROM = "Postcards of Us <postcards@shepswork.com>"
+EMAIL_FROM = "Postcards of Us <postcards@mail.postcardsofus.com>"
 ENABLE_BACKGROUND_JOBS = "false"
 ENABLE_AUTOMATIC_BACKUPS = "false"
 ENABLE_UPLOADS = "true"

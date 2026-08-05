@@ -26,7 +26,7 @@ bucket_name = "postcards-of-us-beta-media"
 
 [vars]
 ALLOW_PUBLIC_REGISTRATION = "false"
-EMAIL_FROM = "Postcards of Us <postcards@shepswork.com>"
+EMAIL_FROM = "Postcards of Us <postcards@mail.postcardsofus.com>"
 ENABLE_BACKGROUND_JOBS = "true"
 ENABLE_AUTOMATIC_BACKUPS = "true"
 ENABLE_UPLOADS = "true"
