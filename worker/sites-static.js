@@ -1154,6 +1154,8 @@ function tripInput(body) {
   return {
     value: {
       locationName,
+      placeName: String(body?.placeName || '').trim() || null,
+      formattedAddress: String(body?.formattedAddress || '').trim() || null,
       city: String(body?.city || '').trim() || null,
       latitude: numberOrNull(body?.latitude),
       longitude: numberOrNull(body?.longitude),
@@ -1631,16 +1633,16 @@ async function runLocationBackfill(env, householdId, { afterTripId = 0 } = {}) {
         continue;
       }
       const result = await env.DB.prepare(`
-        UPDATE trips SET location_name = ?, city = COALESCE(NULLIF(city, ''), ?),
-          state = COALESCE(NULLIF(state, ''), ?), country = COALESCE(NULLIF(country, ''), ?),
+        UPDATE trips SET location_name = ?, place_name = COALESCE(NULLIF(place_name, ''), ?), formatted_address = COALESCE(NULLIF(formatted_address, ''), ?),
+          city = COALESCE(NULLIF(city, ''), ?), state = COALESCE(NULLIF(state, ''), ?), country = COALESCE(NULLIF(country, ''), ?),
           latitude = COALESCE(latitude, ?), longitude = COALESCE(longitude, ?),
           updated_at = CURRENT_TIMESTAMP
         WHERE id = ? AND household_id = ?
           AND (location_name IS NULL OR TRIM(location_name) = '' OR LOWER(location_name) LIKE 'unknown%')
         RETURNING id
-      `).bind(name, location.city, location.state, location.country, candidate.latitude, candidate.longitude, candidate.trip_id, householdId).first();
+      `).bind(name, location.displayName || null, location.formattedAddress || null, location.city, location.state, location.country, candidate.latitude, candidate.longitude, candidate.trip_id, householdId).first();
       if (result) {
-        updated.push({ tripId: candidate.trip_id, photoId: candidate.photo_id, locationName: name, city: location.city, state: location.state, country: location.country, latitude: candidate.latitude, longitude: candidate.longitude });
+        updated.push({ tripId: candidate.trip_id, photoId: candidate.photo_id, locationName: name, placeName: location.displayName || null, formattedAddress: location.formattedAddress || null, city: location.city, state: location.state, country: location.country, latitude: candidate.latitude, longitude: candidate.longitude });
       } else {
         skipped.push({ ...candidate, reason: 'Memory was already updated' });
       }
@@ -1666,7 +1668,7 @@ const importTables = {
   household_members: ['household_id', 'user_id', 'role', 'created_at'],
   travelers: ['id', 'household_id', 'name', 'relationship', 'is_active', 'created_at'],
   journeys: ['id', 'household_id', 'title', 'start_date', 'end_date', 'date_label', 'journey_type', 'summary', 'cover_photo_id', 'share_token', 'share_expires_at', 'created_by', 'created_at', 'updated_at'],
-  trips: ['id', 'household_id', 'location_name', 'city', 'latitude', 'longitude', 'country', 'state', 'start_date', 'end_date', 'date_label', 'date_precision', 'trip_type', 'notes', 'journey_id', 'journey_order', 'home_distance_miles', 'created_by', 'created_at', 'updated_at'],
+  trips: ['id', 'household_id', 'location_name', 'place_name', 'formatted_address', 'city', 'latitude', 'longitude', 'country', 'state', 'start_date', 'end_date', 'date_label', 'date_precision', 'trip_type', 'notes', 'journey_id', 'journey_order', 'home_distance_miles', 'created_by', 'created_at', 'updated_at'],
   trip_travelers: ['trip_id', 'traveler_id'],
   photos: ['id', 'household_id', 'trip_id', 'client_upload_id', 'r2_key', 'display_r2_key', 'thumbnail_r2_key', 'original_filename', 'file_size', 'mime_type', 'width', 'height', 'processing_status', 'processing_version', 'metadata_source', 'date_taken', 'latitude', 'longitude', 'caption', 'sort_order', 'is_cover', 'rotation', 'uploaded_at'],
   audit_events: ['id', 'user_id', 'household_id', 'action', 'resource_type', 'resource_id', 'metadata', 'created_at'],
@@ -1944,13 +1946,18 @@ async function handleFetch(request, env, ctx) {
       const generic = { message: 'If an account uses that email, a reset link is on its way.' };
       if (!validEmail(email)) return json(generic);
       if (!(await rateLimit(env, 'forgot-password', requestFingerprint(request, email), 5, 60 * 60))) return json(generic);
-      const user = await env.DB.prepare('SELECT id, email, display_name FROM users WHERE email = ? AND email_verified_at IS NOT NULL').bind(email).first();
+      // A password reset link proves mailbox ownership just as effectively as
+      // an email-verification link. Allow imported accounts whose email was
+      // captured during the legacy login bridge to recover, then mark the
+      // address verified when the one-time reset link is consumed.
+      const user = await env.DB.prepare('SELECT id, email, display_name FROM users WHERE email = ?').bind(email).first();
       if (user) {
         const tokenId = crypto.randomUUID();
         const rawToken = randomToken();
         await env.DB.prepare('INSERT INTO password_reset_tokens (id, user_id, token_hash, expires_at) VALUES (?, ?, ?, ?)').bind(tokenId, user.id, await sha256(rawToken), new Date(Date.now() + 60 * 60 * 1000).toISOString()).run();
         ctx.waitUntil(sendPasswordResetEmail(env, request, user, rawToken, tokenId).catch(async error => {
           console.error('Password reset email failed', error);
+          await recordOperationalEvent(env, { action: 'email_failed', requestId: tokenId, route: '/api/auth/forgot-password', userId: user.id, metadata: { kind: 'password-reset' } });
           await env.DB.prepare('DELETE FROM password_reset_tokens WHERE id = ?').bind(tokenId).run();
         }));
       }
@@ -1990,7 +1997,7 @@ async function handleFetch(request, env, ctx) {
       `).bind(await sha256(body?.token || '')).first();
       if (!reset) return json({ error: 'This reset link is invalid or has expired.' }, { status: 400 });
       await env.DB.batch([
-        env.DB.prepare('UPDATE users SET password_hash = ?, password_updated_at = CURRENT_TIMESTAMP WHERE id = ?').bind(await hashPassword(body.password), reset.user_id),
+        env.DB.prepare('UPDATE users SET password_hash = ?, password_updated_at = CURRENT_TIMESTAMP, email_verified_at = COALESCE(email_verified_at, CURRENT_TIMESTAMP) WHERE id = ?').bind(await hashPassword(body.password), reset.user_id),
         env.DB.prepare('UPDATE password_reset_tokens SET used_at = CURRENT_TIMESTAMP WHERE id = ?').bind(reset.id),
         env.DB.prepare('DELETE FROM sessions WHERE user_id = ?').bind(reset.user_id),
       ]);
@@ -2312,6 +2319,64 @@ async function handleFetch(request, env, ctx) {
         return json({ members: members.results || [], invitations: pending.results || [], role: user.role });
       }
 
+      if (url.pathname === '/api/beta/invitations' && request.method === 'POST') {
+        if (!featureEnabled(env, 'ENABLE_INVITATIONS')) return featureUnavailable('invitations');
+        if (!['owner', 'admin'].includes(user.role)) return json({ error: 'Only site owners can invite beta testers.' }, { status: 403 });
+        const body = await parseJson(request);
+        const email = normalizeEmail(body?.email);
+        const siteName = String(body?.siteName || '').trim();
+        if (!validEmail(email)) return json({ error: 'Enter a valid tester email address.' }, { status: 400 });
+        if (siteName.length < 2 || siteName.length > 80) return json({ error: 'Enter a site name between 2 and 80 characters.' }, { status: 400 });
+        if (!(await rateLimit(env, 'beta-invite', String(user.id), 20, 60 * 60))) return json({ error: 'Too many beta invitations were sent. Please try again later.' }, { status: 429 });
+        const idempotency = await claimIdempotency(env, request, user, 'beta.invitation.create', body);
+        if (idempotency?.response) return idempotency.response;
+        let householdId = null;
+        let invitationId = null;
+        try {
+          const baseSlug = siteName.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'memories';
+          const slug = `${baseSlug}-${randomToken(5).toLowerCase()}`;
+          const created = await env.DB.prepare('INSERT INTO households (slug, name) VALUES (?, ?)').bind(slug, siteName).run();
+          householdId = Number(created.meta.last_row_id);
+          // Keep the inviter attached as an owner for support and a clean
+          // rollback path, while the beta tester is also granted owner access
+          // when the invitation is accepted.
+          await env.DB.prepare("INSERT INTO household_members (household_id, user_id, role) VALUES (?, ?, 'owner')").bind(householdId, user.id).run();
+          invitationId = crypto.randomUUID();
+          const rawToken = randomToken();
+          const expiresAt = new Date(Date.now() + 7 * 86400 * 1000).toISOString();
+          await env.DB.prepare(`
+            INSERT INTO invitations (id, household_id, email, token_hash, role, invited_by, expires_at)
+            VALUES (?, ?, ?, ?, 'owner', ?, ?)
+          `).bind(invitationId, householdId, email, await sha256(rawToken), user.id, expiresAt).run();
+          try {
+            await sendInvitationEmail(env, request, { id: invitationId, email, household_name: siteName, inviter_name: user.display_name || user.email }, rawToken);
+          } catch (error) {
+            console.error('Beta invitation email failed', error);
+            await env.DB.prepare('DELETE FROM invitations WHERE id = ?').bind(invitationId).run();
+            await env.DB.prepare('DELETE FROM household_members WHERE household_id = ?').bind(householdId).run();
+            await env.DB.prepare('DELETE FROM households WHERE id = ?').bind(householdId).run();
+            await releaseIdempotency(env, idempotency);
+            return json({ error: 'The beta invitation email could not be sent. Please try again.' }, { status: 503 });
+          }
+          const responseBody = {
+            household: { id: householdId, slug, name: siteName, role: 'owner', member_count: 1 },
+            invitation: { id: invitationId, email, role: 'owner', expires_at: expiresAt },
+            message: `Beta invitation sent to ${email}.`,
+          };
+          await completeIdempotency(env, idempotency, responseBody, 201);
+          ctx.waitUntil(recordAudit(env, { userId: user.id, householdId, action: 'beta.invitation_created', resourceType: 'invitation', resourceId: invitationId, metadata: { email, role: 'owner' } }));
+          return json(responseBody, { status: 201 });
+        } catch (error) {
+          if (householdId) {
+            await env.DB.prepare('DELETE FROM invitations WHERE household_id = ?').bind(householdId).run();
+            await env.DB.prepare('DELETE FROM household_members WHERE household_id = ?').bind(householdId).run();
+            await env.DB.prepare('DELETE FROM households WHERE id = ?').bind(householdId).run();
+          }
+          await releaseIdempotency(env, idempotency);
+          throw error;
+        }
+      }
+
       if (url.pathname === '/api/households/invitations' && request.method === 'POST') {
         if (!featureEnabled(env, 'ENABLE_INVITATIONS')) return featureUnavailable('invitations');
         if (!['owner', 'admin'].includes(user.role)) return json({ error: 'Only site owners can invite people.' }, { status: 403 });
@@ -2411,9 +2476,9 @@ async function handleFetch(request, env, ctx) {
         if (idempotency?.response) return idempotency.response;
         try {
           const created = await env.DB.prepare(`
-            INSERT INTO trips (household_id, location_name, city, latitude, longitude, country, state, start_date, end_date, date_label, date_precision, trip_type, notes, created_by)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-          `).bind(user.household_id, input.locationName, input.city, input.latitude, input.longitude, input.country, input.state, input.startDate, input.endDate, input.dateLabel, input.datePrecision, input.tripType, input.notes, user.id).run();
+            INSERT INTO trips (household_id, location_name, place_name, formatted_address, city, latitude, longitude, country, state, start_date, end_date, date_label, date_precision, trip_type, notes, created_by)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          `).bind(user.household_id, input.locationName, input.placeName, input.formattedAddress, input.city, input.latitude, input.longitude, input.country, input.state, input.startDate, input.endDate, input.dateLabel, input.datePrecision, input.tripType, input.notes, user.id).run();
           const tripId = Number(created.meta.last_row_id);
           const travelerIds = await householdTravelerIds(env, user.household_id, input.travelerIds);
           if (travelerIds.length) await env.DB.batch(travelerIds.map(travelerId => env.DB.prepare('INSERT OR IGNORE INTO trip_travelers (trip_id, traveler_id) VALUES (?, ?)').bind(tripId, travelerId)));
@@ -2540,9 +2605,9 @@ async function handleFetch(request, env, ctx) {
         const travelerIds = await householdTravelerIds(env, user.household_id, input.travelerIds);
         await env.DB.batch([
           env.DB.prepare(`
-            UPDATE trips SET location_name = ?, city = ?, latitude = ?, longitude = ?, country = ?, state = ?, start_date = ?, end_date = ?, date_label = ?, date_precision = ?, trip_type = ?, notes = ?, updated_at = CURRENT_TIMESTAMP
+            UPDATE trips SET location_name = ?, place_name = ?, formatted_address = ?, city = ?, latitude = ?, longitude = ?, country = ?, state = ?, start_date = ?, end_date = ?, date_label = ?, date_precision = ?, trip_type = ?, notes = ?, updated_at = CURRENT_TIMESTAMP
             WHERE id = ? AND household_id = ?
-          `).bind(input.locationName, input.city, input.latitude, input.longitude, input.country, input.state, input.startDate, input.endDate, input.dateLabel, input.datePrecision, input.tripType, input.notes, tripId, user.household_id),
+          `).bind(input.locationName, input.placeName, input.formattedAddress, input.city, input.latitude, input.longitude, input.country, input.state, input.startDate, input.endDate, input.dateLabel, input.datePrecision, input.tripType, input.notes, tripId, user.household_id),
           env.DB.prepare('DELETE FROM trip_travelers WHERE trip_id = ?').bind(tripId),
           ...travelerIds.map(travelerId => env.DB.prepare('INSERT OR IGNORE INTO trip_travelers (trip_id, traveler_id) VALUES (?, ?)').bind(tripId, travelerId)),
         ]);

@@ -131,6 +131,8 @@ export const trips = sqliteTable('trips', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   householdId: integer('household_id').notNull().references(() => households.id, { onDelete: 'cascade' }),
   locationName: text('location_name').notNull(),
+  placeName: text('place_name'),
+  formattedAddress: text('formatted_address'),
   city: text('city'),
   latitude: real('latitude'),
   longitude: real('longitude'),

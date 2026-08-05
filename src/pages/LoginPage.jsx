@@ -63,7 +63,7 @@ export default function LoginPage() {
           <p className="memory-eyebrow">{forgot ? 'Account recovery' : 'Welcome back'}</p>
           <h2>{forgot ? 'Reset your password' : 'Open your memories'}</h2>
           <p className="memory-login-copy">
-            {forgot ? 'Enter the verified email on your account and we’ll send a secure, one-time reset link.' : 'Sign in to return to your private family travel story.'}
+            {forgot ? 'Enter the email on your account and we’ll send a secure, one-time reset link.' : 'Sign in to return to your private family travel story.'}
           </p>
 
           <form onSubmit={forgot ? handleForgot : handleSubmit}>

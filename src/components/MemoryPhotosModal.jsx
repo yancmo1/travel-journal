@@ -3,6 +3,7 @@ import api from '../utils/api';
 import { useData } from '../context/DataContext';
 import PhotoUploader from './PhotoUploader';
 import PhotoGallery from './PhotoGallery';
+import MemoryPlaceDetails from './MemoryPlaceDetails';
 
 export default function MemoryPhotosModal({ memory, onClose }) {
   const { loadTrips, loadJourneys } = useData();
@@ -76,6 +77,7 @@ export default function MemoryPhotosModal({ memory, onClose }) {
           <div>
             <p className="memory-eyebrow">Photos from</p>
             <h2>{memory.location_name}</h2>
+            <MemoryPlaceDetails memory={memory} className="mt-2" />
             <p>We save smaller, display-quality copies to keep storage reasonable.</p>
           </div>
           <button type="button" onClick={onClose} aria-label="Close photos">✕</button>

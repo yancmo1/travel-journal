@@ -147,10 +147,17 @@ export default function MapView({ trips = [], onSelectTrip, showRoutes = false, 
       const endStr = trip.end_date && trip.end_date !== trip.start_date 
         ? ` - ${formatDate(trip.end_date)}` 
         : '';
+      const placeLine = trip.place_name || trip.formatted_address
+        ? `
+          ${trip.place_name ? `<div style="margin-top: 4px; font-size: 12px; color: #444; font-weight: 600;">${trip.place_name}</div>` : ''}
+          ${trip.formatted_address ? `<div style="margin-top: 2px; font-size: 11px; color: #666;">${trip.formatted_address}</div>` : ''}
+        `
+        : '';
 
       marker.bindPopup(`
         <div style="min-width: 180px;">
           <strong style="font-size: 14px; color: #1E3A8A;">${trip.location_name}</strong>
+          ${placeLine}
           <div style="color: #666; font-size: 12px; margin-top: 4px;">${dateStr}${endStr}</div>
           <div style="margin-top: 6px;">
             <span style="background: ${color}; color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px;">${trip.trip_type}</span>

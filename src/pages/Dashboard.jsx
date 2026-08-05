@@ -3,6 +3,7 @@ import { useData } from '../context/DataContext';
 import MapView from '../components/Map';
 import TripForm from '../components/TripForm';
 import StatCard from '../components/StatCard';
+import MemoryPlaceDetails from '../components/MemoryPlaceDetails';
 import { ArrowUpRight, Camera, Image, MapPin, Navigation } from 'lucide-react';
 import postmark from '../../assets/postmark.webp';
 import addMemoryButton from '../../assets/add-memory-button.webp';
@@ -92,11 +93,12 @@ export default function Dashboard() {
                     ) : (
                       <span className="dashboard-recent-placeholder" aria-hidden="true"><MapPin /></span>
                     )}
-                    <span className="dashboard-recent-copy">
+                    <div className="dashboard-recent-copy">
                       <strong>{trip.location_name}</strong>
+                      <MemoryPlaceDetails memory={trip} className="text-left" />
                       <span>{formatDate(trip.start_date)}</span>
                       <small>{trip.trip_type}</small>
-                    </span>
+                    </div>
                     <ArrowUpRight className="dashboard-recent-arrow" aria-hidden="true" />
                   </button>
                 );
@@ -140,6 +142,7 @@ function TripDetailModal({ trip, onClose }) {
               <h2 className="text-xl font-bold text-ocean-dark">
                 {trip.location_name}
               </h2>
+              <MemoryPlaceDetails memory={trip} className="mt-2" />
               <p className="text-gray-500">
                 {formatDate(trip.start_date)}
                 {trip.end_date && trip.end_date !== trip.start_date && 

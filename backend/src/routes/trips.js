@@ -134,7 +134,7 @@ router.get('/:id', async (req, res, next) => {
 router.post('/', async (req, res, next) => {
   try {
     const {
-      locationName, city, latitude, longitude, country, state,
+      locationName, placeName, formattedAddress, city, latitude, longitude, country, state,
       startDate, endDate, dateLabel, datePrecision, tripType, notes, travelerIds
     } = req.body;
 
@@ -142,13 +142,13 @@ router.post('/', async (req, res, next) => {
 
     const result = await query(`
       INSERT INTO trips (
-        location_name, city, latitude, longitude, country, state,
+        location_name, place_name, formatted_address, city, latitude, longitude, country, state,
         start_date, end_date, date_label, date_precision,
         trip_type, notes, home_distance_miles, created_by
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
       RETURNING *
     `, [
-      locationName, city || null, latitude, longitude, country, state,
+      locationName, placeName || null, formattedAddress || null, city || null, latitude, longitude, country, state,
       startDate || null, endDate || null, dateLabel || null, datePrecision || 'exact',
       tripType, notes, homeDist, req.user.id
     ]);
@@ -197,7 +197,7 @@ router.put('/:id', async (req, res, next) => {
   try {
     const { id } = req.params;
     const {
-      locationName, city, latitude, longitude, country, state,
+      locationName, placeName, formattedAddress, city, latitude, longitude, country, state,
       startDate, endDate, dateLabel, datePrecision, tripType, notes, travelerIds
     } = req.body;
 
@@ -205,13 +205,13 @@ router.put('/:id', async (req, res, next) => {
 
     const result = await query(`
       UPDATE trips SET
-        location_name = $1, city = $2, latitude = $3, longitude = $4, country = $5, state = $6,
-        start_date = $7, end_date = $8, date_label = $9, date_precision = $10,
-        trip_type = $11, notes = $12, home_distance_miles = $13, updated_at = NOW()
-      WHERE id = $14 AND created_by = $15
+        location_name = $1, place_name = $2, formatted_address = $3, city = $4, latitude = $5, longitude = $6, country = $7, state = $8,
+        start_date = $9, end_date = $10, date_label = $11, date_precision = $12,
+        trip_type = $13, notes = $14, home_distance_miles = $15, updated_at = NOW()
+      WHERE id = $16 AND created_by = $17
       RETURNING *
     `, [
-      locationName, city || null, latitude, longitude, country, state,
+      locationName, placeName || null, formattedAddress || null, city || null, latitude, longitude, country, state,
       startDate || null, endDate || null, dateLabel || null, datePrecision || 'exact',
       tripType, notes, homeDist, id, req.user.id
     ]);

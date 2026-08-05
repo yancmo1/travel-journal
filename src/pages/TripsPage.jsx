@@ -7,6 +7,7 @@ import { formatDateOnly } from '../utils/format';
 import { sortTravelers } from '../utils/travelers';
 import { Camera, Image } from 'lucide-react';
 import addMemoryButton from '../../assets/add-memory-button.webp';
+import MemoryPlaceDetails from '../components/MemoryPlaceDetails';
 
 const TRIP_TYPES = ['All', 'Road Trip', 'Flight', 'Cruise', 'Day Trip', 'Other'];
 
@@ -301,6 +302,7 @@ function TripCard({ trip, onEdit, onPhotos, onDelete }) {
             <h3 className="font-semibold text-ocean-dark truncate text-lg">
               {trip.location_name}
             </h3>
+            <MemoryPlaceDetails memory={trip} className="mt-1" />
             {trip.city && (
               <p className="text-sm text-gray-600">
                 {[trip.city, trip.state, trip.country].filter(Boolean).join(', ')}

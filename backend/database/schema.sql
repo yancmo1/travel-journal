@@ -53,6 +53,8 @@ CREATE TABLE IF NOT EXISTS journeys (
 CREATE TABLE IF NOT EXISTS trips (
   id SERIAL PRIMARY KEY,
   location_name VARCHAR(255) NOT NULL,
+  place_name VARCHAR(255),
+  formatted_address VARCHAR(500),
   city VARCHAR(100),
   latitude DECIMAL(10, 8),
   longitude DECIMAL(11, 8),

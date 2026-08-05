@@ -3,6 +3,7 @@ import { useData } from '../context/DataContext';
 import { nominatimSearch, placeAutocomplete } from '../utils/geocoding';
 import api from '../utils/api';
 import { sortTravelers } from '../utils/travelers';
+import MemoryPlaceDetails from './MemoryPlaceDetails';
 
 const TRIP_TYPES = ['Road Trip', 'Flight', 'Cruise', 'Day Trip', 'Other'];
 const RELATIONSHIPS = [
@@ -26,6 +27,8 @@ export default function TripForm({ trip, onClose }) {
   const [form, setForm] = useState({
     locationName: '',
     city: '',
+    placeName: '',
+    formattedAddress: '',
     latitude: null,
     longitude: null,
     country: '',
@@ -67,6 +70,8 @@ export default function TripForm({ trip, onClose }) {
       setForm({
         locationName: trip.location_name || '',
         city: trip.city || '',
+        placeName: trip.place_name || '',
+        formattedAddress: trip.formatted_address || '',
         latitude: trip.latitude == null ? null : Number(trip.latitude),
         longitude: trip.longitude == null ? null : Number(trip.longitude),
         country: trip.country || '',
@@ -133,7 +138,14 @@ export default function TripForm({ trip, onClose }) {
     setForm(prev => ({
       ...prev,
       [name]: value,
-      ...(isSearchField ? { latitude: null, longitude: null } : {}),
+      ...(isSearchField ? {
+        latitude: null,
+        longitude: null,
+        ...(name === 'locationName' ? {
+          placeName: '',
+          formattedAddress: '',
+        } : {}),
+      } : {}),
     }));
   }
 
@@ -189,19 +201,14 @@ export default function TripForm({ trip, onClose }) {
       address.county ||
       parts[0] ||
       '';
-    const placeName =
-      address.tourism ||
-      address.attraction ||
-      address.amenity ||
-      address.building ||
-      parts[0] ||
-      city;
+    const businessName = address.attraction || '';
+    const formattedAddress = businessName ? result.display_name : '';
 
-    return { city, state, country, placeName };
+    return { city, state, country, placeName: businessName, formattedAddress };
   }
 
   function selectLocation(result, field = activeSearchField) {
-    const { city, state, country, placeName } = getLocationDetails(result);
+    const { city, state, country, placeName, formattedAddress } = getLocationDetails(result);
 
     skipNextAutocomplete.current = true;
     setForm(prev => {
@@ -212,6 +219,8 @@ export default function TripForm({ trip, onClose }) {
           country,
           latitude: result.lat,
           longitude: result.lng,
+          placeName,
+          formattedAddress,
         };
       }
 
@@ -224,17 +233,21 @@ export default function TripForm({ trip, onClose }) {
           country,
           latitude: result.lat,
           longitude: result.lng,
+          placeName,
+          formattedAddress,
         };
       }
 
       return {
         ...prev,
-        locationName: placeName,
+        locationName: placeName || prev.locationName || city,
         city,
         latitude: result.lat,
         longitude: result.lng,
         country,
         state,
+        placeName,
+        formattedAddress,
       };
     });
     setSearchResults([]);
@@ -331,6 +344,8 @@ export default function TripForm({ trip, onClose }) {
       country: location?.country || prev.country,
       latitude: photoMetadata.latitude,
       longitude: photoMetadata.longitude,
+      placeName: location?.displayName || '',
+      formattedAddress: location?.displayName || '',
     }));
     setActiveSearchField(null);
     setSearchResults([]);
@@ -382,11 +397,13 @@ export default function TripForm({ trip, onClose }) {
         }
       }
 
-      const data = {
-        locationName: form.locationName,
-        city: form.city,
-        latitude,
-        longitude,
+        const data = {
+          locationName: form.locationName,
+          placeName: form.placeName || null,
+          formattedAddress: form.formattedAddress || null,
+          city: form.city,
+          latitude,
+          longitude,
         country: form.country,
         state: form.state,
         startDate: form.datePrecision === 'exact' ? form.startDate : null,
@@ -507,6 +524,13 @@ export default function TripForm({ trip, onClose }) {
               <p className="mt-1 text-xs text-gray-500">
                 📍 {Number(form.latitude).toFixed(4)}, {Number(form.longitude).toFixed(4)}
               </p>
+            )}
+
+            {(form.placeName || form.formattedAddress) && (
+              <div className="mt-3 rounded-lg border border-ocean-teal/15 bg-ocean-teal/5 px-4 py-3">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-ocean-teal">Selected place</p>
+                <MemoryPlaceDetails memory={form} className="mt-1" />
+              </div>
             )}
           </div>
 

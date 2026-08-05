@@ -79,6 +79,57 @@ test('invited account creation replays safely after a client retry', async () =>
   DB.close();
 });
 
+test('beta tester invitations create an isolated owner site', async () => {
+  const DB = createD1Database();
+  const MEDIA = new MemoryR2();
+  const passwordHash = bcrypt.hashSync('correct horse battery staple', 4);
+  await DB.batch([
+    DB.prepare('INSERT INTO users (username, email, email_verified_at, password_hash, display_name) VALUES (?, ?, CURRENT_TIMESTAMP, ?, ?)').bind('owner', 'owner@example.com', passwordHash, 'Owner'),
+    DB.prepare('INSERT INTO households (slug, name) VALUES (?, ?)').bind('family', 'Family'),
+    DB.prepare('INSERT INTO household_members (household_id, user_id, role) VALUES (1, 1, ?)').bind('owner'),
+  ]);
+  const env = { DB, MEDIA, RESEND_API_KEY: 'test-key', EMAIL_FROM: 'postcards@example.com' };
+  const login = await worker.fetch(request('/api/auth/login', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ email: 'owner@example.com', password: 'correct horse battery staple' }),
+  }), env, context());
+  const cookie = cookieFrom(login);
+  const originalFetch = globalThis.fetch;
+  const emailRequests = [];
+  globalThis.fetch = async (_url, options) => {
+    emailRequests.push(JSON.parse(options.body));
+    return new Response(JSON.stringify({ id: `email-${emailRequests.length}` }), { status: 200, headers: { 'content-type': 'application/json' } });
+  };
+  try {
+    const invite = await worker.fetch(request('/api/beta/invitations', {
+      method: 'POST',
+      headers: { cookie, 'content-type': 'application/json', 'idempotency-key': 'beta-invite-1' },
+      body: JSON.stringify({ email: 'tester@example.com', siteName: 'Tester Family' }),
+    }), env, context());
+    assert.equal(invite.status, 201);
+    assert.equal(emailRequests.length, 1);
+    assert.match(emailRequests[0].subject, /Tester Family/);
+    const invitationLink = new URL(emailRequests[0].text.match(/https?:\/\/\S+/)[0]);
+    const rawToken = invitationLink.searchParams.get('invite');
+    assert.ok(rawToken);
+    assert.equal(Number((await DB.prepare('SELECT COUNT(*) AS count FROM households').first()).count), 2);
+    assert.equal((await DB.prepare('SELECT role FROM invitations WHERE email = ?').bind('tester@example.com').first()).role, 'owner');
+
+    const registration = await worker.fetch(request('/api/auth/register-invite', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'idempotency-key': 'beta-register-1' },
+      body: JSON.stringify({ token: rawToken, displayName: 'Beta Tester', password: 'another secure phrase' }),
+    }), env, context());
+    assert.equal(registration.status, 201);
+    assert.equal((await DB.prepare('SELECT role FROM household_members WHERE user_id = 2 AND household_id = 2').first()).role, 'owner');
+    assert.equal(Number((await DB.prepare('SELECT COUNT(*) AS count FROM household_members WHERE household_id = 1').first()).count), 1);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+  DB.close();
+});
+
 test('password recovery uses a generic response, rotates sessions, and consumes the token', async () => {
   const DB = createD1Database();
   const MEDIA = new MemoryR2();
@@ -137,6 +188,45 @@ test('password recovery uses a generic response, rotates sessions, and consumes 
       body: JSON.stringify({ email: 'recovery@example.com', password: 'new family phrase' }),
     }), env, context());
     assert.equal(newLogin.status, 200);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+  DB.close();
+});
+
+test('password recovery can bootstrap an unverified imported email', async () => {
+  const DB = createD1Database();
+  const MEDIA = new MemoryR2();
+  const passwordHash = bcrypt.hashSync('old secure password', 4);
+  await DB.prepare('INSERT INTO users (username, email, password_hash, display_name) VALUES (?, ?, ?, ?)').bind('imported-owner', 'imported@example.com', passwordHash, 'Imported Owner').run();
+  const env = { DB, MEDIA, RESEND_API_KEY: 'test-key', EMAIL_FROM: 'postcards@example.com' };
+  const originalFetch = globalThis.fetch;
+  const emailRequests = [];
+  const pending = [];
+  globalThis.fetch = async (_url, options) => {
+    emailRequests.push(JSON.parse(options.body));
+    return new Response(JSON.stringify({ id: `email-${emailRequests.length}` }), { status: 200, headers: { 'content-type': 'application/json' } });
+  };
+  try {
+    const forgot = await worker.fetch(request('/api/auth/forgot-password', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ email: 'imported@example.com' }),
+    }), env, { waitUntil(promise) { pending.push(promise); } });
+    assert.equal(forgot.status, 200);
+    await Promise.all(pending);
+    assert.equal(emailRequests.length, 1);
+    const resetLink = new URL(emailRequests[0].text.match(/https?:\/\/\S+/)[0]);
+    const rawToken = resetLink.searchParams.get('reset');
+    assert.ok(rawToken);
+
+    const reset = await worker.fetch(request('/api/auth/reset-password', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ token: rawToken, password: 'new family phrase' }),
+    }), env, { waitUntil() {} });
+    assert.equal(reset.status, 200);
+    assert.ok((await DB.prepare('SELECT email_verified_at FROM users WHERE id = 1').first()).email_verified_at);
   } finally {
     globalThis.fetch = originalFetch;
   }
@@ -365,11 +455,21 @@ test('cookie session rotation invalidates the prior household context', async ()
   const createTripOptions = {
     method: 'POST',
     headers: { 'content-type': 'application/json', cookie: oldCookie, 'idempotency-key': 'trip-create-retry-1' },
-    body: JSON.stringify({ locationName: 'Idempotent Place', tripType: 'Road Trip' }),
+    body: JSON.stringify({
+      locationName: 'Idempotent Place',
+      placeName: 'Idempotent Museum',
+      formattedAddress: '123 Example St, Oklahoma City, OK, United States',
+      tripType: 'Road Trip',
+    }),
   };
   const firstTrip = await worker.fetch(request('/api/trips', createTripOptions), env, context());
   assert.equal(firstTrip.status, 201);
   const firstTripBody = await firstTrip.json();
+  assert.equal(firstTripBody.place_name, 'Idempotent Museum');
+  assert.equal(firstTripBody.formatted_address, '123 Example St, Oklahoma City, OK, United States');
+  const storedTrip = await DB.prepare('SELECT place_name, formatted_address FROM trips WHERE id = ?').bind(firstTripBody.id).first();
+  assert.equal(storedTrip.place_name, 'Idempotent Museum');
+  assert.equal(storedTrip.formatted_address, '123 Example St, Oklahoma City, OK, United States');
   const replayTrip = await worker.fetch(request('/api/trips', createTripOptions), env, context());
   assert.equal(replayTrip.status, 201);
   assert.equal(replayTrip.headers.get('idempotent-replay'), 'true');

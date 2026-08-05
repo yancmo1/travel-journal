@@ -39,6 +39,8 @@ export default function DataBackupPanel() {
       trips: trips.map(trip => ({
         id: trip.id,
         location_name: trip.location_name,
+        place_name: trip.place_name,
+        formatted_address: trip.formatted_address,
         city: trip.city,
         latitude: trip.latitude,
         longitude: trip.longitude,
@@ -135,6 +137,8 @@ export default function DataBackupPanel() {
       for (const trip of backup.trips) {
         const created = await api.createTrip({
           locationName: trip.location_name,
+          placeName: trip.place_name || '',
+          formattedAddress: trip.formatted_address || '',
           city: trip.city || '',
           latitude: trip.latitude,
           longitude: trip.longitude,

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import api from '../utils/api';
 import { formatDateOnly } from '../utils/format';
 import { getPhotoImageStyle } from '../utils/photos';
+import MemoryPlaceDetails from '../components/MemoryPlaceDetails';
 
 export default function SharedJourneyPage({ token }) {
   const [journey, setJourney] = useState(null);
@@ -27,6 +28,7 @@ export default function SharedJourneyPage({ token }) {
           <article key={memory.id} className="border-b border-gray-100 pb-8">
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-sunset-orange">Stop {index + 1} · {formatMemoryDate(memory)}</p>
             <h2 className="mt-2 text-3xl font-semibold text-ocean-dark">{memory.location_name}</h2>
+            <MemoryPlaceDetails memory={memory} className="mt-2" />
             <p className="mt-1 text-gray-500">{[memory.city, memory.state, memory.country].filter(Boolean).join(', ')}</p>
             {memory.notes && <p className="mt-4 max-w-3xl whitespace-pre-wrap leading-relaxed text-gray-700">{memory.notes}</p>}
             {memory.photos?.length > 0 && <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">{memory.photos.map(photo => <figure key={photo.id}><img src={`/photos/${photo.file_path || photo.thumbnail_path}`} alt={photo.caption || photo.filename || ''} style={getPhotoImageStyle(photo)} className="aspect-square w-full rounded-xl object-cover" />{photo.caption && <figcaption className="mt-1 text-sm text-gray-600">{photo.caption}</figcaption>}</figure>)}</div>}

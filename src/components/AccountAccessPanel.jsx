@@ -6,7 +6,6 @@ export default function AccountAccessPanel() {
   const { user, households, activeHouseholdId } = useAuth();
   const active = useMemo(() => households.find(site => Number(site.id) === Number(activeHouseholdId)), [households, activeHouseholdId]);
   const [access, setAccess] = useState({ members: [], invitations: [], role: active?.role || 'member' });
-  const [inviteEmail, setInviteEmail] = useState('');
   const [siteName, setSiteName] = useState('');
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -49,10 +48,7 @@ export default function AccountAccessPanel() {
         {access.members.map(member => <div key={member.id} className="flex items-center justify-between gap-3 py-3"><div><p className="font-semibold text-gray-900">{member.display_name || member.email || 'Family member'}</p><p className="text-sm text-gray-500">{member.email}</p></div><span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold capitalize text-gray-600">{member.role}</span></div>)}
         {access.invitations.map(invite => <div key={invite.id} className="flex items-center justify-between gap-3 py-3"><div><p className="font-semibold text-gray-900">{invite.email}</p><p className="text-sm text-amber-700">Invitation pending</p></div><span className="text-xs text-gray-500">Expires {new Date(invite.expires_at).toLocaleDateString()}</span></div>)}
       </div>
-      {['owner', 'admin'].includes(access.role) && <form className="mt-4 flex flex-col gap-2 border-t border-gray-100 pt-4 sm:flex-row" onSubmit={event => { event.preventDefault(); run('invite', async () => { const result = await api.inviteHouseholdMember(inviteEmail); setInviteEmail(''); setMessage(result.message); await loadAccess(); }); }}>
-        <input type="email" value={inviteEmail} onChange={event => setInviteEmail(event.target.value)} placeholder="family@example.com" className="min-w-0 flex-1 rounded-lg border border-gray-200 px-3 py-2" required />
-        <button className="rounded-lg bg-ocean-blue px-4 py-2 text-sm font-semibold text-white disabled:opacity-60" disabled={working === 'invite'}>{working === 'invite' ? 'Sending…' : 'Invite by email'}</button>
-      </form>}
+      {['owner', 'admin'].includes(access.role) && <p className="mt-4 border-t border-gray-100 pt-4 text-sm text-gray-500">Need to invite someone? Use the <button type="button" className="font-semibold text-ocean-blue underline decoration-ocean-blue/30 underline-offset-2" onClick={() => { window.dispatchEvent(new CustomEvent('postcards-settings-section', { detail: 'beta-testers' })); }}>Beta testers</button> section for a dedicated invitation form.</p>}
     </section>
 
     <section className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">

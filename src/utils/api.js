@@ -201,6 +201,14 @@ class ApiClient {
     return this.request('/households/invitations', { method: 'POST', headers: idempotencyHeaders(idempotencyKey), body: JSON.stringify({ email }) });
   }
 
+  async inviteBetaTester(email, siteName, idempotencyKey = null) {
+    return this.request('/beta/invitations', {
+      method: 'POST',
+      headers: idempotencyHeaders(idempotencyKey),
+      body: JSON.stringify({ email, siteName }),
+    });
+  }
+
   async acceptInvitation(token, idempotencyKey = null) {
     return this.request('/households/invitations/accept', { method: 'POST', headers: idempotencyHeaders(idempotencyKey), body: JSON.stringify({ token }) });
   }

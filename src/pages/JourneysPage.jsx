@@ -3,6 +3,7 @@ import { useData } from '../context/DataContext';
 import JourneyForm from '../components/JourneyForm';
 import MapView from '../components/Map';
 import MemoryPhotosModal from '../components/MemoryPhotosModal';
+import MemoryPlaceDetails from '../components/MemoryPlaceDetails';
 import { formatDateOnly } from '../utils/format';
 import { getPhotoImageStyle, getPhotoPreviewPath } from '../utils/photos';
 import api from '../utils/api';
@@ -165,6 +166,7 @@ function JourneyDetail({ journey, onClose, onEdit, onDelete, onPhotos, onPrint }
               <div className="journey-stop-copy">
                 <p>{formatMemoryDate(memory)}</p>
                 <h3>{memory.location_name}</h3>
+                <MemoryPlaceDetails memory={memory} className="mt-1" />
                 <span>{[memory.city, memory.state, memory.country].filter(Boolean).join(', ')}</span>
                 {memory.notes && <blockquote>{memory.notes}</blockquote>}
                 {memory.photos?.length > 0 && (
@@ -240,14 +242,15 @@ function TravelBookPrint({ journey, onClose }) {
       </header>
       {journey.memories.map((memory, index) => (
         <article key={memory.id}>
-          <div className="travel-book-memory-heading">
-            <span>{String(index + 1).padStart(2, '0')}</span>
-            <div>
-              <p>{formatMemoryDate(memory)}</p>
-              <h2>{memory.location_name}</h2>
-              <small>{[memory.city, memory.state, memory.country].filter(Boolean).join(', ')}</small>
-            </div>
-          </div>
+              <div className="travel-book-memory-heading">
+                <span>{String(index + 1).padStart(2, '0')}</span>
+                <div>
+                  <p>{formatMemoryDate(memory)}</p>
+                  <h2>{memory.location_name}</h2>
+                  <MemoryPlaceDetails memory={memory} className="mt-1" />
+                  <small>{[memory.city, memory.state, memory.country].filter(Boolean).join(', ')}</small>
+                </div>
+              </div>
           {memory.notes && <p>{memory.notes}</p>}
           {memory.photos?.length > 0 && (
             <div className="travel-book-photos">

@@ -25,7 +25,8 @@ function isOfflineError(error) {
 
 function localTrip(data) {
   return {
-    id: tempId('trip'), location_name: data.locationName, city: data.city || null,
+    id: tempId('trip'), location_name: data.locationName, place_name: data.placeName || null, formatted_address: data.formattedAddress || null,
+    city: data.city || null,
     latitude: data.latitude, longitude: data.longitude, country: data.country || null,
     state: data.state || null, start_date: data.startDate || null, end_date: data.endDate || null,
     date_label: data.dateLabel || null, date_precision: data.datePrecision || 'exact',

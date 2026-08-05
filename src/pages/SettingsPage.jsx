@@ -5,12 +5,14 @@ import CleanupPage from './CleanupPage';
 import PeoplePage from './PeoplePage';
 import { APP_VERSION } from '../config/app';
 import AccountAccessPanel from '../components/AccountAccessPanel';
+import BetaTesterInvitePanel from '../components/BetaTesterInvitePanel';
 import StyleGuidePage from './StyleGuidePage';
 
 const SECTIONS = [
   { id: 'overview', label: 'Settings', description: 'Your data and app details', icon: '⚙' },
   { id: 'people', label: 'People', description: 'Manage family members and relationships', icon: '♧' },
   { id: 'access', label: 'Family access', description: 'Accounts, invitations, and memory sites', icon: '◇' },
+  { id: 'beta-testers', label: 'Beta testers', description: 'Send private invitations', icon: '✉' },
   { id: 'cleanup', label: 'Clean up', description: 'Review incomplete or duplicate memories', icon: '✓' },
   { id: 'style-guide', label: 'Style guide', description: 'The visual system and CSS tokens', icon: '✦' },
 ];
@@ -39,6 +41,14 @@ export default function SettingsPage({ setPage, setTravelerFilter }) {
       nav.removeEventListener('scroll', updateScrollState);
       window.removeEventListener('resize', updateScrollState);
     };
+  }, []);
+
+  useEffect(() => {
+    function selectRequestedSection(event) {
+      if (SECTIONS.some(item => item.id === event.detail)) setSection(event.detail);
+    }
+    window.addEventListener('postcards-settings-section', selectRequestedSection);
+    return () => window.removeEventListener('postcards-settings-section', selectRequestedSection);
   }, []);
 
   function moveSettingsSections() {
@@ -100,6 +110,7 @@ export default function SettingsPage({ setPage, setTravelerFilter }) {
             <PeoplePage setPage={setPage} setTravelerFilter={setTravelerFilter} />
           )}
           {section === 'access' && <AccountAccessPanel />}
+          {section === 'beta-testers' && <BetaTesterInvitePanel />}
           {section === 'cleanup' && <CleanupPage />}
           {section === 'style-guide' && <StyleGuidePage />}
         </main>

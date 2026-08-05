@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useData } from '../context/DataContext';
 import TripForm from '../components/TripForm';
+import MemoryPlaceDetails from '../components/MemoryPlaceDetails';
 import { formatDateOnly } from '../utils/format';
 import { getPhotoImageStyle, getPhotoPreviewPath } from '../utils/photos';
 
@@ -72,6 +73,7 @@ function TimelineCard({ memory, timeline = false, onEdit }) {
         <div className="min-w-0">
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-sunset-orange">{formatMemoryDate(memory)}</p>
           <h3 className="mt-1 text-xl font-semibold text-ocean-dark">{memory.location_name}</h3>
+          <MemoryPlaceDetails memory={memory} className="mt-1" />
           <p className="text-sm text-gray-500">{[memory.city, memory.state, memory.country].filter(Boolean).join(', ') || memory.trip_type}</p>
           {memory.notes && <p className="mt-2 line-clamp-2 text-sm text-gray-600">{memory.notes}</p>}
           {memory.travelers?.length > 0 && <p className="mt-2 text-xs text-ocean-teal">With {memory.travelers.map(person => person.name).join(', ')}</p>}
