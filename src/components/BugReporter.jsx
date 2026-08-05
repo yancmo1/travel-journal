@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Bug, Check, Send, X } from 'lucide-react';
 import api from '../utils/api';
 import { APP_VERSION } from '../config/app';
+import { prepareBugScreenshot } from '../utils/photoProcessing';
 
 const EMPTY_REPORT = { title: '', details: '' };
 
@@ -14,6 +15,7 @@ export default function BugReporter() {
   const [error, setError] = useState('');
   const [screenshot, setScreenshot] = useState(null);
   const [screenshotPreview, setScreenshotPreview] = useState('');
+  const [preparingScreenshot, setPreparingScreenshot] = useState(false);
 
   useEffect(() => () => {
     if (screenshotPreview) URL.revokeObjectURL(screenshotPreview);
@@ -53,7 +55,7 @@ export default function BugReporter() {
     setOpen(true);
   }
 
-  function handleScreenshot(event) {
+  async function handleScreenshot(event) {
     const file = event.target.files?.[0] || null;
     if (!file) return;
     if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) {
@@ -61,14 +63,18 @@ export default function BugReporter() {
       event.target.value = '';
       return;
     }
-    if (file.size > 5 * 1024 * 1024) {
-      setError('Screenshots must be 5 MB or smaller.');
-      event.target.value = '';
-      return;
-    }
+    setPreparingScreenshot(true);
     setError('');
-    setScreenshot(file);
-    setScreenshotPreview(URL.createObjectURL(file));
+    try {
+      const prepared = await prepareBugScreenshot(file);
+      setScreenshot(prepared);
+      setScreenshotPreview(URL.createObjectURL(prepared));
+    } catch (error) {
+      setError('The screenshot could not be prepared. Please choose it again.');
+      event.target.value = '';
+    } finally {
+      setPreparingScreenshot(false);
+    }
   }
 
   function removeScreenshot() {
@@ -167,14 +173,15 @@ export default function BugReporter() {
                   />
                 </label>
                 <label>
-                  <span>Screenshot <small>(optional)</small></span>
+                  <span>Screenshot <small>(optional, automatically optimized for clear viewing)</small></span>
                   <input
                     type="file"
                     accept="image/png,image/jpeg,image/webp"
                     onChange={handleScreenshot}
                   />
                 </label>
-                {screenshotPreview && (
+                {preparingScreenshot && <p className="bug-reporter-reference">Preparing screenshot…</p>}
+                {screenshotPreview && !preparingScreenshot && (
                   <div className="bug-reporter-screenshot-preview">
                     <img src={screenshotPreview} alt="Screenshot preview" />
                     <div>
@@ -189,7 +196,7 @@ export default function BugReporter() {
                 {error && <p className="bug-reporter-error" role="alert">{error}</p>}
                 <div className="bug-reporter-actions">
                   <button type="button" onClick={close} className="bug-reporter-secondary">Cancel</button>
-                  <button type="submit" disabled={sending} className="bug-reporter-primary">
+                  <button type="submit" disabled={sending || preparingScreenshot} className="bug-reporter-primary">
                     <Send aria-hidden="true" />
                     {sending ? 'Sending…' : 'Send report'}
                   </button>

@@ -29,6 +29,22 @@ async function renderVariant(file, maxWidth, quality) {
 }
 
 /**
+ * Prepare a bug-report screenshot for clear viewing without rejecting large
+ * source files. A 2400px long edge is readable on desktop and mobile while
+ * keeping the uploaded attachment practical for email and private storage.
+ */
+export async function prepareBugScreenshot(file) {
+  const variant = await renderVariant(file, 2400, 0.9);
+  if (!variant?.blob) return file;
+
+  const baseName = String(file.name || 'screenshot').replace(/\.[^.]+$/, '') || 'screenshot';
+  return new File([variant.blob], `${baseName}.jpg`, {
+    type: 'image/jpeg',
+    lastModified: file.lastModified,
+  });
+}
+
+/**
  * Replaceable processing boundary. A future queued Cloudflare Images,
  * container, or external processor can implement the same method without
  * making the Worker depend on sharp, PostgreSQL, or a writable filesystem.

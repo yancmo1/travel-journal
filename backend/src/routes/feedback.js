@@ -5,7 +5,7 @@ import { query } from '../utils/db.js';
 const router = Router();
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 5 * 1024 * 1024, files: 1 },
+  limits: { files: 1 },
   fileFilter: (_req, file, callback) => {
     if (['image/png', 'image/jpeg', 'image/webp'].includes(file.mimetype)) return callback(null, true);
     return callback(new Error('Attach a PNG, JPG, or WebP screenshot.'));
@@ -15,7 +15,6 @@ const upload = multer({
 function uploadScreenshot(req, res, next) {
   upload.single('screenshot')(req, res, error => {
     if (!error) return next();
-    if (error.code === 'LIMIT_FILE_SIZE') return res.status(400).json({ error: 'Screenshots must be 5 MB or smaller.' });
     return res.status(400).json({ error: error.message || 'The screenshot could not be uploaded.' });
   });
 }

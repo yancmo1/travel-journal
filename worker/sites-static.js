@@ -2183,9 +2183,6 @@ async function handleFetch(request, env, ctx) {
           if (!['image/png', 'image/jpeg', 'image/webp'].includes(contentType)) {
             return json({ error: 'Attach a PNG, JPG, or WebP screenshot.' }, { status: 400 });
           }
-          if (Number(screenshotFile.size || 0) > 5 * 1024 * 1024) {
-            return json({ error: 'Screenshots must be 5 MB or smaller.' }, { status: 400 });
-          }
           const extension = contentType === 'image/png' ? 'png' : contentType === 'image/webp' ? 'webp' : 'jpg';
           screenshot = {
             filename: String(screenshotFile.name || `screenshot.${extension}`).replace(/[\\/]/g, '_').slice(0, 160),
