@@ -1398,7 +1398,15 @@ body {
   border-bottom-color: rgba(255, 248, 228, .16);
 }
 
-.memory-photos-shell .photo-modal-heading h2 { font-family: var(--brand-font-display); }
+.memory-photos-shell .photo-modal-heading h2 {
+  color: var(--brand-paper-50) !important;
+  font-family: var(--brand-font-display);
+}
+.memory-photos-shell .photo-modal-heading > button {
+  color: var(--brand-paper-50);
+  background: rgba(255, 253, 245, .12);
+}
+.memory-photos-shell .photo-modal-heading p:last-child { color: var(--brand-paper-200) !important; }
 .memory-photos-shell .photo-modal-heading .memory-eyebrow { color: var(--brand-terracotta-200); }
 
 .memory-detail-modal h2,

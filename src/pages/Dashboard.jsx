@@ -6,6 +6,7 @@ import StatCard from '../components/StatCard';
 import { ArrowUpRight, Camera, Image, MapPin, Navigation } from 'lucide-react';
 import postmark from '../../assets/postmark.webp';
 import addMemoryButton from '../../assets/add-memory-button.webp';
+import { getPhotoPreviewPath } from '../utils/photos';
 
 export default function Dashboard() {
   const { trips, analytics, loading } = useData();
@@ -77,8 +78,8 @@ export default function Dashboard() {
             </div>
             <div className="dashboard-recent-grid">
               {trips.slice(0, 4).map(trip => {
-                const photo = trip.photos?.find(item => item.is_cover && item.thumbnail_path)
-                  || trip.photos?.find(item => item.thumbnail_path);
+                const photo = trip.photos?.find(item => item.is_cover && getPhotoPreviewPath(item))
+                  || trip.photos?.find(item => getPhotoPreviewPath(item));
                 return (
                   <button
                     type="button"
@@ -87,7 +88,7 @@ export default function Dashboard() {
                     onClick={() => setSelectedTrip(trip)}
                   >
                     {photo ? (
-                      <img src={`/photos/${photo.thumbnail_path}`} alt="" />
+                      <img src={`/photos/${getPhotoPreviewPath(photo)}`} alt="" />
                     ) : (
                       <span className="dashboard-recent-placeholder" aria-hidden="true"><MapPin /></span>
                     )}

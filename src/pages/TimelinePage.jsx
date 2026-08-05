@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { useData } from '../context/DataContext';
 import TripForm from '../components/TripForm';
 import { formatDateOnly } from '../utils/format';
-import { getPhotoImageStyle } from '../utils/photos';
+import { getPhotoImageStyle, getPhotoPreviewPath } from '../utils/photos';
 
 export default function TimelinePage({ setPage }) {
   const { trips } = useData();
@@ -57,8 +57,8 @@ export default function TimelinePage({ setPage }) {
 }
 
 function TimelineCard({ memory, timeline = false, onEdit }) {
-  const photo = memory.photos?.find(item => item.is_cover && item.thumbnail_path)
-    || memory.photos?.find(item => item.thumbnail_path);
+  const photo = memory.photos?.find(item => item.is_cover && getPhotoPreviewPath(item))
+    || memory.photos?.find(item => getPhotoPreviewPath(item));
   return (
     <button
       type="button"

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { ArrowDown, ArrowUp, Calendar, Camera, GripVertical, MapPin, RotateCw, Save, Star, Trash2 } from 'lucide-react';
 import PhotoLightbox from './PhotoLightbox';
-import { getPhotoImageStyle, nextPhotoRotation } from '../utils/photos';
+import { getPhotoImageStyle, getPhotoPreviewPath, nextPhotoRotation } from '../utils/photos';
 
 export default function PhotoGallery({ photos = [], onDelete, onUpdate, onReorder }) {
   const [lightboxOpen, setLightboxOpen] = useState(false);
@@ -135,9 +135,9 @@ export default function PhotoGallery({ photos = [], onDelete, onUpdate, onReorde
               className="relative block aspect-square w-full cursor-pointer group overflow-hidden hover:border-ocean-blue"
               aria-label={`Open ${photo.filename || `photo ${index + 1}`}`}
             >
-              {photo.thumbnail_path ? (
+              {getPhotoPreviewPath(photo) ? (
                 <img
-                  src={`/photos/${photo.thumbnail_path}`}
+                  src={`/photos/${getPhotoPreviewPath(photo)}`}
                   alt={photo.caption || photo.filename || ''}
                   style={getPhotoImageStyle(photo)}
                   className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
@@ -155,7 +155,7 @@ export default function PhotoGallery({ photos = [], onDelete, onUpdate, onReorde
                 </span>
               )}
 
-              {photo.processing_status && photo.processing_status !== 'ready' && (
+              {photo.processing_status && photo.processing_status !== 'ready' && !getPhotoPreviewPath(photo) && (
                 <span className="absolute left-2 bottom-10 rounded-full bg-black/75 px-2 py-1 text-[10px] font-semibold text-white">
                   {photo.processing_status === 'processing_failed' ? 'Processing failed' : 'Processing pending'}
                 </span>

@@ -10,6 +10,10 @@ export function getPhotoImageStyle(photo) {
   return rotation ? { transform: `rotate(${rotation}deg)` } : undefined;
 }
 
+export function getPhotoPreviewPath(photo) {
+  return photo?.thumbnail_path || photo?.file_path || null;
+}
+
 export function nextPhotoRotation(photo) {
   return (getPhotoRotation(photo) + 90) % 360;
 }
