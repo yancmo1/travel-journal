@@ -4884,6 +4884,30 @@ body {
   box-shadow: 0 0 90px rgba(230, 173, 111, .08), inset 0 0 70px rgba(230, 173, 111, .05);
 }
 
+/* Featured postcard: a real photo now sits inside a tactile paper frame.
+   The content is data-driven in LandingPage so this can become a rotating,
+   household-specific postcard later without changing the presentation layer. */
+.landing-postcard-front {
+  padding: 10px 10px 0;
+  border: 1px solid rgba(151, 119, 74, .32);
+  background: var(--brand-paper-50);
+}
+
+.landing-postcard-photo {
+  display: block;
+  width: 100%;
+  height: 285px;
+  margin: 0;
+  object-fit: cover;
+  object-position: center 52%;
+  border: 1px solid rgba(151, 119, 74, .22);
+  filter: saturate(.92) sepia(.03);
+}
+
+.landing-postcard-body {
+  padding: 20px 13px 22px;
+}
+
 @media (max-width: 760px) {
   .landing-brand-stamp {
     width: 68px;

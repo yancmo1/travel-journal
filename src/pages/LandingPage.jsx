@@ -2,6 +2,15 @@ import React from 'react';
 import stampLogo from '../../assets/postcards-of-us-stamp.webp';
 import postmark from '../../assets/postmark.webp';
 import travelPaperBackground from '../../assets/travel-paper-background.webp';
+import alaskaPostcard from '../../assets/alaska-postcard.webp';
+
+const featuredPostcard = {
+  image: alaskaPostcard,
+  alt: 'A family standing beside the Alaska welcome sign in the mountains',
+  label: 'Our journey',
+  title: 'Alaska, 2026',
+  copy: 'One of the places that became part of our story.',
+};
 
 const features = [
   {
@@ -56,18 +65,12 @@ export default function LandingPage() {
             <div className="landing-postcard-lines" />
           </div>
           <article className="landing-postcard landing-postcard-front">
-            <div className="landing-postcard-photo">
-              <div className="landing-photo-sky" />
-              <div className="landing-photo-sun" />
-              <div className="landing-photo-hills landing-photo-hills-one" />
-              <div className="landing-photo-hills landing-photo-hills-two" />
-              <div className="landing-photo-road" />
-            </div>
+            <img className="landing-postcard-photo" src={featuredPostcard.image} alt={featuredPostcard.alt} />
             <div className="landing-postcard-body">
               <div>
-                <p className="landing-postcard-label">Our journey</p>
-                <h2>Somewhere beautiful</h2>
-                <p>One of the places that became part of our story.</p>
+                <p className="landing-postcard-label">{featuredPostcard.label}</p>
+                <h2>{featuredPostcard.title}</h2>
+                <p>{featuredPostcard.copy}</p>
               </div>
               <img className="landing-postmark" src={postmark} alt="" aria-hidden="true" />
             </div>
