@@ -2,10 +2,9 @@ import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { query } from '../utils/db.js';
+import { createSession, destroySession, getSessionUser } from '../utils/sessions.js';
 
 const router = Router();
-const jwtExpiresIn = process.env.JWT_EXPIRES_IN || '7d';
-
 function normalizeEmail(value) {
   return String(value || '').trim().toLowerCase();
 }
@@ -48,13 +47,8 @@ router.post('/register', async (req, res, next) => {
     );
 
     const user = result.rows[0];
-    const token = jwt.sign(
-      { id: user.id, email: user.email },
-      process.env.JWT_SECRET,
-      { expiresIn: jwtExpiresIn }
-    );
-
-    res.json({ user, token });
+    await createSession(user.id, res);
+    res.json({ user });
   } catch (err) {
     next(err);
   }
@@ -88,15 +82,9 @@ router.post('/login', async (req, res, next) => {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    const token = jwt.sign(
-      { id: user.id, email: user.email },
-      process.env.JWT_SECRET,
-      { expiresIn: jwtExpiresIn }
-    );
-
+    await createSession(user.id, res);
     res.json({
       user: { id: user.id, email: user.email, display_name: user.display_name, site_admin: Boolean(user.site_admin) },
-      token
     });
   } catch (err) {
     next(err);
@@ -106,6 +94,9 @@ router.post('/login', async (req, res, next) => {
 // Verify token / get current user
 router.get('/me', async (req, res, next) => {
   try {
+    const sessionUser = await getSessionUser(req);
+    if (sessionUser) return res.json({ user: sessionUser });
+
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return res.status(401).json({ error: 'No token' });
@@ -128,6 +119,15 @@ router.get('/me', async (req, res, next) => {
     if (err.name === 'JsonWebTokenError') {
       return res.status(401).json({ error: 'Invalid token' });
     }
+    next(err);
+  }
+});
+
+router.post('/logout', async (req, res, next) => {
+  try {
+    await destroySession(req, res);
+    res.json({ ok: true });
+  } catch (err) {
     next(err);
   }
 });

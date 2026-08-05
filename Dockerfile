@@ -3,9 +3,7 @@ FROM node:20-alpine AS build
 WORKDIR /app
 
 ARG VITE_API_URL=/api
-ARG VITE_LEGACY_BEARER_AUTH=false
 ENV VITE_API_URL=$VITE_API_URL
-ENV VITE_LEGACY_BEARER_AUTH=$VITE_LEGACY_BEARER_AUTH
 
 # Copy package files and install dependencies
 COPY package.json package-lock.json* ./

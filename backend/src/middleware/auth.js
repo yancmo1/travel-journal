@@ -1,9 +1,21 @@
 import jwt from 'jsonwebtoken';
 import { query } from '../utils/db.js';
+import { getSessionUser } from '../utils/sessions.js';
 
 export async function authMiddleware(req, res, next) {
   const authHeader = req.headers.authorization;
 
+  try {
+    const sessionUser = await getSessionUser(req);
+    if (sessionUser) {
+      req.user = sessionUser;
+      return next();
+    }
+  } catch {
+    return res.status(500).json({ error: 'Unable to verify your session.' });
+  }
+
+  // Compatibility for tokens issued before cookie sessions were enabled.
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return res.status(401).json({ error: 'Sign in required' });
   }

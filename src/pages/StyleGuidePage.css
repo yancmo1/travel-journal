@@ -17,6 +17,7 @@
 
 .brand-guide-hero-copy { max-width: 700px; }
 .brand-guide-hero h2 { margin: 8px 0 12px; color: var(--brand-paper-50); font: 600 clamp(40px, 6vw, 72px)/.98 var(--brand-font-display); letter-spacing: -.045em; }
+.settings-content .brand-guide-hero h2 { color: var(--brand-paper-50) !important; }
 .brand-guide-hero p:not(.brand-guide-kicker) { max-width: 590px; margin: 0; color: rgba(255, 253, 245, .76); font-size: 17px; line-height: 1.6; }
 .brand-guide-kicker { margin: 0; color: var(--brand-terracotta-500); font: 700 11px/1.3 var(--brand-font-body); letter-spacing: .17em; text-transform: uppercase; }
 .brand-guide-hero .brand-guide-kicker { color: var(--brand-terracotta-200); }
@@ -115,4 +116,77 @@
   .brand-guide-demo-card-wide { grid-column: auto; }
   .brand-guide-token-row { grid-template-columns: 1fr; gap: 4px; }
   .brand-guide-stat-demo strong { font-size: 18px; }
+}
+
+@media (max-width: 760px) {
+  .brand-guide {
+    width: 100%;
+    min-width: 0;
+    padding: 0 2px;
+  }
+
+  .brand-guide-content,
+  .brand-guide-section,
+  .brand-guide-section-heading,
+  .brand-guide-section-heading h3,
+  .brand-guide-section-heading > p,
+  .brand-guide-token-grid,
+  .brand-guide-token-card,
+  .brand-guide-token-row {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .brand-guide-hero {
+    gap: var(--brand-space-4);
+    padding: var(--brand-space-5);
+  }
+
+  .brand-guide-hero h2 {
+    font-size: clamp(36px, 11vw, 52px);
+  }
+
+  .brand-guide-hero p:not(.brand-guide-kicker) {
+    font-size: 15px;
+  }
+
+  .brand-guide-index {
+    margin: var(--brand-space-4) 0 var(--brand-space-6);
+    padding: 5px;
+  }
+
+  .brand-guide-index a {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    padding: 9px 12px;
+  }
+
+  .brand-guide-content {
+    gap: 48px;
+  }
+
+  .brand-guide-section-heading {
+    margin-bottom: 20px;
+  }
+
+  .brand-guide-section-heading h3 {
+    font-size: clamp(28px, 8vw, 38px);
+    overflow-wrap: anywhere;
+    text-wrap: balance;
+  }
+
+  .brand-guide-section-heading > p:not(.brand-guide-kicker),
+  .brand-guide-token-row code,
+  .brand-guide-token-row span,
+  .brand-guide-token-row small {
+    overflow-wrap: anywhere;
+  }
+
+  .brand-guide-color-group,
+  .brand-guide-token-card,
+  .brand-guide-demo-card,
+  .brand-guide-type-specimen {
+    padding: var(--brand-space-4);
+  }
 }

@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
+import stampLogo from '../../assets/postcards-of-us-stamp.webp';
+import travelPaperBackground from '../../assets/travel-paper-background.webp';
 
 export default function LoginPage() {
   const { login } = useAuth();
@@ -41,11 +43,11 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="memory-login">
+    <main className="memory-login" style={{ '--login-paper-art': `url(${travelPaperBackground})` }}>
       <section className="memory-login-story">
         <a className="memory-login-brand" href="/" aria-label="Postcards of Us home">
-          <span className="memory-brand-mark" aria-hidden="true">P</span>
-          <span>Postcards of Us</span>
+          <span className="memory-login-stamp" aria-hidden="true"><img src={stampLogo} alt="" /></span>
+          <span className="memory-login-tagline">Our story, one memory at a time</span>
         </a>
         <div>
           <p className="memory-eyebrow">A life traveled together</p>

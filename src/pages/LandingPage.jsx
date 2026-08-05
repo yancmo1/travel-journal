@@ -1,4 +1,7 @@
 import React from 'react';
+import stampLogo from '../../assets/postcards-of-us-stamp.webp';
+import postmark from '../../assets/postmark.webp';
+import travelPaperBackground from '../../assets/travel-paper-background.webp';
 
 const features = [
   {
@@ -20,11 +23,11 @@ const features = [
 
 export default function LandingPage() {
   return (
-    <main className="landing-page">
+    <main className="landing-page" style={{ '--landing-paper-art': `url(${travelPaperBackground})` }}>
       <nav className="landing-nav" aria-label="Public navigation">
         <a className="landing-brand" href="/" aria-label="Postcards of Us home">
-          <span className="landing-brand-mark" aria-hidden="true">P</span>
-          <span>Postcards of Us</span>
+          <span className="landing-brand-stamp" aria-hidden="true"><img src={stampLogo} alt="" /></span>
+          <span className="landing-brand-tagline">Our story, one memory at a time</span>
         </a>
         <div className="landing-nav-actions">
           <span className="landing-beta-label">Private beta</span>
@@ -66,11 +69,7 @@ export default function LandingPage() {
                 <h2>Somewhere beautiful</h2>
                 <p>One of the places that became part of our story.</p>
               </div>
-              <div className="landing-postmark" aria-hidden="true">
-                <span>POSTCARDS</span>
-                <strong>OF US</strong>
-                <small>✦ 2026 ✦</small>
-              </div>
+              <img className="landing-postmark" src={postmark} alt="" aria-hidden="true" />
             </div>
           </article>
           <div className="landing-route-card" aria-hidden="true">

@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import DataBackupPanel from '../components/DataBackupPanel';
 import CleanupPage from './CleanupPage';
 import PeoplePage from './PeoplePage';
@@ -16,6 +17,39 @@ const SECTIONS = [
 
 export default function SettingsPage({ setPage, setTravelerFilter }) {
   const [section, setSection] = useState('overview');
+  const settingsNavRef = useRef(null);
+  const [settingsScroll, setSettingsScroll] = useState({ canScroll: false, atEnd: false });
+
+  useEffect(() => {
+    const nav = settingsNavRef.current;
+    if (!nav) return undefined;
+
+    function updateScrollState() {
+      const maxScroll = nav.scrollWidth - nav.clientWidth;
+      setSettingsScroll({
+        canScroll: maxScroll > 4,
+        atEnd: maxScroll > 4 && nav.scrollLeft >= maxScroll - 4,
+      });
+    }
+
+    updateScrollState();
+    nav.addEventListener('scroll', updateScrollState, { passive: true });
+    window.addEventListener('resize', updateScrollState);
+    return () => {
+      nav.removeEventListener('scroll', updateScrollState);
+      window.removeEventListener('resize', updateScrollState);
+    };
+  }, []);
+
+  function moveSettingsSections() {
+    const nav = settingsNavRef.current;
+    if (!nav) return;
+
+    nav.scrollBy({
+      left: settingsScroll.atEnd ? -Math.max(nav.clientWidth * .75, 120) : Math.max(nav.clientWidth * .75, 120),
+      behavior: 'smooth',
+    });
+  }
 
   return (
     <div className="settings-layout">
@@ -28,24 +62,37 @@ export default function SettingsPage({ setPage, setTravelerFilter }) {
       </header>
 
       <div className="settings-grid">
-        <aside className="settings-sidebar" aria-label="Settings sections">
-          {SECTIONS.map(item => (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => setSection(item.id)}
-              title={item.description}
-              className={section === item.id ? 'is-active' : ''}
-              aria-current={section === item.id ? 'page' : undefined}
-            >
-              <span className="settings-sidebar-icon" aria-hidden="true">{item.icon}</span>
-              <span>
-                <strong>{item.label}</strong>
-                <small>{item.description}</small>
-              </span>
-            </button>
-          ))}
-        </aside>
+        <div className="settings-sidebar-wrap">
+          <aside ref={settingsNavRef} className="settings-sidebar" aria-label="Settings sections">
+            {SECTIONS.map(item => (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => setSection(item.id)}
+                title={item.description}
+                className={section === item.id ? 'is-active' : ''}
+                aria-current={section === item.id ? 'page' : undefined}
+              >
+                <span className="settings-sidebar-icon" aria-hidden="true">{item.icon}</span>
+                <span>
+                  <strong>{item.label}</strong>
+                  <small>{item.description}</small>
+                </span>
+              </button>
+            ))}
+          </aside>
+          <button
+            type="button"
+            className={`settings-sidebar-more ${settingsScroll.canScroll ? 'is-visible' : ''}`}
+            onClick={moveSettingsSections}
+            aria-label={settingsScroll.atEnd ? 'Show previous settings sections' : 'Show more settings sections'}
+            title={settingsScroll.atEnd ? 'Show previous settings sections' : 'Show more settings sections'}
+          >
+            {settingsScroll.atEnd
+              ? <ChevronLeft aria-hidden="true" />
+              : <ChevronRight aria-hidden="true" />}
+          </button>
+        </div>
 
         <main className="settings-content">
           {section === 'overview' && <SettingsOverview />}

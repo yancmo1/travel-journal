@@ -2,7 +2,6 @@ import { inspectPhotoMetadata } from './photoMetadata';
 import { preparePhotoVariants } from './photoProcessing';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
-const LEGACY_BEARER_AUTH = ['1', 'true', 'yes', 'on'].includes(String(import.meta.env.VITE_LEGACY_BEARER_AUTH || '').toLowerCase());
 const USE_UPLOAD_SESSIONS = ['1', 'true', 'yes', 'on'].includes(String(import.meta.env.VITE_USE_UPLOAD_SESSIONS || '').toLowerCase());
 const PLACE_CACHE_TTL_MS = 5 * 60 * 1000;
 const placeSearchCache = new Map();
@@ -26,12 +25,11 @@ class ApiClient {
   }
 
   getToken() {
-    return LEGACY_BEARER_AUTH ? localStorage.getItem('travel_token') : null;
+    return null;
   }
 
-  setToken(token) {
-    if (LEGACY_BEARER_AUTH && token) localStorage.setItem('travel_token', token);
-    else localStorage.removeItem('travel_token');
+  setToken() {
+    localStorage.removeItem('travel_token');
   }
 
   clearToken() {
@@ -117,7 +115,6 @@ class ApiClient {
 
   logout() {
     this.clearToken();
-    if (LEGACY_BEARER_AUTH) return Promise.resolve(null);
     return this.request('/auth/logout', { method: 'POST', skipUnauthorizedRedirect: true }).catch(() => null);
   }
 

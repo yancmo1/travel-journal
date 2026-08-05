@@ -22,6 +22,16 @@ export async function initDatabase() {
   await query('ALTER TABLE users ADD COLUMN IF NOT EXISTS email VARCHAR(254)');
   await query('CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email ON users(email)');
   await query('ALTER TABLE users ADD COLUMN IF NOT EXISTS site_admin BOOLEAN NOT NULL DEFAULT FALSE');
+  await query(`
+    CREATE TABLE IF NOT EXISTS sessions (
+      token_hash VARCHAR(64) PRIMARY KEY,
+      user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      expires_at TIMESTAMP NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+  await query('CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id)');
+  await query('CREATE INDEX IF NOT EXISTS idx_sessions_expires_at ON sessions(expires_at)');
   await query('ALTER TABLE trips ADD COLUMN IF NOT EXISTS city VARCHAR(100)');
   await query('ALTER TABLE trips ADD COLUMN IF NOT EXISTS date_label VARCHAR(100)');
   await query("ALTER TABLE trips ADD COLUMN IF NOT EXISTS date_precision VARCHAR(20) DEFAULT 'exact'");
