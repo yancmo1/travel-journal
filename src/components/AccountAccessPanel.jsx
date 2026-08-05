@@ -2,10 +2,11 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
 
-export default function AccountAccessPanel({ setPage }) {
+export default function AccountAccessPanel() {
   const { user, households, activeHouseholdId } = useAuth();
   const active = useMemo(() => households.find(site => Number(site.id) === Number(activeHouseholdId)), [households, activeHouseholdId]);
   const [access, setAccess] = useState({ members: [], invitations: [], role: active?.role || 'member' });
+  const [inviteEmail, setInviteEmail] = useState('');
   const [siteName, setSiteName] = useState('');
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -20,6 +21,9 @@ export default function AccountAccessPanel({ setPage }) {
   }
 
   useEffect(() => { loadAccess(); }, [activeHouseholdId]);
+
+  const accessSlotsUsed = access.members.length + access.invitations.length;
+  const canInviteMember = ['owner', 'admin'].includes(access.role) && accessSlotsUsed < 2;
 
   async function run(kind, action) {
     setWorking(kind); setMessage(''); setError('');
@@ -48,13 +52,19 @@ export default function AccountAccessPanel({ setPage }) {
         {access.members.map(member => <div key={member.id} className="flex items-center justify-between gap-3 py-3"><div><p className="font-semibold text-gray-900">{member.display_name || member.email || 'Family member'}</p><p className="text-sm text-gray-500">{member.email}</p></div><span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold capitalize text-gray-600">{member.role}</span></div>)}
         {access.invitations.map(invite => <div key={invite.id} className="flex items-center justify-between gap-3 py-3"><div><p className="font-semibold text-gray-900">{invite.email}</p><p className="text-sm text-amber-700">Invitation pending</p></div><span className="text-xs text-gray-500">Expires {new Date(invite.expires_at).toLocaleDateString()}</span></div>)}
       </div>
-      {user?.site_admin && ['owner', 'admin'].includes(access.role) && <p className="mt-4 border-t border-gray-100 pt-4 text-sm text-gray-500">Need to invite someone? Use the <button type="button" className="font-semibold text-ocean-blue underline decoration-ocean-blue/30 underline-offset-2" onClick={() => { setPage('operations'); window.setTimeout(() => window.dispatchEvent(new CustomEvent('postcards-operations-section', { detail: 'beta-testers' })), 0); }}>Operations</button> area for the dedicated beta invitation form.</p>}
+      {['owner', 'admin'].includes(access.role) && (canInviteMember ? <form className="mt-4 border-t border-gray-100 pt-4" onSubmit={event => { event.preventDefault(); run('invite', async () => { const result = await api.inviteHouseholdMember(inviteEmail); setInviteEmail(''); setMessage(result.message); await loadAccess(); }); }}>
+        <label className="text-sm font-semibold text-gray-700">Add a family member <span className="font-normal text-gray-500">Invite one additional person to help work on this memory site.</span></label>
+        <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+          <input type="email" value={inviteEmail} onChange={event => setInviteEmail(event.target.value)} placeholder="family@example.com" className="min-w-0 flex-1 rounded-lg border border-gray-200 px-3 py-2" required />
+          <button className="rounded-lg border border-ocean-blue px-4 py-2 text-sm font-semibold text-ocean-blue disabled:opacity-60" disabled={working === 'invite'}>{working === 'invite' ? 'Sending…' : 'Send invitation'}</button>
+        </div>
+      </form> : <p className="mt-4 border-t border-gray-100 pt-4 text-sm text-gray-500">This memory site currently supports you and one additional person.</p>)}
     </section>
 
     <section className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
       <p className="memory-eyebrow">Session security</p>
       <h2 className="mt-1 text-xl font-semibold text-ocean-dark">Control where you are signed in</h2>
-      <p className="mt-2 max-w-2xl text-sm text-gray-600">Sign out other devices after changing a password or if you no longer recognize a session.</p>
+      <p className="mt-2 max-w-none text-sm text-gray-600">Sign out other devices after changing a password or if you no longer recognize a session.</p>
       <div className="mt-4 flex flex-wrap gap-2">
         <button type="button" onClick={() => run('sessions', async () => { const result = await api.revokeOtherSessions(); setMessage(result.message); })} disabled={working === 'sessions'} className="rounded-lg border border-ocean-blue px-4 py-2 text-sm font-semibold text-ocean-blue disabled:opacity-60">
           {working === 'sessions' ? 'Signing out…' : 'Sign out other devices'}
@@ -68,7 +78,7 @@ export default function AccountAccessPanel({ setPage }) {
     <section className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
       <p className="memory-eyebrow">Your own story</p>
       <h2 className="mt-1 text-xl font-semibold text-ocean-dark">Start another memory site</h2>
-      <p className="mt-2 max-w-2xl text-sm text-gray-600">Everyone can belong to several family sites and own one of their own. Memories and photos stay separated between sites.</p>
+      <p className="mt-2 max-w-none text-sm text-gray-600">Everyone can belong to several family sites and own one of their own. Memories and photos stay separated between sites.</p>
       <form className="mt-4 flex flex-col gap-2 sm:flex-row" onSubmit={event => { event.preventDefault(); run('site', async () => { await api.createHousehold(siteName); window.location.href = '/'; }); }}>
         <input value={siteName} onChange={event => setSiteName(event.target.value)} placeholder="The Shepherd Family" className="min-w-0 flex-1 rounded-lg border border-gray-200 px-3 py-2" minLength={2} maxLength={80} required />
         <button className="rounded-lg border border-ocean-blue px-4 py-2 text-sm font-semibold text-ocean-blue disabled:opacity-60" disabled={working === 'site'}>{working === 'site' ? 'Creating…' : 'Create memory site'}</button>

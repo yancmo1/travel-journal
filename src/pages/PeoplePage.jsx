@@ -226,11 +226,11 @@ export default function PeoplePage({ setPage, setTravelerFilter }) {
 
   return (
     <div className="settings-people mx-auto max-w-6xl space-y-7 px-4 py-8 sm:px-6 lg:px-8">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div>
+      <div className="flex flex-col gap-3">
+        <div className="min-w-0 flex-1">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sunset-orange">Family manager</p>
           <h1 className="mt-2 text-3xl font-semibold text-ocean-dark sm:text-4xl">The people in our stories</h1>
-          <p className="mt-2 max-w-2xl text-gray-600">Keep names and relationships tidy in one place. Deactivating someone preserves their older memories while keeping them out of new memory forms.</p>
+          <p className="mt-2 max-w-none text-gray-600">Keep names and relationships tidy in one place. Deactivating someone preserves their older memories while keeping them out of new memory forms.</p>
         </div>
         <button type="button" onClick={refreshPeople} className="self-start rounded-full border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-600 hover:border-ocean-teal hover:text-ocean-dark">Refresh people</button>
       </div>

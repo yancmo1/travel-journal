@@ -42,10 +42,10 @@ export default function BetaTesterInvitePanel() {
           <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-ocean-blue/10 text-ocean-blue" aria-hidden="true">
             <MailPlus size={22} strokeWidth={1.8} />
           </div>
-          <div>
+          <div className="min-w-0 flex-1">
             <p className="memory-eyebrow">Private beta</p>
             <h2 className="mt-1 text-xl font-semibold text-ocean-dark">Invite a beta tester</h2>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-600">
+            <p className="mt-2 max-w-none text-sm leading-6 text-gray-600">
               Send someone a private invitation to try Postcards of Us. They’ll receive a secure link to create an account and start their own memory site.
             </p>
           </div>

@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
-import { Activity, MailPlus, Palette } from 'lucide-react';
+import { Activity, ExternalLink, Github, MailPlus, Palette, Trash2, X } from 'lucide-react';
 import BetaTesterInvitePanel from '../components/BetaTesterInvitePanel';
 import StyleGuidePage from './StyleGuidePage';
 
@@ -19,6 +19,9 @@ export default function OperationsPage() {
   const [backingUp, setBackingUp] = useState(false);
   const [error, setError] = useState('');
   const [section, setSection] = useState('overview');
+  const [screenshotToView, setScreenshotToView] = useState(null);
+  const [deletingReport, setDeletingReport] = useState('');
+  const [pushingReport, setPushingReport] = useState('');
 
   const loadOperations = useCallback(async ({ quiet = false } = {}) => {
     if (!user?.site_admin) return;
@@ -62,6 +65,46 @@ export default function OperationsPage() {
       setError(requestError.message || 'The backup could not be completed.');
     } finally {
       setBackingUp(false);
+    }
+  }
+
+  async function deleteReport(report) {
+    const reportId = getBugReportId(report);
+    if (!reportId || !window.confirm(`Delete “${report.title}” from the local inbox? This also removes its stored screenshot. Any linked GitHub issue will remain on GitHub.`)) return;
+    setDeletingReport(reportId);
+    setError('');
+    try {
+      await api.deleteBugReport(reportId);
+      setOperations(current => current
+        ? { ...current, bugReports: (current.bugReports || []).filter(item => getBugReportId(item) !== reportId) }
+        : current);
+      setScreenshotToView(current => current && getBugReportId(current) === reportId ? null : current);
+    } catch (requestError) {
+      setError(requestError.message || 'The bug report could not be deleted.');
+    } finally {
+      setDeletingReport('');
+    }
+  }
+
+  async function pushReportToGitHub(report) {
+    const reportId = getBugReportId(report);
+    if (!reportId || getBugGithubIssue(report)) return;
+    setPushingReport(reportId);
+    setError('');
+    try {
+      const result = await api.pushBugReportToGitHub(reportId);
+      setOperations(current => current
+        ? {
+          ...current,
+          bugReports: (current.bugReports || []).map(item => getBugReportId(item) === reportId
+            ? { ...item, githubIssue: result.githubIssue, github_issue_id: result.githubIssue.id, github_issue_number: result.githubIssue.number, github_issue_url: result.githubIssue.url }
+            : item),
+        }
+        : current);
+    } catch (requestError) {
+      setError(requestError.message || 'The GitHub issue could not be created.');
+    } finally {
+      setPushingReport('');
     }
   }
 
@@ -123,11 +166,11 @@ export default function OperationsPage() {
           </section>
 
           <section className={`rounded-2xl border p-5 shadow-sm ${backupClass}`} aria-live="polite">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-              <div>
+            <div className="flex flex-col gap-4">
+              <div className="min-w-0 flex-1">
                 <p className="text-xs font-semibold uppercase tracking-[0.16em] opacity-70">Backup health</p>
                 <h2 className="mt-1 text-xl font-semibold">{backup?.stale ? 'Backup needs attention' : 'Backups are current'}</h2>
-                <p className="mt-1 max-w-xl text-sm opacity-80">{backup?.message || 'The latest backup status has not been reported yet.'}</p>
+                <p className="mt-1 max-w-none text-sm opacity-80">{backup?.message || 'The latest backup status has not been reported yet.'}</p>
               </div>
               <button
                 type="button"
@@ -173,13 +216,66 @@ export default function OperationsPage() {
               <div className="mt-4 space-y-3">
                 {operations.bugReports.map(report => (
                   <article key={report.id} className="rounded-xl border border-gray-100 bg-gray-50 p-4">
-                    <div className="flex flex-wrap items-baseline justify-between gap-2">
-                      <h3 className="font-semibold text-ocean-dark">{report.title}</h3>
-                      <time className="text-xs text-gray-500">{formatStatusDate(report.created_at)}</time>
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <h3 className="font-semibold text-ocean-dark">{report.title}</h3>
+                        <time className="mt-1 block text-xs text-gray-500">{formatStatusDate(report.created_at)}</time>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => deleteReport(report)}
+                        disabled={deletingReport === getBugReportId(report)}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 px-2.5 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        <Trash2 size={14} aria-hidden="true" />
+                        {deletingReport === getBugReportId(report) ? 'Deleting…' : 'Delete report'}
+                      </button>
                     </div>
                     <p className="mt-2 whitespace-pre-wrap text-sm text-gray-700">{report.details}</p>
-                    {(report.screenshot?.filename || report.screenshot_filename) && (
-                      <p className="mt-2 text-xs font-semibold text-ocean-dark">Screenshot attached: {report.screenshot?.filename || report.screenshot_filename}</p>
+                    <div className="mt-3 flex flex-wrap items-center gap-3">
+                      {getBugGithubIssue(report) ? (
+                        <a
+                          href={getBugGithubIssue(report).url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-gray-700 hover:border-ocean-blue/40 hover:text-ocean-blue"
+                        >
+                          <Github size={14} aria-hidden="true" />
+                          GitHub issue #{getBugGithubIssue(report).number} ↗
+                        </a>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => pushReportToGitHub(report)}
+                          disabled={pushingReport === getBugReportId(report)}
+                          className="inline-flex items-center gap-1.5 rounded-lg bg-gray-900 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-gray-700 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          <Github size={14} aria-hidden="true" />
+                          {pushingReport === getBugReportId(report) ? 'Creating issue…' : 'Push to GitHub'}
+                        </button>
+                      )}
+                      {getBugGithubIssue(report) && <span className="text-xs text-gray-500">Labeled Bug Report</span>}
+                    </div>
+                    {hasBugScreenshot(report) && (
+                      <div className="mt-3 overflow-hidden rounded-xl border border-gray-200 bg-white">
+                        <button
+                          type="button"
+                          className="block w-full cursor-zoom-in text-left"
+                          onClick={() => setScreenshotToView(report)}
+                          aria-label={`View screenshot for ${report.title}`}
+                        >
+                          <img
+                            src={api.getBugReportScreenshotUrl(getBugReportId(report))}
+                            alt={`Screenshot attached to ${report.title}`}
+                            loading="lazy"
+                            className="max-h-72 w-full object-contain object-left-top"
+                          />
+                        </button>
+                        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-gray-100 px-3 py-2 text-xs">
+                          <span className="font-semibold text-ocean-dark">Screenshot: {getBugScreenshotFilename(report)}</span>
+                          <button type="button" className="font-semibold text-ocean-blue hover:underline" onClick={() => setScreenshotToView(report)}>View full size</button>
+                        </div>
+                      </div>
                     )}
                     {report.requestId && <p className="mt-2 text-xs text-gray-500">Request reference: <code>{report.requestId}</code></p>}
                   </article>
@@ -191,8 +287,49 @@ export default function OperationsPage() {
           </section>
         </>
       ))}
+
+      {screenshotToView && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4" role="dialog" aria-modal="true" aria-label="Bug report screenshot" onMouseDown={event => { if (event.target === event.currentTarget) setScreenshotToView(null); }}>
+          <div className="relative max-h-full max-w-6xl overflow-auto rounded-2xl bg-white p-3 shadow-2xl">
+            <div className="flex items-center justify-between gap-4 pb-3 pl-1">
+              <p className="truncate text-sm font-semibold text-ocean-dark">{getBugScreenshotFilename(screenshotToView)}</p>
+              <div className="flex items-center gap-3">
+                <a href={api.getBugReportScreenshotUrl(getBugReportId(screenshotToView))} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-xs font-semibold text-ocean-blue hover:underline">
+                  Open full size <ExternalLink size={14} aria-hidden="true" />
+                </a>
+                <button type="button" onClick={() => setScreenshotToView(null)} className="rounded-lg p-1 text-gray-500 hover:bg-gray-100 hover:text-gray-800" aria-label="Close screenshot">
+                  <X size={20} aria-hidden="true" />
+                </button>
+              </div>
+            </div>
+            <img src={api.getBugReportScreenshotUrl(getBugReportId(screenshotToView))} alt={`Screenshot attached to ${screenshotToView.title}`} className="max-h-[78vh] max-w-full rounded-lg object-contain" />
+          </div>
+        </div>
+      )}
     </div>
   );
+}
+
+function getBugReportId(report) {
+  return report?.report_id || report?.id || '';
+}
+
+function getBugScreenshotFilename(report) {
+  return report?.screenshot?.filename || report?.screenshot_filename || 'attached image';
+}
+
+function getBugGithubIssue(report) {
+  if (report?.githubIssue?.url) return report.githubIssue;
+  if (report?.github_issue_url) return {
+    id: report.github_issue_id,
+    number: report.github_issue_number,
+    url: report.github_issue_url,
+  };
+  return null;
+}
+
+function hasBugScreenshot(report) {
+  return Boolean(report?.screenshot?.key || report?.has_screenshot || report?.screenshot_filename);
 }
 
 function StatusCard({ label, value, detail, tone }) {

@@ -50,6 +50,10 @@ export async function initDatabase() {
   await query('ALTER TABLE bug_reports ADD COLUMN IF NOT EXISTS screenshot BYTEA');
   await query('ALTER TABLE bug_reports ADD COLUMN IF NOT EXISTS screenshot_filename VARCHAR(160)');
   await query('ALTER TABLE bug_reports ADD COLUMN IF NOT EXISTS screenshot_mime_type VARCHAR(80)');
+  await query('ALTER TABLE bug_reports ADD COLUMN IF NOT EXISTS github_issue_id BIGINT');
+  await query('ALTER TABLE bug_reports ADD COLUMN IF NOT EXISTS github_issue_number INTEGER');
+  await query('ALTER TABLE bug_reports ADD COLUMN IF NOT EXISTS github_issue_url VARCHAR(500)');
+  await query('ALTER TABLE bug_reports ADD COLUMN IF NOT EXISTS github_issue_created_at TIMESTAMP');
   await query('ALTER TABLE trips ADD COLUMN IF NOT EXISTS city VARCHAR(100)');
   await query('ALTER TABLE trips ADD COLUMN IF NOT EXISTS date_label VARCHAR(100)');
   await query("ALTER TABLE trips ADD COLUMN IF NOT EXISTS date_precision VARCHAR(20) DEFAULT 'exact'");

@@ -6,6 +6,7 @@ const encoder = new TextEncoder();
 const passwordIterations = 100000;
 const placesCache = new Map();
 const locationCache = new Map();
+const GITHUB_LABEL = 'Bug Report';
 
 async function recordAudit(env, { userId = null, householdId = null, action, resourceType = null, resourceId = null, metadata = null }) {
   if (!action || !env?.DB) return;
@@ -519,6 +520,59 @@ function secretAuthorized(request, secret, headerName) {
 
 function escapeHtml(value) {
   return String(value || '').replace(/[&<>'"]/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[character]);
+}
+
+function parseAuditMetadata(value) {
+  try { return JSON.parse(value || '{}'); } catch { return {}; }
+}
+
+function inlineFilename(value) {
+  return String(value || 'screenshot').replace(/[\\"\r\n]/g, '_').slice(0, 160);
+}
+
+function githubRepository(env) {
+  const value = String(env?.GITHUB_REPOSITORY || 'yancmo1/travel-journal').trim();
+  const match = value.match(/^([^/]+)\/([^/]+)$/);
+  return match ? { owner: match[1], name: match[2] } : null;
+}
+
+async function githubJson(env, path, options = {}) {
+  const response = await fetch(`https://api.github.com${path}`, {
+    ...options,
+    headers: {
+      accept: 'application/vnd.github+json',
+      authorization: `Bearer ${env.GITHUB_TOKEN}`,
+      'content-type': 'application/json',
+      'user-agent': 'postcards-of-us',
+      'x-github-api-version': '2022-11-28',
+      ...(options.headers || {}),
+    },
+  });
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const error = new Error(body.message || `GitHub request failed with status ${response.status}`);
+    error.status = response.status;
+    throw error;
+  }
+  return body;
+}
+
+function githubIssueBody(reportId, metadata) {
+  return [
+    'Submitted from the Postcards of Us Feedback inbox.',
+    '',
+    '## Details',
+    metadata.details || 'No details provided.',
+    '',
+    '## Diagnostics',
+    `- Report ID: \`${reportId}\``,
+    `- Request reference: \`${metadata.requestId || 'Not available'}\``,
+    `- Page: ${metadata.page || 'Not available'}`,
+    `- URL: ${metadata.url || 'Not available'}`,
+    `- App version: ${metadata.appVersion || 'Not available'}`,
+    `- Browser: ${metadata.userAgent || 'Not available'}`,
+    metadata.screenshot?.filename ? `- Screenshot: ${metadata.screenshot.filename} (available in the private Operations inbox)` : '- Screenshot: None attached',
+  ].join('\n');
 }
 
 async function sendEmail(env, { to, subject, text, html, idempotencyKey, attachments = [] }) {
@@ -1984,10 +2038,18 @@ async function handleFetch(request, env, ctx) {
       }
       const user = await env.DB.prepare('SELECT id, email, email_verified_at, site_admin, display_name FROM users WHERE email = ?').bind(invitation.email).first();
       try {
-        await env.DB.batch([
-          env.DB.prepare('INSERT OR IGNORE INTO household_members (household_id, user_id, role) VALUES (?, ?, ?)').bind(invitation.household_id, user.id, invitation.role),
-          env.DB.prepare('UPDATE invitations SET accepted_at = CURRENT_TIMESTAMP WHERE id = ?').bind(invitation.id),
-        ]);
+        const membership = await env.DB.prepare(`
+          INSERT INTO household_members (household_id, user_id, role)
+          SELECT ?, ?, ?
+          WHERE (SELECT COUNT(*) FROM household_members WHERE household_id = ?) < 2
+          RETURNING household_id
+        `).bind(invitation.household_id, user.id, invitation.role, invitation.household_id).first();
+        if (!membership) {
+          await env.DB.prepare('DELETE FROM users WHERE id = ?').bind(user.id).run();
+          await releaseIdempotency(env, idempotency);
+          return json({ error: 'This memory site already has its owner and one additional user.' }, { status: 409 });
+        }
+        await env.DB.prepare('UPDATE invitations SET accepted_at = CURRENT_TIMESTAMP WHERE id = ?').bind(invitation.id).run();
         const session = await createSession(env, user.id, invitation.household_id);
         const responseBody = { user: toPublicUser(user), households: await userHouseholds(env, user.id), active_household_id: invitation.household_id };
         await completeIdempotency(env, idempotency, responseBody, 201);
@@ -2162,6 +2224,7 @@ async function handleFetch(request, env, ctx) {
               size: screenshot.size,
               key: screenshotKey,
             } : null,
+            githubIssue: null,
           },
         });
         if (env.BUG_REPORT_TO) {
@@ -2185,6 +2248,95 @@ async function handleFetch(request, env, ctx) {
           }));
         }
         return json({ id: reportId, message: 'Thanks — your report was saved.' }, { status: 201 });
+      }
+
+      const githubIssueMatch = url.pathname.match(/^\/api\/admin\/bug-reports\/([A-Za-z0-9-]+)\/github-issue$/);
+      if (githubIssueMatch && request.method === 'POST') {
+        const denied = siteAdminRequired(user);
+        if (denied) return denied;
+        if (!env.GITHUB_TOKEN) return json({ error: 'GitHub issue publishing is not configured.' }, { status: 503 });
+        const repository = githubRepository(env);
+        if (!repository) return json({ error: 'GitHub repository configuration is invalid.' }, { status: 503 });
+        const reportId = githubIssueMatch[1];
+        const row = await env.DB.prepare(`
+          SELECT id, metadata
+          FROM audit_events
+          WHERE action = 'bug.reported' AND resource_id = ?
+          ORDER BY created_at DESC
+          LIMIT 1
+        `).bind(reportId).first();
+        if (!row) return json({ error: 'Bug report not found.' }, { status: 404 });
+        const metadata = parseAuditMetadata(row.metadata);
+        if (metadata.githubIssue?.url) return json({ githubIssue: metadata.githubIssue });
+
+        try {
+          const issue = await githubJson(env, `/repos/${encodeURIComponent(repository.owner)}/${encodeURIComponent(repository.name)}/issues`, {
+            method: 'POST',
+            body: JSON.stringify({
+              title: `[Postcards] ${String(metadata.title || 'Bug report').slice(0, 120)}`,
+              body: githubIssueBody(reportId, metadata),
+              labels: [GITHUB_LABEL],
+            }),
+          });
+          const githubIssue = { id: issue.id, number: issue.number, url: issue.html_url, label: GITHUB_LABEL, created_at: new Date().toISOString() };
+          await env.DB.prepare('UPDATE audit_events SET metadata = ? WHERE id = ?').bind(JSON.stringify({ ...metadata, githubIssue }), row.id).run();
+          return json({ githubIssue }, { status: 201 });
+        } catch (error) {
+          console.error('GitHub bug issue creation failed', error);
+          return json({ error: error.message || 'The GitHub issue could not be created.' }, { status: 502 });
+        }
+      }
+
+      const bugScreenshotMatch = url.pathname.match(/^\/api\/admin\/bug-reports\/([A-Za-z0-9-]+)\/screenshot$/);
+      if (bugScreenshotMatch && request.method === 'GET') {
+        const denied = siteAdminRequired(user);
+        if (denied) return denied;
+        const row = await env.DB.prepare(`
+          SELECT metadata
+          FROM audit_events
+          WHERE action = 'bug.reported' AND resource_id = ?
+          ORDER BY created_at DESC
+          LIMIT 1
+        `).bind(bugScreenshotMatch[1]).first();
+        const metadata = parseAuditMetadata(row?.metadata);
+        const key = String(metadata.screenshot?.key || '');
+        if (!row || !key.startsWith('bug-reports/') || !env.MEDIA) return new Response('Not found', { status: 404 });
+        const object = await env.MEDIA.get(key);
+        if (!object) return new Response('Not found', { status: 404 });
+        const headers = new Headers();
+        object.writeHttpMetadata(headers);
+        if (!headers.has('content-type') && metadata.screenshot.contentType) headers.set('content-type', metadata.screenshot.contentType);
+        headers.set('content-disposition', `inline; filename="${inlineFilename(metadata.screenshot.filename)}"`);
+        headers.set('cache-control', 'private, no-store');
+        headers.set('x-content-type-options', 'nosniff');
+        return new Response(object.body, { headers });
+      }
+
+      if (url.pathname.startsWith('/api/admin/bug-reports/') && request.method === 'DELETE') {
+        const reportId = decodeURIComponent(url.pathname.slice('/api/admin/bug-reports/'.length));
+        const denied = siteAdminRequired(user);
+        if (denied) return denied;
+        const row = await env.DB.prepare(`
+          SELECT id, household_id, metadata
+          FROM audit_events
+          WHERE action = 'bug.reported' AND resource_id = ?
+          ORDER BY created_at DESC
+          LIMIT 1
+        `).bind(reportId).first();
+        if (!row) return json({ error: 'Bug report not found.' }, { status: 404 });
+        const metadata = parseAuditMetadata(row.metadata);
+        const key = String(metadata.screenshot?.key || '');
+        if (key.startsWith('bug-reports/') && env.MEDIA) await env.MEDIA.delete(key);
+        await env.DB.prepare('DELETE FROM audit_events WHERE id = ?').bind(row.id).run();
+        await recordAudit(env, {
+          userId: user.id,
+          householdId: user.household_id,
+          action: 'bug.deleted',
+          resourceType: 'bug_report',
+          resourceId: reportId,
+          metadata: { title: metadata.title || null },
+        });
+        return json({ deleted: reportId });
       }
 
       if (url.pathname === '/api/auth/resend-verification' && request.method === 'POST') {
@@ -2353,8 +2505,7 @@ async function handleFetch(request, env, ctx) {
           LIMIT 20
         `).all()).results || [];
         const bugReports = bugRows.map(row => {
-          let metadata = {};
-          try { metadata = JSON.parse(row.metadata || '{}'); } catch { /* Keep the report visible if metadata is malformed. */ }
+          const metadata = parseAuditMetadata(row.metadata);
           return {
             id: row.id,
             report_id: row.resource_id,
@@ -2575,10 +2726,19 @@ async function handleFetch(request, env, ctx) {
           invitationId = crypto.randomUUID();
           const rawToken = randomToken();
           const expiresAt = new Date(Date.now() + 7 * 86400 * 1000).toISOString();
-          await env.DB.prepare(`
+          const createdInvitation = await env.DB.prepare(`
             INSERT INTO invitations (id, household_id, email, token_hash, role, invited_by, expires_at)
-            VALUES (?, ?, ?, ?, 'member', ?, ?)
-          `).bind(invitationId, user.household_id, email, await sha256(rawToken), user.id, expiresAt).run();
+            SELECT ?, ?, ?, ?, 'member', ?, ?
+            WHERE (
+              (SELECT COUNT(*) FROM household_members WHERE household_id = ?)
+              + (SELECT COUNT(*) FROM invitations WHERE household_id = ? AND accepted_at IS NULL AND datetime(expires_at) > CURRENT_TIMESTAMP)
+            ) < 2
+            RETURNING id
+          `).bind(invitationId, user.household_id, email, await sha256(rawToken), user.id, expiresAt, user.household_id, user.household_id).first();
+          if (!createdInvitation) {
+            await releaseIdempotency(env, idempotency);
+            return json({ error: 'This memory site already has its owner and one additional user.' }, { status: 409 });
+          }
           const invitation = { id: invitationId, email, household_name: user.household_name, inviter_name: user.display_name || user.email };
           try { await sendInvitationEmail(env, request, invitation, rawToken); }
           catch (error) {
@@ -2613,10 +2773,20 @@ async function handleFetch(request, env, ctx) {
           return json({ error: 'Sign in with the email address that received this invitation.' }, { status: 403 });
         }
         try {
-          await env.DB.batch([
-            env.DB.prepare('INSERT OR IGNORE INTO household_members (household_id, user_id, role) VALUES (?, ?, ?)').bind(invitation.household_id, user.id, invitation.role),
-            env.DB.prepare('UPDATE invitations SET accepted_at = CURRENT_TIMESTAMP WHERE id = ?').bind(invitation.id),
-          ]);
+          const existingMembership = await env.DB.prepare('SELECT 1 FROM household_members WHERE household_id = ? AND user_id = ? LIMIT 1').bind(invitation.household_id, user.id).first();
+          if (!existingMembership) {
+            const membership = await env.DB.prepare(`
+              INSERT INTO household_members (household_id, user_id, role)
+              SELECT ?, ?, ?
+              WHERE (SELECT COUNT(*) FROM household_members WHERE household_id = ?) < 2
+              RETURNING household_id
+            `).bind(invitation.household_id, user.id, invitation.role, invitation.household_id).first();
+            if (!membership) {
+              await releaseIdempotency(env, idempotency);
+              return json({ error: 'This memory site already has its owner and one additional user.' }, { status: 409 });
+            }
+          }
+          await env.DB.prepare('UPDATE invitations SET accepted_at = CURRENT_TIMESTAMP WHERE id = ?').bind(invitation.id).run();
           const responseBody = { success: true, active_household_id: invitation.household_id, households: await userHouseholds(env, user.id) };
           await completeIdempotency(env, idempotency, responseBody, 200);
           const session = await rotateCurrentSession(env, user, invitation.household_id);

@@ -552,6 +552,18 @@ class ApiClient {
     return this.request('/admin/operations');
   }
 
+  getBugReportScreenshotUrl(reportId) {
+    return `${this.baseUrl}/admin/bug-reports/${encodeURIComponent(reportId)}/screenshot`;
+  }
+
+  async deleteBugReport(reportId) {
+    return this.request(`/admin/bug-reports/${encodeURIComponent(reportId)}`, { method: 'DELETE' });
+  }
+
+  async pushBugReportToGitHub(reportId) {
+    return this.request(`/admin/bug-reports/${encodeURIComponent(reportId)}/github-issue`, { method: 'POST' });
+  }
+
   async submitBugReport(report) {
     const body = new FormData();
     body.set('title', report.title);

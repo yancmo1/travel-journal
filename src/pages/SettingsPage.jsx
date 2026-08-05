@@ -97,7 +97,7 @@ export default function SettingsPage({ setPage, setTravelerFilter }) {
           {section === 'people' && (
             <PeoplePage setPage={setPage} setTravelerFilter={setTravelerFilter} />
           )}
-          {section === 'access' && <AccountAccessPanel setPage={setPage} />}
+          {section === 'access' && <AccountAccessPanel />}
           {section === 'cleanup' && <CleanupPage />}
         </main>
       </div>

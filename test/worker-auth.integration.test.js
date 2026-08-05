@@ -130,6 +130,58 @@ test('beta tester invitations create an isolated owner site', async () => {
   DB.close();
 });
 
+test('memory sites allow only one additional family member', async () => {
+  const DB = createD1Database();
+  const MEDIA = new MemoryR2();
+  const passwordHash = bcrypt.hashSync('correct horse battery staple', 4);
+  await DB.batch([
+    DB.prepare('INSERT INTO users (username, email, email_verified_at, password_hash, display_name) VALUES (?, ?, CURRENT_TIMESTAMP, ?, ?)').bind('owner', 'owner@example.com', passwordHash, 'Owner'),
+    DB.prepare('INSERT INTO households (slug, name) VALUES (?, ?)').bind('family', 'Family'),
+    DB.prepare('INSERT INTO household_members (household_id, user_id, role) VALUES (1, 1, ?)').bind('owner'),
+  ]);
+  const env = { DB, MEDIA, RESEND_API_KEY: 'test-key', EMAIL_FROM: 'postcards@example.com' };
+  const login = await worker.fetch(request('/api/auth/login', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ email: 'owner@example.com', password: 'correct horse battery staple' }),
+  }), env, context());
+  const cookie = cookieFrom(login);
+  const originalFetch = globalThis.fetch;
+  let invitationLink;
+  globalThis.fetch = async (_url, options) => {
+    const body = JSON.parse(options.body);
+    invitationLink = body.text.match(/https?:\/\/\S+/)[0];
+    return new Response(JSON.stringify({ id: 'email-1' }), { status: 200, headers: { 'content-type': 'application/json' } });
+  };
+  try {
+    const invitation = await worker.fetch(request('/api/households/invitations', {
+      method: 'POST',
+      headers: { cookie, 'content-type': 'application/json', 'idempotency-key': 'family-invite-1' },
+      body: JSON.stringify({ email: 'family@example.com' }),
+    }), env, context());
+    assert.equal(invitation.status, 201);
+
+    const registration = await worker.fetch(request('/api/auth/register-invite', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'idempotency-key': 'family-register-1' },
+      body: JSON.stringify({ token: new URL(invitationLink).searchParams.get('invite'), displayName: 'Family Member', password: 'another secure phrase' }),
+    }), env, context());
+    assert.equal(registration.status, 201);
+
+    const blocked = await worker.fetch(request('/api/households/invitations', {
+      method: 'POST',
+      headers: { cookie, 'content-type': 'application/json', 'idempotency-key': 'family-invite-2' },
+      body: JSON.stringify({ email: 'third-person@example.com' }),
+    }), env, context());
+    assert.equal(blocked.status, 409);
+    assert.match((await blocked.json()).error, /one additional user/i);
+    assert.equal(Number((await DB.prepare('SELECT COUNT(*) AS count FROM household_members WHERE household_id = 1').first()).count), 2);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+  DB.close();
+});
+
 test('password recovery uses a generic response, rotates sessions, and consumes the token', async () => {
   const DB = createD1Database();
   const MEDIA = new MemoryR2();

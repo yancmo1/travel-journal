@@ -35,6 +35,8 @@ services:
       - RESEND_API_KEY=${RESEND_API_KEY:-}
       - EMAIL_FROM=${EMAIL_FROM:-Postcards of Us <postcards@mail.postcardsofus.com>}
       - BUG_REPORT_TO=${BUG_REPORT_TO:-bugs@postcardsofus.com}
+      - GITHUB_TOKEN=${GITHUB_TOKEN:-}
+      - GITHUB_REPOSITORY=${GITHUB_REPOSITORY:-yancmo1/travel-journal}
       - BACKUP_STATUS_PATH=/app/maintenance/backup-status.json
       - BACKUP_STALE_AFTER_HOURS=${BACKUP_STALE_AFTER_HOURS:-30}
       - GRAFANA_URL=${GRAFANA_URL:-}
