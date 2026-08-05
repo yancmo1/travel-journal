@@ -557,7 +557,7 @@ async function githubJson(env, path, options = {}) {
   return body;
 }
 
-function githubIssueBody(reportId, metadata) {
+function githubIssueBody(reportId, metadata, screenshotLink = null) {
   return [
     'Submitted from the Postcards of Us Feedback inbox.',
     '',
@@ -571,7 +571,9 @@ function githubIssueBody(reportId, metadata) {
     `- URL: ${metadata.url || 'Not available'}`,
     `- App version: ${metadata.appVersion || 'Not available'}`,
     `- Browser: ${metadata.userAgent || 'Not available'}`,
-    metadata.screenshot?.filename ? `- Screenshot: ${metadata.screenshot.filename} (available in the private Operations inbox)` : '- Screenshot: None attached',
+    metadata.screenshot?.filename
+      ? `- Screenshot: [${metadata.screenshot.filename}](${screenshotLink}) (private Operations access required)`
+      : '- Screenshot: None attached',
   ].join('\n');
 }
 
@@ -2271,7 +2273,7 @@ async function handleFetch(request, env, ctx) {
             method: 'POST',
             body: JSON.stringify({
               title: `[Postcards] ${String(metadata.title || 'Bug report').slice(0, 120)}`,
-              body: githubIssueBody(reportId, metadata),
+              body: githubIssueBody(reportId, metadata, metadata.screenshot?.filename ? new URL(`/api/admin/bug-reports/${encodeURIComponent(reportId)}/screenshot`, url.origin).href : null),
               labels: [GITHUB_LABEL],
             }),
           });

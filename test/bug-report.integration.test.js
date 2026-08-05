@@ -106,6 +106,7 @@ test('authenticated users can submit bug reports and admins can review them', as
   }
   assert.equal(githubRequests.length, 1);
   assert.deepEqual(githubRequests[0].body.labels, ['Bug Report']);
+  assert.match(githubRequests[0].body.body, new RegExp(`\\[memory-error\\.png\\]\\(https://postcards\\.test/api/admin/bug-reports/${reportBody.id}/screenshot\\)`));
 
   const deleted = await worker.fetch(request(`/api/admin/bug-reports/${reportBody.id}`, { method: 'DELETE', headers: { cookie } }), { DB, MEDIA }, context());
   assert.equal(deleted.status, 200);

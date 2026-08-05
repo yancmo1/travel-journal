@@ -46,7 +46,13 @@ async function githubJson(path, options = {}) {
   return body;
 }
 
-function githubIssueBody(report) {
+function screenshotUrl(req, reportId) {
+  const configuredOrigin = String(process.env.PUBLIC_APP_URL || req.get('origin') || '').trim().replace(/\/+$/, '');
+  const origin = configuredOrigin || `${req.get('x-forwarded-proto') || req.protocol}://${req.get('host')}`;
+  return `${origin}/api/admin/bug-reports/${encodeURIComponent(reportId)}/screenshot`;
+}
+
+function githubIssueBody(report, screenshotLink = null) {
   return [
     'Submitted from the Postcards of Us Feedback inbox.',
     '',
@@ -61,7 +67,9 @@ function githubIssueBody(report) {
     `- App version: ${report.app_version || 'Not available'}`,
     `- Browser: ${report.user_agent || 'Not available'}`,
     `- Reported by user ID: \`${report.user_id || 'Not available'}\``,
-    report.screenshot_filename ? `- Screenshot: ${report.screenshot_filename} (available in the private Operations inbox)` : '- Screenshot: None attached',
+    report.screenshot_filename
+      ? `- Screenshot: [${report.screenshot_filename}](${screenshotLink}) (private Operations access required)`
+      : '- Screenshot: None attached',
   ].join('\n');
 }
 
@@ -123,7 +131,7 @@ router.post('/bug-reports/:reportId/github-issue', async (req, res, next) => {
       method: 'POST',
       body: JSON.stringify({
         title: `[Postcards] ${report.title}`,
-        body: githubIssueBody(report),
+        body: githubIssueBody(report, report.screenshot_filename ? screenshotUrl(req, report.id) : null),
         labels: [GITHUB_LABEL],
       }),
     });

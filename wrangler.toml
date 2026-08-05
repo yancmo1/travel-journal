@@ -1,4 +1,4 @@
-name = "travel-journal"
+name = "postcardsofus"
 main = "dist/server/index.js"
 compatibility_date = "2026-08-03"
 workers_dev = true
