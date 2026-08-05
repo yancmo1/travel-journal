@@ -12,9 +12,10 @@ router.get('/', async (req, res, next) => {
       FROM trips t
       LEFT JOIN trip_travelers tt ON t.id = tt.trip_id
       LEFT JOIN travelers tr ON tt.traveler_id = tr.id
+      WHERE t.created_by = $1
       GROUP BY t.id
       ORDER BY t.start_date DESC
-    `);
+    `, [req.user.id]);
 
     const allTrips = trips.rows;
     const now = new Date();
@@ -115,7 +116,14 @@ router.get('/', async (req, res, next) => {
     });
 
     // Traveler breakdowns
-    const travelers = await query('SELECT * FROM travelers');
+    const travelers = await query(`
+      SELECT DISTINCT tr.*
+      FROM travelers tr
+      LEFT JOIN trip_travelers tt ON tt.traveler_id = tr.id
+      LEFT JOIN trips owned_trip ON owned_trip.id = tt.trip_id AND owned_trip.created_by = $1
+      WHERE tr.created_by = $1 OR owned_trip.id IS NOT NULL
+      ORDER BY tr.created_at
+    `, [req.user.id]);
     const travelerBreakdown = {};
     
     travelers.rows.forEach(tr => {

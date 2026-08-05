@@ -182,7 +182,7 @@ export default function DataBackupPanel() {
   }
 
   return (
-    <section className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+    <section className="settings-card settings-backup-card rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <p className="memory-eyebrow">Safety net</p>

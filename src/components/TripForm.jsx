@@ -448,8 +448,8 @@ export default function TripForm({ trip, onClose }) {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[1500]">
-      <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-auto">
+    <div className="memory-form-modal fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[1500]">
+      <div className="memory-form-shell bg-white rounded-xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-auto">
         {/* Header */}
         <div className="p-6 bg-gradient-to-r from-ocean-blue to-ocean-dark rounded-t-xl">
           <div className="flex items-center justify-between">

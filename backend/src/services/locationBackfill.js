@@ -1,7 +1,7 @@
 import { query } from '../utils/db.js';
 import { reverseGeocode } from '../utils/geocoding.js';
 
-export async function getLocationBackfillCandidates() {
+export async function getLocationBackfillCandidates(userId) {
   const result = await query(`
     SELECT DISTINCT ON (t.id)
       t.id AS trip_id,
@@ -14,7 +14,8 @@ export async function getLocationBackfillCandidates() {
       p.date_taken
     FROM trips t
     JOIN photos p ON p.trip_id = t.id
-    WHERE p.latitude IS NOT NULL
+    WHERE t.created_by = $1
+      AND p.latitude IS NOT NULL
       AND p.longitude IS NOT NULL
       AND (
         t.location_name IS NULL
@@ -22,13 +23,13 @@ export async function getLocationBackfillCandidates() {
         OR LOWER(t.location_name) LIKE 'unknown%'
       )
     ORDER BY t.id, p.date_taken NULLS LAST, p.id
-  `);
+    `, [userId]);
 
   return result.rows;
 }
 
-export async function backfillPhotoLocations() {
-  const candidates = await getLocationBackfillCandidates();
+export async function backfillPhotoLocations(userId) {
+  const candidates = await getLocationBackfillCandidates(userId);
   const updated = [];
   const skipped = [];
 
@@ -51,7 +52,7 @@ export async function backfillPhotoLocations() {
         latitude = COALESCE(latitude, $5),
         longitude = COALESCE(longitude, $6),
         updated_at = CURRENT_TIMESTAMP
-      WHERE id = $7
+      WHERE id = $7 AND created_by = $8
         AND (
           location_name IS NULL
           OR BTRIM(location_name) = ''
@@ -66,6 +67,7 @@ export async function backfillPhotoLocations() {
       latitude,
       longitude,
       candidate.trip_id,
+      userId,
     ]);
 
     if (result.rows.length) {

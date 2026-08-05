@@ -4,12 +4,14 @@ import CleanupPage from './CleanupPage';
 import PeoplePage from './PeoplePage';
 import { APP_VERSION } from '../config/app';
 import AccountAccessPanel from '../components/AccountAccessPanel';
+import StyleGuidePage from './StyleGuidePage';
 
 const SECTIONS = [
   { id: 'overview', label: 'Settings', description: 'Your data and app details', icon: '⚙' },
   { id: 'people', label: 'People', description: 'Manage family members and relationships', icon: '♧' },
   { id: 'access', label: 'Family access', description: 'Accounts, invitations, and memory sites', icon: '◇' },
   { id: 'cleanup', label: 'Clean up', description: 'Review incomplete or duplicate memories', icon: '✓' },
+  { id: 'style-guide', label: 'Style guide', description: 'The visual system and CSS tokens', icon: '✦' },
 ];
 
 export default function SettingsPage({ setPage, setTravelerFilter }) {
@@ -32,6 +34,7 @@ export default function SettingsPage({ setPage, setTravelerFilter }) {
               key={item.id}
               type="button"
               onClick={() => setSection(item.id)}
+              title={item.description}
               className={section === item.id ? 'is-active' : ''}
               aria-current={section === item.id ? 'page' : undefined}
             >
@@ -51,6 +54,7 @@ export default function SettingsPage({ setPage, setTravelerFilter }) {
           )}
           {section === 'access' && <AccountAccessPanel />}
           {section === 'cleanup' && <CleanupPage />}
+          {section === 'style-guide' && <StyleGuidePage />}
         </main>
       </div>
     </div>
@@ -59,10 +63,10 @@ export default function SettingsPage({ setPage, setTravelerFilter }) {
 
 function SettingsOverview() {
   return (
-    <div className="space-y-6">
+    <div className="settings-overview space-y-6">
       <DataBackupPanel />
 
-      <section className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+      <section className="settings-about-card rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
         <p className="memory-eyebrow">About this app</p>
         <div className="mt-3 flex flex-wrap items-end justify-between gap-4">
           <div>

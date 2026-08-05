@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { Trash2 } from 'lucide-react';
 import { useData } from '../context/DataContext';
 import { sortTravelers } from '../utils/travelers';
 
@@ -19,7 +20,7 @@ function emptyDraft() {
 }
 
 export default function PeoplePage({ setPage, setTravelerFilter }) {
-  const { travelers, trips, addTraveler, updateTraveler, loadTravelers } = useData();
+  const { travelers, trips, addTraveler, updateTraveler, deleteTraveler, loadTravelers } = useData();
   const [newPerson, setNewPerson] = useState(emptyDraft);
   const [drafts, setDrafts] = useState({});
   const [savingId, setSavingId] = useState(null);
@@ -95,6 +96,27 @@ export default function PeoplePage({ setPage, setTravelerFilter }) {
     }
   }
 
+  async function removePerson(person) {
+    const count = memoryCounts.get(person.id) || 0;
+    const memoryNote = count > 0
+      ? ` This will remove ${count} ${count === 1 ? 'memory association' : 'memory associations'} but will not delete the memories themselves.`
+      : '';
+    if (!window.confirm(`Delete ${person.name}?${memoryNote} This cannot be undone.`)) return;
+
+    setSavingId(person.id);
+    setMessage('');
+    setError('');
+    try {
+      await deleteTraveler(person.id);
+      setMessage(`${person.name} was deleted.`);
+    } catch (err) {
+      setError(err.message || 'That person could not be deleted.');
+      await loadTravelers({ includeInactive: true });
+    } finally {
+      setSavingId(null);
+    }
+  }
+
   async function createPerson(event) {
     event.preventDefault();
     if (!newPerson.name.trim()) return;
@@ -132,8 +154,8 @@ export default function PeoplePage({ setPage, setTravelerFilter }) {
     }
 
     return (
-      <article key={person.id} className={`bg-white rounded-2xl border p-5 shadow-sm ${isActive ? 'border-gray-100' : 'border-dashed border-gray-300 opacity-85'}`}>
-        <div className="flex items-start justify-between gap-3 mb-4">
+      <article key={person.id} className={`people-card bg-white rounded-2xl border p-5 shadow-sm ${isActive ? 'border-gray-100' : 'border-dashed border-gray-300 opacity-85'}`}>
+        <div className="people-card-header flex items-start justify-between gap-3 mb-4">
           <div>
             <p className="text-xs uppercase tracking-[0.16em] text-gray-400">{isActive ? 'Active person' : 'Inactive person'}</p>
             <p className="mt-1 text-sm text-gray-500">{count} {count === 1 ? 'memory' : 'memories'}</p>
@@ -143,7 +165,7 @@ export default function PeoplePage({ setPage, setTravelerFilter }) {
           </span>
         </div>
 
-        <div className="space-y-3">
+        <div className="people-card-fields space-y-3">
           <label className="block text-sm font-medium text-gray-700">
             Name
             <input
@@ -164,7 +186,7 @@ export default function PeoplePage({ setPage, setTravelerFilter }) {
           </label>
         </div>
 
-        <div className="mt-5 flex flex-wrap gap-2">
+        <div className="people-card-actions mt-5 flex flex-wrap gap-2">
           <button
             type="button"
             onClick={() => savePerson(person)}
@@ -188,13 +210,22 @@ export default function PeoplePage({ setPage, setTravelerFilter }) {
           >
             View memories
           </button>
+          <button
+            type="button"
+            onClick={() => removePerson(person)}
+            disabled={savingId === person.id}
+            className="people-delete-button rounded-lg border border-red-200 px-4 py-2 text-sm font-semibold text-red-700 transition hover:border-red-300 hover:bg-red-50 disabled:opacity-50"
+          >
+            <Trash2 aria-hidden="true" />
+            Delete
+          </button>
         </div>
       </article>
     );
   }
 
   return (
-    <div className="mx-auto max-w-6xl space-y-7 px-4 py-8 sm:px-6 lg:px-8">
+    <div className="settings-people mx-auto max-w-6xl space-y-7 px-4 py-8 sm:px-6 lg:px-8">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sunset-orange">Family manager</p>

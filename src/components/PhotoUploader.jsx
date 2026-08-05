@@ -2,6 +2,16 @@ import { useEffect, useState, useRef } from 'react';
 import { Upload, X, Image as ImageIcon, CheckCircle, AlertCircle } from 'lucide-react';
 import api from '../utils/api';
 
+function isImageFile(file) {
+  const extension = file.name?.split('.').pop()?.toLowerCase();
+  return file.type.startsWith('image/') || extension === 'heic' || extension === 'heif';
+}
+
+function isHeicFile(file) {
+  const extension = file.name?.split('.').pop()?.toLowerCase();
+  return extension === 'heic' || extension === 'heif' || ['image/heic', 'image/heif'].includes(file.type.toLowerCase());
+}
+
 export default function PhotoUploader({ tripId, onUploadComplete, showAnalyzer = false, customUploadHandler }) {
   const [isDragging, setIsDragging] = useState(false);
   const [files, setFiles] = useState([]);
@@ -26,9 +36,7 @@ export default function PhotoUploader({ tripId, onUploadComplete, showAnalyzer =
   // Handle file selection
   const handleFiles = (selectedFiles) => {
     const fileArray = Array.from(selectedFiles);
-    const validFiles = fileArray.filter(file => 
-      file.type.startsWith('image/')
-    );
+    const validFiles = fileArray.filter(isImageFile);
 
     if (validFiles.length === 0) {
       setError('Please choose one or more image files. JPEG, PNG, and HEIC are supported.');
@@ -44,6 +52,17 @@ export default function PhotoUploader({ tripId, onUploadComplete, showAnalyzer =
     // Generate previews
     const previewPromises = validFiles.map(file => {
       return new Promise((resolve) => {
+        if (isHeicFile(file)) {
+          resolve({
+            file,
+            url: null,
+            name: file.name,
+            size: (file.size / 1024 / 1024).toFixed(2) + ' MB',
+            heic: true,
+          });
+          return;
+        }
+
         const reader = new FileReader();
         reader.onload = (e) => resolve({
           file,
@@ -248,11 +267,19 @@ export default function PhotoUploader({ tripId, onUploadComplete, showAnalyzer =
           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
             {previews.map((preview, index) => (
               <div key={index} className="relative group">
-                <img
-                  src={preview.url}
-                  alt={preview.name}
-                  className="w-full h-24 object-cover rounded-lg border border-gray-200"
-                />
+                {preview.url ? (
+                  <img
+                    src={preview.url}
+                    alt={preview.name}
+                    className="w-full h-24 object-cover rounded-lg border border-gray-200"
+                  />
+                ) : (
+                  <div className="flex h-24 w-full flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-ocean-teal/40 bg-ocean-teal/10 px-2 text-center text-ocean-dark">
+                    <ImageIcon className="h-6 w-6" aria-hidden="true" />
+                    <span className="text-[10px] font-semibold uppercase tracking-wide">HEIC</span>
+                    <span className="text-[9px] leading-tight">Converts to JPEG on upload</span>
+                  </div>
+                )}
                 <button
                   onClick={(e) => {
                     e.stopPropagation();

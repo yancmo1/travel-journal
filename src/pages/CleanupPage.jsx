@@ -183,7 +183,7 @@ export default function CleanupPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="settings-cleanup space-y-6">
       <header className="flex flex-col gap-2">
         <p className="memory-eyebrow">Tidy the collection</p>
         <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3">

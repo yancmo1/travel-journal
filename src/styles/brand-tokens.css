@@ -1,0 +1,42 @@
+:root {
+  /* Postcards of Us — canonical brand tokens.
+     Keep the visual system here; components should consume these variables. */
+  --brand-forest-950: #0f3028;
+  --brand-forest-900: #12392f;
+  --brand-forest-800: #173c31;
+  --brand-forest-700: #23493b;
+  --brand-forest-500: #5d6e66;
+
+  --brand-paper-50: #fffdf5;
+  --brand-paper-100: #f8efd9;
+  --brand-paper-200: #f7f1e5;
+  --brand-paper-300: #e8dfc9;
+  --brand-paper-400: #d8c9a8;
+
+  --brand-terracotta-700: #8e3d23;
+  --brand-terracotta-600: #9e492c;
+  --brand-terracotta-500: #b95835;
+  --brand-terracotta-200: #f0d7ae;
+
+  --brand-brass-700: #8e6a32;
+  --brand-brass-500: #bfa477;
+
+  --brand-border: rgba(34, 69, 57, .28);
+  --brand-border-strong: rgba(34, 69, 57, .38);
+  --brand-shadow: 0 8px 22px rgba(42, 69, 57, .10);
+  --brand-shadow-paper: 0 7px 0 rgba(175, 141, 83, .12), 0 14px 26px rgba(55, 74, 59, .08);
+
+  --brand-font-display: 'Playfair Display', Georgia, serif;
+  --brand-font-body: 'DM Sans', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+
+  --brand-radius-sm: 4px;
+  --brand-radius-md: 7px;
+  --brand-radius-lg: 9px;
+  --brand-space-1: 4px;
+  --brand-space-2: 8px;
+  --brand-space-3: 12px;
+  --brand-space-4: 16px;
+  --brand-space-5: 24px;
+  --brand-space-6: 32px;
+  --brand-space-7: 48px;
+}

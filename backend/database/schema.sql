@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS travelers (
   name VARCHAR(100) NOT NULL,
   relationship VARCHAR(50) DEFAULT 'other', -- 'husband', 'wife', 'child', 'grandchild', 'other'
   is_active BOOLEAN DEFAULT true,
+  created_by INT REFERENCES users(id),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -91,6 +92,9 @@ CREATE INDEX IF NOT EXISTS idx_trips_start_date ON trips(start_date);
 CREATE INDEX IF NOT EXISTS idx_trips_location ON trips(location_name);
 CREATE INDEX IF NOT EXISTS idx_trips_type ON trips(trip_type);
 CREATE INDEX IF NOT EXISTS idx_trips_journey_id ON trips(journey_id);
+CREATE INDEX IF NOT EXISTS idx_trips_created_by ON trips(created_by);
+CREATE INDEX IF NOT EXISTS idx_journeys_created_by ON journeys(created_by);
+CREATE INDEX IF NOT EXISTS idx_travelers_created_by ON travelers(created_by);
 CREATE INDEX IF NOT EXISTS idx_photos_trip_id ON photos(trip_id);
 CREATE INDEX IF NOT EXISTS idx_trip_travelers_trip ON trip_travelers(trip_id);
 CREATE INDEX IF NOT EXISTS idx_trip_travelers_traveler ON trip_travelers(traveler_id);

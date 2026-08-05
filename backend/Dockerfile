@@ -9,7 +9,8 @@ RUN apk add --no-cache \
     fftw-dev \
     build-base \
     python3 \
-    libheif-dev
+    libheif-dev \
+    libheif-tools
 
 COPY package*.json ./
 RUN npm install --omit=dev

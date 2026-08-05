@@ -29,7 +29,7 @@ export default function AccountAccessPanel() {
     finally { setWorking(''); }
   }
 
-  return <div className="space-y-6">
+  return <div className="settings-section-stack settings-access space-y-6">
     <section className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
       <p className="memory-eyebrow">Your account</p>
       <h2 className="mt-1 text-xl font-semibold text-ocean-dark">Secure email identity</h2>

@@ -57,7 +57,7 @@ services:
       dockerfile: Dockerfile
       args:
         - VITE_API_URL=/api
-        - VITE_LEGACY_BEARER_AUTH=${VITE_LEGACY_BEARER_AUTH:-true}
+        - VITE_LEGACY_BEARER_AUTH=${VITE_LEGACY_BEARER_AUTH:-false}
     restart: unless-stopped
     ports:
       - "3080:80"

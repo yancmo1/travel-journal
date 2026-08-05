@@ -30,16 +30,17 @@ export default function MapView({ trips = [], onSelectTrip, showRoutes = false, 
   useEffect(() => {
     if (mapRef.current || !mapContainer.current) return;
     
-    // Initialize map centered on Oklahoma City
+    // Start with a quiet world view so an empty atlas still feels like a map
+    // of a life well traveled. Once memories exist, the map fits their bounds.
     const map = L.map(mapContainer.current, {
-      center: [35.4676, -97.5164],
-      zoom: 4,
+      center: [25, 0],
+      zoom: 2,
       scrollWheelZoom: true,
     });
     mapRef.current = map;
 
-    // Ocean-themed tile layer
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+    // Free, no-key CARTO Positron tiles keep the map legible and quiet beneath the memories.
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
       attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
       subdomains: 'abcd',
       maxZoom: 19,
@@ -48,8 +49,8 @@ export default function MapView({ trips = [], onSelectTrip, showRoutes = false, 
     // Home marker (Oklahoma City)
     const homeIcon = L.divIcon({
       className: 'custom-marker',
-      html: `<div style="background: #1E3A8A; width: 20px; height: 20px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 6px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center;">
-        <span style="color: white; font-size: 10px;">🏠</span>
+      html: `<div style="background: #12392f; width: 22px; height: 22px; border-radius: 50%; border: 3px solid #fff9ec; box-shadow: 0 2px 6px rgba(18,57,47,0.28); display: flex; align-items: center; justify-content: center;">
+        <span style="color: #fff9ec; font: 600 10px Georgia, serif;">H</span>
       </div>`,
       iconSize: [20, 20],
       iconAnchor: [10, 10],
@@ -129,12 +130,12 @@ export default function MapView({ trips = [], onSelectTrip, showRoutes = false, 
 
     // Add markers
     tripsWithCoords.forEach((trip, index) => {
-      const color = tripTypeColors[trip.trip_type] || tripTypeColors['Other'];
+      const color = '#b95835';
       
       const icon = L.divIcon({
         className: 'custom-marker',
-        html: `<div style="background: ${color}; width: 24px; height: 24px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 6px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; cursor: pointer;">
-          <span style="color: white; font-size: 12px; font-weight: bold;">${index + 1}</span>
+        html: `<div style="background: ${color}; width: 25px; height: 25px; border-radius: 50%; border: 3px solid #fff9ec; box-shadow: 0 2px 6px rgba(18,57,47,0.28); display: flex; align-items: center; justify-content: center; cursor: pointer;">
+          <span style="color: #fff9ec; font-size: 12px; font-weight: bold;">${index + 1}</span>
         </div>`,
         iconSize: [24, 24],
         iconAnchor: [12, 12],

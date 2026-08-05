@@ -48,6 +48,8 @@ export function AuthProvider({ children }) {
         else setUser(null);
         setOffline(true);
       } else {
+        // The local Docker API uses stateless JWTs and has no logout endpoint.
+        // Clear the browser token without making a second failing request.
         api.logout();
         setUser(null);
         setHouseholds([]);

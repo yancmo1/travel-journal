@@ -9,6 +9,7 @@ status: active
 - [[40 UX/Information Architecture|Information Architecture]]
 - [[40 UX/Onboarding Flow|Onboarding Flow]]
 - [[40 UX/Copy Deck|Copy Deck]]
+- [[40 UX/Brand Book|Brand Book]]
 - [[20 Product/Beta Scope|Beta scope]]
 - [[30 Research/Beta Feedback Tracker|Beta feedback tracker]]
 

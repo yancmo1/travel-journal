@@ -70,8 +70,8 @@ export default function MemoryPhotosModal({ memory, onClose }) {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-3 z-[1600]">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-5xl w-full max-h-[94vh] overflow-auto">
+    <div className="memory-photos-modal fixed inset-0 bg-black/60 flex items-center justify-center p-3 z-[1600]">
+      <div className="memory-photos-shell bg-white rounded-2xl shadow-2xl max-w-5xl w-full max-h-[94vh] overflow-auto">
         <div className="photo-modal-heading">
           <div>
             <p className="memory-eyebrow">Photos from</p>

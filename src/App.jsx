@@ -16,6 +16,7 @@ import ResetPasswordPage from './pages/ResetPasswordPage';
 import VerifyEmailPage from './pages/VerifyEmailPage';
 import PwaStatus from './components/PwaStatus';
 import PullToRefresh from './components/PullToRefresh';
+import paperBackground from '../assets/travel-paper-background.webp';
 
 function AppContent() {
   const { user, loading } = useAuth();
@@ -47,7 +48,10 @@ function AppContent() {
 
   return (
     <DataProvider>
-      <div className="min-h-screen app-shell">
+      <div
+        className="min-h-screen app-shell"
+        style={{ '--paper-background-art': `url(${paperBackground})` }}
+      >
         <Header currentPage={page} setPage={setPage} />
         <PwaStatus />
         <PullToRefresh />

@@ -66,7 +66,7 @@ router.get('/temp/:filename', async (req, res, next) => {
 // Find photo-backed memories that still need place names.
 router.get('/location-backfill', async (req, res, next) => {
   try {
-    const candidates = await getLocationBackfillCandidates();
+    const candidates = await getLocationBackfillCandidates(req.user.id);
     res.json({
       count: candidates.length,
       candidates: candidates.map(candidate => ({
@@ -85,7 +85,7 @@ router.get('/location-backfill', async (req, res, next) => {
 // Safely fill only blank/unknown places, one lookup at a time.
 router.post('/location-backfill', async (req, res, next) => {
   try {
-    res.json(await backfillPhotoLocations());
+      res.json(await backfillPhotoLocations(req.user.id));
   } catch (err) {
     next(err);
   }
@@ -339,7 +339,7 @@ router.post('/:tripId', upload.array('photos', 50), async (req, res, next) => {
     }
 
     // Verify trip exists
-    const tripCheck = await query('SELECT id FROM trips WHERE id = $1', [tripId]);
+    const tripCheck = await query('SELECT id FROM trips WHERE id = $1 AND created_by = $2', [tripId, req.user.id]);
     if (tripCheck.rows.length === 0) {
       return res.status(404).json({ error: 'Trip not found' });
     }
@@ -433,9 +433,9 @@ router.get('/:tripId', async (req, res, next) => {
     const { tripId } = req.params;
     const result = await query(`
       SELECT * FROM photos
-      WHERE trip_id = $1
+      WHERE trip_id = $1 AND EXISTS (SELECT 1 FROM trips t WHERE t.id = photos.trip_id AND t.created_by = $2)
       ORDER BY is_cover DESC, sort_order ASC, date_taken NULLS LAST, uploaded_at, id
-    `, [tripId]);
+    `, [tripId, req.user.id]);
     res.json(result.rows);
   } catch (err) {
     next(err);
@@ -446,7 +446,11 @@ router.get('/:tripId', async (req, res, next) => {
 router.patch('/:id', async (req, res, next) => {
   try {
     const { id } = req.params;
-    const existingResult = await query('SELECT * FROM photos WHERE id = $1', [id]);
+    const existingResult = await query(`
+      SELECT p.* FROM photos p
+      JOIN trips t ON t.id = p.trip_id
+      WHERE p.id = $1 AND t.created_by = $2
+    `, [id, req.user.id]);
     if (!existingResult.rows.length) {
       return res.status(404).json({ error: 'Photo not found' });
     }
@@ -486,7 +490,11 @@ router.put('/:tripId/reorder', async (req, res, next) => {
     const photoIds = Array.isArray(req.body.photoIds)
       ? [...new Set(req.body.photoIds.map(Number).filter(id => Number.isInteger(id) && id > 0))]
       : [];
-    const existingResult = await query('SELECT id FROM photos WHERE trip_id = $1', [tripId]);
+    const existingResult = await query(`
+      SELECT p.id FROM photos p
+      JOIN trips t ON t.id = p.trip_id
+      WHERE p.trip_id = $1 AND t.created_by = $2
+    `, [tripId, req.user.id]);
     const existingIds = existingResult.rows.map(photo => photo.id).sort((a, b) => a - b);
     const requestedIds = [...photoIds].sort((a, b) => a - b);
 
@@ -500,9 +508,9 @@ router.put('/:tripId/reorder', async (req, res, next) => {
 
     const result = await query(`
       SELECT * FROM photos
-      WHERE trip_id = $1
+      WHERE trip_id = $1 AND EXISTS (SELECT 1 FROM trips t WHERE t.id = photos.trip_id AND t.created_by = $2)
       ORDER BY is_cover DESC, sort_order ASC, date_taken NULLS LAST, uploaded_at, id
-    `, [tripId]);
+    `, [tripId, req.user.id]);
     res.json(result.rows);
   } catch (err) {
     next(err);
@@ -514,7 +522,11 @@ router.delete('/:id', async (req, res, next) => {
   try {
     const { id } = req.params;
     
-    const result = await query('SELECT * FROM photos WHERE id = $1', [id]);
+    const result = await query(`
+      SELECT p.* FROM photos p
+      JOIN trips t ON t.id = p.trip_id
+      WHERE p.id = $1 AND t.created_by = $2
+    `, [id, req.user.id]);
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Photo not found' });
     }
@@ -531,7 +543,7 @@ router.delete('/:id', async (req, res, next) => {
       console.log('File deletion warning:', e.message);
     }
 
-    await query('DELETE FROM photos WHERE id = $1', [id]);
+    await query('DELETE FROM photos WHERE id = $1 AND EXISTS (SELECT 1 FROM trips t WHERE t.id = photos.trip_id AND t.created_by = $2)', [id, req.user.id]);
 
     res.json({ 
       success: true,

@@ -52,14 +52,15 @@ router.get('/', async (req, res, next) => {
           WHERE p2.trip_id = t.id
         ), '[]') AS photos
       FROM trips t
-      LEFT JOIN journeys j ON t.journey_id = j.id
+      LEFT JOIN journeys j ON t.journey_id = j.id AND j.created_by = $1
       LEFT JOIN trip_travelers tt ON t.id = tt.trip_id
       LEFT JOIN travelers tr ON tt.traveler_id = tr.id
     `;
     
     const conditions = [];
-    const params = [];
-    let paramIndex = 1;
+    const params = [req.user.id];
+    let paramIndex = 2;
+    conditions.push('t.created_by = $1');
 
     if (year) {
       conditions.push(`EXTRACT(YEAR FROM t.start_date) = $${paramIndex}`);
@@ -86,6 +87,9 @@ router.get('/', async (req, res, next) => {
     sql += ' GROUP BY t.id, j.title ORDER BY t.start_date DESC NULLS LAST, t.id DESC';
 
     const result = await query(sql, params);
+    if (String(req.query.paginate).toLowerCase() === 'true') {
+      return res.json({ items: result.rows, next_cursor: null });
+    }
     res.json(result.rows);
   } catch (err) {
     next(err);
@@ -97,7 +101,7 @@ router.get('/:id', async (req, res, next) => {
   try {
     const { id } = req.params;
     
-    const tripResult = await query('SELECT * FROM trips WHERE id = $1', [id]);
+    const tripResult = await query('SELECT * FROM trips WHERE id = $1 AND created_by = $2', [id, req.user.id]);
     if (tripResult.rows.length === 0) {
       return res.status(404).json({ error: 'Trip not found' });
     }
@@ -153,7 +157,18 @@ router.post('/', async (req, res, next) => {
 
     // Add travelers
     if (travelerIds && travelerIds.length > 0) {
+      const allowedTravelers = await query(`
+        SELECT id FROM travelers
+        WHERE id = ANY($1::int[])
+          AND (created_by = $2 OR EXISTS (
+            SELECT 1 FROM trip_travelers existing_tt
+            JOIN trips owned_trip ON owned_trip.id = existing_tt.trip_id
+            WHERE existing_tt.traveler_id = travelers.id AND owned_trip.created_by = $2
+          ))
+      `, [travelerIds, req.user.id]);
+      const allowedIds = new Set(allowedTravelers.rows.map(row => row.id));
       for (const tId of travelerIds) {
+        if (!allowedIds.has(Number(tId))) continue;
         await query(
           'INSERT INTO trip_travelers (trip_id, traveler_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
           [trip.id, tId]
@@ -167,9 +182,9 @@ router.post('/', async (req, res, next) => {
       FROM trips t
       LEFT JOIN trip_travelers tt ON t.id = tt.trip_id
       LEFT JOIN travelers tr ON tt.traveler_id = tr.id
-      WHERE t.id = $1
+      WHERE t.id = $1 AND t.created_by = $2
       GROUP BY t.id
-    `, [trip.id]);
+    `, [trip.id, req.user.id]);
 
     res.status(201).json(fullTrip.rows[0]);
   } catch (err) {
@@ -193,12 +208,12 @@ router.put('/:id', async (req, res, next) => {
         location_name = $1, city = $2, latitude = $3, longitude = $4, country = $5, state = $6,
         start_date = $7, end_date = $8, date_label = $9, date_precision = $10,
         trip_type = $11, notes = $12, home_distance_miles = $13, updated_at = NOW()
-      WHERE id = $14
+      WHERE id = $14 AND created_by = $15
       RETURNING *
     `, [
       locationName, city || null, latitude, longitude, country, state,
       startDate || null, endDate || null, dateLabel || null, datePrecision || 'exact',
-      tripType, notes, homeDist, id
+      tripType, notes, homeDist, id, req.user.id
     ]);
 
     if (result.rows.length === 0) {
@@ -208,7 +223,18 @@ router.put('/:id', async (req, res, next) => {
     // Update travelers
     await query('DELETE FROM trip_travelers WHERE trip_id = $1', [id]);
     if (travelerIds && travelerIds.length > 0) {
+      const allowedTravelers = await query(`
+        SELECT id FROM travelers
+        WHERE id = ANY($1::int[])
+          AND (created_by = $2 OR EXISTS (
+            SELECT 1 FROM trip_travelers existing_tt
+            JOIN trips owned_trip ON owned_trip.id = existing_tt.trip_id
+            WHERE existing_tt.traveler_id = travelers.id AND owned_trip.created_by = $2
+          ))
+      `, [travelerIds, req.user.id]);
+      const allowedIds = new Set(allowedTravelers.rows.map(row => row.id));
       for (const tId of travelerIds) {
+        if (!allowedIds.has(Number(tId))) continue;
         await query(
           'INSERT INTO trip_travelers (trip_id, traveler_id) VALUES ($1, $2)',
           [id, tId]
@@ -222,9 +248,9 @@ router.put('/:id', async (req, res, next) => {
       FROM trips t
       LEFT JOIN trip_travelers tt ON t.id = tt.trip_id
       LEFT JOIN travelers tr ON tt.traveler_id = tr.id
-      WHERE t.id = $1
+      WHERE t.id = $1 AND t.created_by = $2
       GROUP BY t.id
-    `, [id]);
+    `, [id, req.user.id]);
 
     res.json(fullTrip.rows[0]);
   } catch (err) {
@@ -246,8 +272,8 @@ router.post('/bulk-delete', async (req, res, next) => {
     }
 
     const result = await query(
-      'DELETE FROM trips WHERE id = ANY($1::int[]) RETURNING id',
-      [ids]
+      'DELETE FROM trips WHERE id = ANY($1::int[]) AND created_by = $2 RETURNING id',
+      [ids, req.user.id]
     );
     const deletedIds = result.rows.map(row => row.id);
 
@@ -266,7 +292,7 @@ router.delete('/:id', async (req, res, next) => {
       return res.status(400).json({ error: 'Invalid trip ID' });
     }
 
-    const result = await query('DELETE FROM trips WHERE id = $1 RETURNING id', [id]);
+    const result = await query('DELETE FROM trips WHERE id = $1 AND created_by = $2 RETURNING id', [id, req.user.id]);
     
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Trip not found' });

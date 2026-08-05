@@ -117,6 +117,7 @@ class ApiClient {
 
   logout() {
     this.clearToken();
+    if (LEGACY_BEARER_AUTH) return Promise.resolve(null);
     return this.request('/auth/logout', { method: 'POST', skipUnauthorizedRedirect: true }).catch(() => null);
   }
 

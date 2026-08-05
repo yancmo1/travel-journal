@@ -1,10 +1,13 @@
 import sharp from 'sharp';
 import path from 'path';
 import fs from 'fs/promises';
+import { execFile } from 'child_process';
+import { promisify } from 'util';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const execFileAsync = promisify(execFile);
 
 // Image size configurations
 export const IMAGE_SIZES = {
@@ -21,6 +24,8 @@ export const IMAGE_SIZES = {
  * @returns {Promise<Object>} Paths to processed images
  */
 export async function processImage(inputPath, outputDir, baseFilename) {
+  let normalizedInputPath = inputPath;
+  let convertedInputPath = null;
   try {
     // Ensure output directories exist
     const dirs = {
@@ -33,8 +38,18 @@ export async function processImage(inputPath, outputDir, baseFilename) {
       await fs.mkdir(dir, { recursive: true });
     }
 
+    // Sharp's bundled HEIF reader can reject some valid iPhone HEIC files
+    // because of libheif's reference-count security limit. Normalize those
+    // files with the system converter before the regular JPEG pipeline.
+    const inputExtension = path.extname(inputPath).toLowerCase();
+    if (inputExtension === '.heic' || inputExtension === '.heif') {
+      convertedInputPath = path.join(path.dirname(inputPath), `${baseFilename}-converted.jpg`);
+      await execFileAsync('heif-convert', [inputPath, convertedInputPath]);
+      normalizedInputPath = convertedInputPath;
+    }
+
     // Load image and get metadata
-    const image = sharp(inputPath);
+    const image = sharp(normalizedInputPath);
     const metadata = await image.metadata();
 
     // Auto-rotate based on EXIF orientation
@@ -48,7 +63,7 @@ export async function processImage(inputPath, outputDir, baseFilename) {
       metadata: {
         width: metadata.width,
         height: metadata.height,
-        format: metadata.format,
+        format: 'jpeg',
         size: null
       }
     };
@@ -70,7 +85,7 @@ export async function processImage(inputPath, outputDir, baseFilename) {
 
     // Generate thumbnail
     const thumbnailPath = path.join(dirs.thumbnails, `${baseFilename}${ext}`);
-    await sharp(inputPath)
+    await sharp(normalizedInputPath)
       .rotate()
       .resize(IMAGE_SIZES.thumbnail.width, IMAGE_SIZES.thumbnail.height, {
         fit: IMAGE_SIZES.thumbnail.fit,
@@ -84,13 +99,17 @@ export async function processImage(inputPath, outputDir, baseFilename) {
     // The optimized display copy is also the medium view, avoiding a third stored copy.
     results.medium = originalPath;
 
-    // Delete temporary uploaded file
-    await fs.unlink(inputPath);
-
     return results;
   } catch (error) {
     console.error('Image processing error:', error);
     throw new Error(`Failed to process image: ${error.message}`);
+  } finally {
+    // Uploaded files are temporary; remove both the original HEIC and any
+    // intermediate JPEG even when decoding or processing fails.
+    await Promise.allSettled([
+      fs.unlink(inputPath),
+      convertedInputPath && fs.unlink(convertedInputPath),
+    ].filter(Boolean));
   }
 }
 

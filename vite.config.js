@@ -35,8 +35,23 @@ function sitesStaticWorker() {
 export default async () => {
   const { default: react } = await import('@vitejs/plugin-react')
   const packageJson = JSON.parse(readFileSync(resolve(process.cwd(), 'package.json'), 'utf8'))
+  const devApiTarget = process.env.VITE_DEV_API_TARGET || 'http://localhost:3080'
   return defineConfig({
     plugins: [react(), sitesStaticWorker()],
+    server: {
+      // Keep the Vite preview on 5173 usable with the local API container on 3080.
+      // This is development-only; production continues to serve /api from the host.
+      proxy: {
+        '/api': {
+          target: devApiTarget,
+          changeOrigin: false,
+        },
+        '/photos': {
+          target: devApiTarget,
+          changeOrigin: false,
+        },
+      },
+    },
     define: {
       __APP_VERSION__: JSON.stringify(packageJson.version),
     },

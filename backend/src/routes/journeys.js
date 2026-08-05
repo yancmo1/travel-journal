@@ -26,7 +26,7 @@ export const journeySelect = `
             WHERE p.trip_id = t.id
           ), '[]'::json) AS photos
         FROM trips t
-        WHERE t.journey_id = j.id
+        WHERE t.journey_id = j.id AND t.created_by = j.created_by
       ) memory_row
     ), '[]'::json) AS memories
   FROM journeys j
@@ -34,7 +34,10 @@ export const journeySelect = `
 
 router.get('/', async (req, res, next) => {
   try {
-    const result = await query(`${journeySelect} ORDER BY j.start_date DESC NULLS LAST, j.id DESC`);
+    const result = await query(`${journeySelect} WHERE j.created_by = $1 ORDER BY j.start_date DESC NULLS LAST, j.id DESC`, [req.user.id]);
+    if (String(req.query.paginate).toLowerCase() === 'true') {
+      return res.json({ items: result.rows, next_cursor: null });
+    }
     res.json(result.rows);
   } catch (err) {
     next(err);
@@ -43,7 +46,7 @@ router.get('/', async (req, res, next) => {
 
 router.get('/:id', async (req, res, next) => {
   try {
-    const result = await query(`${journeySelect} WHERE j.id = $1`, [req.params.id]);
+    const result = await query(`${journeySelect} WHERE j.id = $1 AND j.created_by = $2`, [req.params.id, req.user.id]);
     if (!result.rows.length) return res.status(404).json({ error: 'Journey not found' });
     res.json(result.rows[0]);
   } catch (err) {
@@ -51,12 +54,18 @@ router.get('/:id', async (req, res, next) => {
   }
 });
 
-async function assignMemories(journeyId, memoryIds = []) {
-  await query('UPDATE trips SET journey_id = NULL, journey_order = NULL WHERE journey_id = $1', [journeyId]);
+async function assignMemories(journeyId, memoryIds = [], userId) {
+  await query('UPDATE trips SET journey_id = NULL, journey_order = NULL WHERE journey_id = $1 AND created_by = $2', [journeyId, userId]);
+  const ownedMemories = await query(
+    'SELECT id FROM trips WHERE id = ANY($1::int[]) AND created_by = $2',
+    [memoryIds, userId]
+  );
+  const ownedIds = new Set(ownedMemories.rows.map(row => row.id));
   for (let index = 0; index < memoryIds.length; index += 1) {
+    if (!ownedIds.has(Number(memoryIds[index]))) continue;
     await query(
-      'UPDATE trips SET journey_id = $1, journey_order = $2 WHERE id = $3',
-      [journeyId, index + 1, memoryIds[index]]
+      'UPDATE trips SET journey_id = $1, journey_order = $2 WHERE id = $3 AND created_by = $4',
+      [journeyId, index + 1, memoryIds[index], userId]
     );
   }
 }
@@ -75,8 +84,8 @@ router.post('/', async (req, res, next) => {
       journeyType || 'Other', summary || null, coverPhotoId || null, req.user.id
     ]);
 
-    await assignMemories(result.rows[0].id, memoryIds);
-    const full = await query(`${journeySelect} WHERE j.id = $1`, [result.rows[0].id]);
+    await assignMemories(result.rows[0].id, memoryIds, req.user.id);
+    const full = await query(`${journeySelect} WHERE j.id = $1 AND j.created_by = $2`, [result.rows[0].id, req.user.id]);
     res.status(201).json(full.rows[0]);
   } catch (err) {
     next(err);
@@ -92,16 +101,16 @@ router.put('/:id', async (req, res, next) => {
       UPDATE journeys SET
         title = $1, start_date = $2, end_date = $3, date_label = $4,
         journey_type = $5, summary = $6, cover_photo_id = $7, updated_at = CURRENT_TIMESTAMP
-      WHERE id = $8
+      WHERE id = $8 AND created_by = $9
       RETURNING id
     `, [
       title.trim(), startDate || null, endDate || null, dateLabel || null,
-      journeyType || 'Other', summary || null, coverPhotoId || null, req.params.id
+      journeyType || 'Other', summary || null, coverPhotoId || null, req.params.id, req.user.id
     ]);
 
     if (!result.rows.length) return res.status(404).json({ error: 'Journey not found' });
-    await assignMemories(req.params.id, memoryIds);
-    const full = await query(`${journeySelect} WHERE j.id = $1`, [req.params.id]);
+    await assignMemories(req.params.id, memoryIds, req.user.id);
+    const full = await query(`${journeySelect} WHERE j.id = $1 AND j.created_by = $2`, [req.params.id, req.user.id]);
     res.json(full.rows[0]);
   } catch (err) {
     next(err);
@@ -112,8 +121,8 @@ router.post('/:id/share', async (req, res, next) => {
   try {
     const token = crypto.randomBytes(32).toString('base64url');
     const result = await query(
-      'UPDATE journeys SET share_token = $1, share_expires_at = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING id, share_token, share_expires_at',
-      [token, req.params.id]
+      'UPDATE journeys SET share_token = $1, share_expires_at = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = $2 AND created_by = $3 RETURNING id, share_token, share_expires_at',
+      [token, req.params.id, req.user.id]
     );
     if (!result.rows.length) return res.status(404).json({ error: 'Journey not found' });
     res.json(result.rows[0]);
@@ -125,8 +134,8 @@ router.post('/:id/share', async (req, res, next) => {
 router.delete('/:id/share', async (req, res, next) => {
   try {
     const result = await query(
-      'UPDATE journeys SET share_token = NULL, share_expires_at = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = $1 RETURNING id',
-      [req.params.id]
+      'UPDATE journeys SET share_token = NULL, share_expires_at = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = $1 AND created_by = $2 RETURNING id',
+      [req.params.id, req.user.id]
     );
     if (!result.rows.length) return res.status(404).json({ error: 'Journey not found' });
     res.json({ success: true, id: result.rows[0].id });
@@ -137,7 +146,7 @@ router.delete('/:id/share', async (req, res, next) => {
 
 router.delete('/:id', async (req, res, next) => {
   try {
-    const result = await query('DELETE FROM journeys WHERE id = $1 RETURNING id', [req.params.id]);
+    const result = await query('DELETE FROM journeys WHERE id = $1 AND created_by = $2 RETURNING id', [req.params.id, req.user.id]);
     if (!result.rows.length) return res.status(404).json({ error: 'Journey not found' });
     res.json({ success: true, id: result.rows[0].id });
   } catch (err) {

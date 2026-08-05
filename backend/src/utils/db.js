@@ -26,6 +26,7 @@ export async function initDatabase() {
   await query('ALTER TABLE trips ADD COLUMN IF NOT EXISTS date_label VARCHAR(100)');
   await query("ALTER TABLE trips ADD COLUMN IF NOT EXISTS date_precision VARCHAR(20) DEFAULT 'exact'");
   await query('ALTER TABLE trips ALTER COLUMN start_date DROP NOT NULL');
+  await query('ALTER TABLE travelers ADD COLUMN IF NOT EXISTS created_by INT REFERENCES users(id)');
   await query(`
     CREATE TABLE IF NOT EXISTS journeys (
       id SERIAL PRIMARY KEY,
@@ -43,6 +44,9 @@ export async function initDatabase() {
   await query('ALTER TABLE trips ADD COLUMN IF NOT EXISTS journey_id INT REFERENCES journeys(id) ON DELETE SET NULL');
   await query('ALTER TABLE trips ADD COLUMN IF NOT EXISTS journey_order INT');
   await query('CREATE INDEX IF NOT EXISTS idx_trips_journey_id ON trips(journey_id)');
+  await query('CREATE INDEX IF NOT EXISTS idx_trips_created_by ON trips(created_by)');
+  await query('CREATE INDEX IF NOT EXISTS idx_journeys_created_by ON journeys(created_by)');
+  await query('CREATE INDEX IF NOT EXISTS idx_travelers_created_by ON travelers(created_by)');
   await query('ALTER TABLE journeys ADD COLUMN IF NOT EXISTS cover_photo_id INT');
   await query('ALTER TABLE journeys ADD COLUMN IF NOT EXISTS share_token VARCHAR(64)');
   await query('ALTER TABLE journeys ADD COLUMN IF NOT EXISTS share_expires_at TIMESTAMP');

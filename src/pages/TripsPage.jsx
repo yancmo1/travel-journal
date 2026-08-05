@@ -5,6 +5,8 @@ import MemoryPhotosModal from '../components/MemoryPhotosModal';
 import api from '../utils/api';
 import { formatDateOnly } from '../utils/format';
 import { sortTravelers } from '../utils/travelers';
+import { Camera, Image } from 'lucide-react';
+import addMemoryButton from '../../assets/add-memory-button.webp';
 
 const TRIP_TYPES = ['All', 'Road Trip', 'Flight', 'Cruise', 'Day Trip', 'Other'];
 
@@ -108,20 +110,21 @@ export default function TripsPage({ initialTravelerFilter = 'all' }) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="memories-page space-y-6">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <h1 className="text-2xl font-bold text-ocean-dark flex items-center gap-2">
-          <span>✦</span> Memories
+        <h1 className="memories-page-title text-2xl font-bold text-ocean-dark flex items-center gap-2">
+          <span><span className="memory-eyebrow">The collection</span>Our memories</span>
           <span className="text-base font-normal text-gray-500">
             ({filteredTrips.length})
           </span>
         </h1>
         <button
           onClick={() => { setEditTrip(null); setShowForm(true); }}
-          className="px-5 py-2.5 bg-gradient-to-r from-sunset-orange to-coral-pink text-white font-semibold rounded-lg hover:opacity-90 transition-opacity flex items-center gap-2"
+          className="memory-art-action memories-add-memory"
         >
-          <span>+</span> Add Memory
+          <img className="memory-art-action-image" src={addMemoryButton} alt="" aria-hidden="true" />
+          <span className="memory-art-action-label"><Camera size={18} aria-hidden="true" /> Add a memory</span>
         </button>
       </div>
 
@@ -208,7 +211,7 @@ export default function TripsPage({ initialTravelerFilter = 'all' }) {
         <div className="text-center py-12 text-gray-500">Loading memories...</div>
       ) : filteredTrips.length === 0 ? (
         <div className="bg-white rounded-xl shadow-lg p-12 text-center">
-          <span className="text-5xl mb-4 block">🗺️</span>
+          <Image className="memories-empty-icon" aria-hidden="true" />
           <h3 className="text-xl font-semibold text-gray-700 mb-2">No memories found</h3>
           <p className="text-gray-500 mb-6">
             {search || filter !== 'All' 
@@ -217,9 +220,10 @@ export default function TripsPage({ initialTravelerFilter = 'all' }) {
           </p>
           <button
             onClick={() => setShowForm(true)}
-            className="px-6 py-3 bg-sunset-orange text-white rounded-lg hover:bg-coral-pink transition-colors"
+            className="memory-art-action memory-art-action-empty"
           >
-            Add Your First Memory
+            <img className="memory-art-action-image" src={addMemoryButton} alt="" aria-hidden="true" />
+            <span className="memory-art-action-label">Add Your First Memory</span>
           </button>
         </div>
       ) : (
@@ -250,7 +254,7 @@ export default function TripsPage({ initialTravelerFilter = 'all' }) {
 
       {/* Delete Confirmation */}
       {deleteConfirm && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[1500]">
+        <div className="trip-delete-modal fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[1500]">
           <div className="bg-white rounded-xl p-6 max-w-md w-full">
             <h3 className="text-lg font-semibold text-gray-900 mb-2">Delete Memory?</h3>
             <p className="text-gray-600 mb-6">

@@ -3,6 +3,9 @@ import { useData } from '../context/DataContext';
 import MapView from '../components/Map';
 import TripForm from '../components/TripForm';
 import StatCard from '../components/StatCard';
+import { ArrowUpRight, Camera, Image, MapPin, Navigation } from 'lucide-react';
+import postmark from '../../assets/postmark.webp';
+import addMemoryButton from '../../assets/add-memory-button.webp';
 
 export default function Dashboard() {
   const { trips, analytics, loading } = useData();
@@ -10,161 +13,102 @@ export default function Dashboard() {
   const [selectedTrip, setSelectedTrip] = useState(null);
 
   const summary = analytics?.summary || {};
-  const funStats = analytics?.funStats || {};
-  const distance = analytics?.distance || {};
-
   return (
-    <div className="space-y-6">
-      {/* Stats Row */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+    <div className="dashboard-sample">
+      <section className="dashboard-intro" aria-labelledby="dashboard-title">
+        <div>
+          <p className="dashboard-kicker">A private atlas of shared days</p>
+          <h1 id="dashboard-title">Where we’ve been,<br /><em>together.</em></h1>
+        </div>
+        <div className="dashboard-intro-actions">
+          <img className="dashboard-postmark" src={postmark} alt="" aria-hidden="true" />
+          <button
+            onClick={() => setShowForm(true)}
+            className="dashboard-add-memory dashboard-add-memory-top"
+          >
+            <img className="dashboard-add-memory-art" src={addMemoryButton} alt="" aria-hidden="true" />
+            <span className="dashboard-add-memory-label"><Camera aria-hidden="true" /> Add a memory</span>
+          </button>
+        </div>
+      </section>
+
+      <div className="dashboard-stat-strip" aria-label="Travel summary">
         <StatCard
-          icon="✈️"
-          label="Total Memories"
+          icon={<Image aria-hidden="true" />}
+          label="memories"
           value={summary.totalTrips || 0}
           color="ocean"
         />
         <StatCard
-          icon="📍"
-          label="Locations"
+          icon={<MapPin aria-hidden="true" />}
+          label="places"
           value={summary.uniqueLocations || 0}
           color="teal"
         />
         <StatCard
-          icon="🛣️"
-          label="Miles Traveled"
+          icon={<Navigation aria-hidden="true" />}
+          label="miles"
           value={summary.totalMiles?.toLocaleString() || 0}
           color="sunset"
         />
-        <StatCard
-          icon="📅"
-          label="Days Traveling"
-          value={summary.totalDaysTraveled || 0}
-          color="coral"
-        />
       </div>
 
-      {/* Main Content */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Map */}
-        <div className="lg:col-span-2">
-          <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-            <div className="p-4 bg-gradient-to-r from-ocean-blue to-ocean-dark">
-              <h2 className="text-lg font-semibold text-white flex items-center gap-2">
-                <span>🗺️</span> Your Travel Map
-              </h2>
+      <section className="dashboard-atlas-panel" aria-labelledby="atlas-title">
+          <div className="dashboard-section-head">
+            <div>
+              <p className="dashboard-kicker">The atlas</p>
+              <h2 id="atlas-title">Your travel map</h2>
             </div>
-            <MapView trips={trips} onSelectTrip={setSelectedTrip} />
+            <span className="dashboard-coordinate" aria-hidden="true">MAP / 01</span>
           </div>
-          
-          {/* Add Memory Button - Below Map */}
-          <button
-            onClick={() => setShowForm(true)}
-            className="w-full mt-4 px-6 py-4 bg-gradient-to-r from-sunset-orange to-coral-pink hover:from-sunset-orange/90 hover:to-coral-pink/90 text-white rounded-xl transition-all shadow-lg hover:shadow-xl text-lg font-semibold flex items-center justify-center gap-3"
-          >
-            <span className="text-2xl">+</span> Add New Memory
-          </button>
-        </div>
-
-        {/* Sidebar */}
-        <div className="space-y-6">
-          {/* Quick Stats */}
-          <div className="bg-white rounded-xl shadow-lg p-5">
-            <h3 className="text-lg font-semibold text-ocean-dark mb-4 flex items-center gap-2">
-              <span>🌟</span> Highlights
-            </h3>
-            <div className="space-y-3">
-              {funStats.mostVisited && (
-                <div className="flex items-start gap-3 p-3 bg-gradient-to-r from-sunrise-yellow/20 to-transparent rounded-lg">
-                  <span className="text-xl">🏆</span>
-                  <div>
-                    <div className="text-sm text-gray-600">Most Visited</div>
-                    <div className="font-medium text-ocean-dark">
-                      {funStats.mostVisited.location}
-                    </div>
-                    <div className="text-xs text-gray-500">
-                      {funStats.mostVisited.count} times
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {distance.furthestFromHome && (
-                <div className="flex items-start gap-3 p-3 bg-gradient-to-r from-ocean-teal/20 to-transparent rounded-lg">
-                  <span className="text-xl">🌍</span>
-                  <div>
-                    <div className="text-sm text-gray-600">Furthest from Home</div>
-                    <div className="font-medium text-ocean-dark">
-                      {distance.furthestFromHome.location}
-                    </div>
-                    <div className="text-xs text-gray-500">
-                      {distance.furthestFromHome.miles.toLocaleString()} miles
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {analytics?.frequency?.travelStreak > 0 && (
-                <div className="flex items-start gap-3 p-3 bg-gradient-to-r from-coral-pink/20 to-transparent rounded-lg">
-                  <span className="text-xl">🔥</span>
-                  <div>
-                    <div className="text-sm text-gray-600">Travel Streak</div>
-                    <div className="font-medium text-ocean-dark">
-                      {analytics.frequency.travelStreak} years
-                    </div>
-                    <div className="text-xs text-gray-500">consecutive</div>
-                  </div>
-                </div>
-              )}
-
-              {funStats.busiestMonth && (
-                <div className="flex items-start gap-3 p-3 bg-gradient-to-r from-sunset-orange/20 to-transparent rounded-lg">
-                  <span className="text-xl">📅</span>
-                  <div>
-                    <div className="text-sm text-gray-600">Favorite Month</div>
-                    <div className="font-medium text-ocean-dark">
-                      {funStats.busiestMonth.month}
-                    </div>
-                    <div className="text-xs text-gray-500">
-                      {funStats.busiestMonth.count} memories
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
+          <div className="dashboard-map-frame">
+            <MapView trips={trips} onSelectTrip={setSelectedTrip} showRoutes />
           </div>
 
-          {/* Recent Memories */}
-          <div className="bg-white rounded-xl shadow-lg p-5">
-            <h3 className="text-lg font-semibold text-ocean-dark mb-4 flex items-center gap-2">
-              <span>🕐</span> Recent Memories
-            </h3>
-            <div className="space-y-2 max-h-64 overflow-auto">
-              {trips.slice(0, 5).map(trip => (
-                <div
-                  key={trip.id}
-                  className="p-3 bg-gray-50 hover:bg-gray-100 rounded-lg cursor-pointer transition-colors"
-                  onClick={() => setSelectedTrip(trip)}
-                >
-                  <div className="font-medium text-ocean-dark truncate">
-                    {trip.location_name}
-                  </div>
-                  <div className="text-sm text-gray-500 flex items-center gap-2">
-                    <span>{formatDate(trip.start_date)}</span>
-                    <span className="text-xs px-2 py-0.5 bg-ocean-teal/20 text-ocean-teal rounded">
-                      {trip.trip_type}
+          <section className="dashboard-recent" aria-labelledby="recent-title">
+            <div className="dashboard-section-head dashboard-section-head-compact">
+              <div>
+                <p className="dashboard-kicker">The latest pages</p>
+                <h2 id="recent-title">Recent memories</h2>
+              </div>
+              {trips.length > 0 && (
+                <span className="dashboard-inline-link">View memories <ArrowUpRight aria-hidden="true" /></span>
+              )}
+            </div>
+            <div className="dashboard-recent-grid">
+              {trips.slice(0, 4).map(trip => {
+                const photo = trip.photos?.find(item => item.is_cover && item.thumbnail_path)
+                  || trip.photos?.find(item => item.thumbnail_path);
+                return (
+                  <button
+                    type="button"
+                    key={trip.id}
+                    className="dashboard-recent-item"
+                    onClick={() => setSelectedTrip(trip)}
+                  >
+                    {photo ? (
+                      <img src={`/photos/${photo.thumbnail_path}`} alt="" />
+                    ) : (
+                      <span className="dashboard-recent-placeholder" aria-hidden="true"><MapPin /></span>
+                    )}
+                    <span className="dashboard-recent-copy">
+                      <strong>{trip.location_name}</strong>
+                      <span>{formatDate(trip.start_date)}</span>
+                      <small>{trip.trip_type}</small>
                     </span>
-                  </div>
-                </div>
-              ))}
+                    <ArrowUpRight className="dashboard-recent-arrow" aria-hidden="true" />
+                  </button>
+                );
+              })}
               {trips.length === 0 && (
-                <p className="text-gray-500 text-center py-4">
-                  No memories yet. Add your first adventure!
-                </p>
+                <div className="dashboard-empty-state">
+                  <Image aria-hidden="true" />
+                  <p>No memories yet. Add your first adventure.</p>
+                </div>
               )}
             </div>
-          </div>
-        </div>
-      </div>
+          </section>
+      </section>
 
       {/* Memory Form Modal */}
       {showForm && (
@@ -187,7 +131,7 @@ export default function Dashboard() {
 
 function TripDetailModal({ trip, onClose }) {
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[1500]">
+    <div className="memory-detail-modal fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[1500]">
       <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-auto">
         <div className="p-6">
           <div className="flex items-start justify-between mb-4">

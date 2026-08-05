@@ -20,7 +20,7 @@ export default function TimelinePage({ setPage }) {
   }), [trips]);
 
   return (
-    <div className="space-y-7">
+    <div className="timeline-page space-y-7">
       <header>
         <p className="memory-eyebrow">The long view</p>
         <h1 className="mt-2 text-3xl font-semibold text-ocean-dark sm:text-4xl">Our timeline</h1>

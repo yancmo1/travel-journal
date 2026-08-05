@@ -141,7 +141,7 @@ function JourneyDetail({ journey, onClose, onEdit, onDelete, onPhotos, onPrint }
   }
 
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-3 z-[1500]">
+    <div className="journey-detail-modal fixed inset-0 bg-black/60 flex items-center justify-center p-3 z-[1500]">
       <div className="journey-detail">
         <header>
           <div>

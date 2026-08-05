@@ -73,7 +73,7 @@ export default function JourneyForm({ journey, onClose }) {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-3 z-[1500]">
+    <div className="journey-form-modal fixed inset-0 bg-black/60 flex items-center justify-center p-3 z-[1500]">
       <div className="journey-form-shell">
         <div className="journey-form-heading">
           <div>
