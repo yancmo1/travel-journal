@@ -1,5 +1,6 @@
 import bcrypt from 'bcryptjs';
 import { query } from './db.js';
+import { isOperationsAdminEmail } from './admin.js';
 
 export async function ensureDevelopmentUser() {
   if (process.env.NODE_ENV !== 'development') return;
@@ -22,12 +23,13 @@ export async function ensureDevelopmentUser() {
   const displayName = String(process.env.DEV_USER_DISPLAY_NAME || email).trim();
 
   await query(
-    `INSERT INTO users (username, email, password_hash, display_name)
-     VALUES ($1, $1, $2, $3)
+    `INSERT INTO users (username, email, password_hash, display_name, site_admin)
+     VALUES ($1, $1, $2, $3, $4)
      ON CONFLICT (email) DO UPDATE
        SET password_hash = EXCLUDED.password_hash,
-           display_name = EXCLUDED.display_name`,
-    [email, passwordHash, displayName || email],
+           display_name = EXCLUDED.display_name,
+           site_admin = EXCLUDED.site_admin`,
+    [email, passwordHash, displayName || email, isOperationsAdminEmail(email)],
   );
 
   console.log(`Development login ready for ${email}`);

@@ -12,6 +12,12 @@ export default function BugReporter() {
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState('');
+  const [screenshot, setScreenshot] = useState(null);
+  const [screenshotPreview, setScreenshotPreview] = useState('');
+
+  useEffect(() => () => {
+    if (screenshotPreview) URL.revokeObjectURL(screenshotPreview);
+  }, [screenshotPreview]);
 
   useEffect(() => {
     function handleOpen(event) {
@@ -23,6 +29,8 @@ export default function BugReporter() {
       });
       setError('');
       setSent(false);
+      setScreenshot(null);
+      setScreenshotPreview('');
       setOpen(true);
     }
 
@@ -40,7 +48,32 @@ export default function BugReporter() {
     setReport(EMPTY_REPORT);
     setError('');
     setSent(false);
+    setScreenshot(null);
+    setScreenshotPreview('');
     setOpen(true);
+  }
+
+  function handleScreenshot(event) {
+    const file = event.target.files?.[0] || null;
+    if (!file) return;
+    if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) {
+      setError('Attach a PNG, JPG, or WebP screenshot.');
+      event.target.value = '';
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setError('Screenshots must be 5 MB or smaller.');
+      event.target.value = '';
+      return;
+    }
+    setError('');
+    setScreenshot(file);
+    setScreenshotPreview(URL.createObjectURL(file));
+  }
+
+  function removeScreenshot() {
+    setScreenshot(null);
+    setScreenshotPreview('');
   }
 
   async function submit(event) {
@@ -58,6 +91,7 @@ export default function BugReporter() {
       await api.submitBugReport({
         title,
         details,
+        screenshot,
         context: {
           ...context,
           page: window.location.pathname,
@@ -132,6 +166,23 @@ export default function BugReporter() {
                     rows={5}
                   />
                 </label>
+                <label>
+                  <span>Screenshot <small>(optional)</small></span>
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    onChange={handleScreenshot}
+                  />
+                </label>
+                {screenshotPreview && (
+                  <div className="bug-reporter-screenshot-preview">
+                    <img src={screenshotPreview} alt="Screenshot preview" />
+                    <div>
+                      <p>{screenshot.name}</p>
+                      <button type="button" onClick={removeScreenshot}>Remove screenshot</button>
+                    </div>
+                  </div>
+                )}
                 {context?.requestId && (
                   <p className="bug-reporter-reference">Request reference: <code>{context.requestId}</code></p>
                 )}

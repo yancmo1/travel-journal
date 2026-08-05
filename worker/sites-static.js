@@ -75,6 +75,13 @@ function base64url(value) {
   return btoa(binary).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
 }
 
+function base64(value) {
+  const bytes = value instanceof ArrayBuffer ? new Uint8Array(value) : value;
+  let binary = '';
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return btoa(binary);
+}
+
 function hexDigest(bytes) {
   return [...new Uint8Array(bytes)].map(byte => byte.toString(16).padStart(2, '0')).join('');
 }
@@ -429,18 +436,24 @@ async function userHouseholds(env, userId) {
   `).bind(userId).all()).results || [];
 }
 
+const OPERATIONS_ADMIN_EMAIL = 'yancmo@gmail.com';
+
+function isOperationsAdmin(user) {
+  return String(user?.email || '').trim().toLowerCase() === OPERATIONS_ADMIN_EMAIL;
+}
+
 function toPublicUser(user) {
   return {
     id: user.id,
     email: user.email,
     email_verified_at: user.email_verified_at,
     display_name: user.display_name,
-    site_admin: Boolean(user.site_admin),
+    site_admin: isOperationsAdmin(user),
   };
 }
 
 function siteAdminRequired(user) {
-  return user?.site_admin
+  return isOperationsAdmin(user)
     ? null
     : json({ error: 'Site administrator access required.' }, { status: 403 });
 }
@@ -508,7 +521,7 @@ function escapeHtml(value) {
   return String(value || '').replace(/[&<>'"]/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[character]);
 }
 
-async function sendEmail(env, { to, subject, text, html, idempotencyKey }) {
+async function sendEmail(env, { to, subject, text, html, idempotencyKey, attachments = [] }) {
   if (!env.RESEND_API_KEY || !env.EMAIL_FROM) throw new Error('Email delivery is not configured');
   let lastError = new Error('Email delivery failed');
   for (let attempt = 1; attempt <= 3; attempt += 1) {
@@ -520,7 +533,14 @@ async function sendEmail(env, { to, subject, text, html, idempotencyKey }) {
           'content-type': 'application/json',
           ...(idempotencyKey ? { 'idempotency-key': idempotencyKey } : {}),
         },
-        body: JSON.stringify({ from: env.EMAIL_FROM, to: [to], subject, text, html }),
+        body: JSON.stringify({
+          from: env.EMAIL_FROM,
+          to: [to],
+          subject,
+          text,
+          html,
+          ...(attachments.length ? { attachments } : {}),
+        }),
       });
       if (!response.ok) {
         lastError = new Error(`Email delivery failed with status ${response.status}`);
@@ -535,6 +555,44 @@ async function sendEmail(env, { to, subject, text, html, idempotencyKey }) {
     if (attempt < 3) await new Promise(resolve => setTimeout(resolve, 250 * attempt));
   }
   throw lastError;
+}
+
+async function sendBugReportNotification(env, { reportId, title, details, context, user, screenshot = null }) {
+  const recipient = String(env.BUG_REPORT_TO || '').trim();
+  if (!recipient) return;
+  const compactTitle = title.replace(/\s+/g, ' ').trim().slice(0, 120);
+  const requestId = String(context.requestId || '').slice(0, 120) || 'Not available';
+  const page = String(context.page || '').slice(0, 200) || 'Not available';
+  const url = String(context.url || '').slice(0, 500) || 'Not available';
+  const appVersion = String(context.appVersion || '').slice(0, 40) || 'Not available';
+  const userAgent = String(context.userAgent || '').slice(0, 500) || 'Not available';
+  const text = [
+    'A new Postcards of Us bug report was submitted.',
+    '',
+    `Title: ${compactTitle}`,
+    `Details: ${details}`,
+    '',
+    `Request reference: ${requestId}`,
+    `Page: ${page}`,
+    `URL: ${url}`,
+    `App version: ${appVersion}`,
+    `Reported by: ${user.email || user.display_name || `user ${user.id}`}`,
+    `Browser: ${userAgent}`,
+    `Report ID: ${reportId}`,
+  ].join('\n');
+  const htmlDetails = escapeHtml(details).replace(/\n/g, '<br />');
+  const html = `<h2>New Postcards of Us bug report</h2><p><strong>Title:</strong> ${escapeHtml(compactTitle)}</p><p><strong>Details:</strong><br />${htmlDetails}</p><hr /><p><strong>Request reference:</strong> ${escapeHtml(requestId)}<br /><strong>Page:</strong> ${escapeHtml(page)}<br /><strong>URL:</strong> ${escapeHtml(url)}<br /><strong>App version:</strong> ${escapeHtml(appVersion)}<br /><strong>Reported by:</strong> ${escapeHtml(user.email || user.display_name || `user ${user.id}`)}<br /><strong>Browser:</strong> ${escapeHtml(userAgent)}<br /><strong>Report ID:</strong> ${escapeHtml(reportId)}</p>`;
+  const attachments = screenshot?.bytes
+    ? [{ filename: screenshot.filename, content: base64(screenshot.bytes) }]
+    : [];
+  await sendEmail(env, {
+    to: recipient,
+    subject: `[Postcards of Us] Bug report: ${compactTitle}`,
+    text,
+    html,
+    idempotencyKey: `bug-report-${reportId}`,
+    attachments,
+  });
 }
 
 async function rateLimit(env, action, identifier, limit, windowSeconds) {
@@ -2031,15 +2089,59 @@ async function handleFetch(request, env, ctx) {
         if (!(await rateLimit(env, 'bug-report', requestFingerprint(request, String(user.id)), 5, 60 * 60))) {
           return json({ error: 'You have sent several reports recently. Please try again later.' }, { status: 429 });
         }
-        const body = await parseJson(request);
+        const isMultipart = String(request.headers.get('content-type') || '').toLowerCase().startsWith('multipart/form-data');
+        let body;
+        let screenshotFile = null;
+        if (isMultipart) {
+          const formData = await request.formData();
+          body = {
+            title: formData.get('title'),
+            details: formData.get('details'),
+            context: formData.get('context'),
+          };
+          const file = formData.get('screenshot');
+          if (file && typeof file.arrayBuffer === 'function') screenshotFile = file;
+        } else {
+          body = await parseJson(request);
+        }
         const title = String(body?.title || '').trim();
         const details = String(body?.details || '').trim();
         if (!title || title.length > 120) return json({ error: 'Add a short bug title.' }, { status: 400 });
         if (!details || details.length > 4000) return json({ error: 'Add details in 4,000 characters or fewer.' }, { status: 400 });
-        const suppliedContext = body?.context && typeof body.context === 'object' && !Array.isArray(body.context)
-          ? body.context
+        let suppliedContext = body?.context;
+        if (typeof suppliedContext === 'string') {
+          try { suppliedContext = JSON.parse(suppliedContext); } catch { suppliedContext = {}; }
+        }
+        suppliedContext = suppliedContext && typeof suppliedContext === 'object' && !Array.isArray(suppliedContext)
+          ? suppliedContext
           : {};
+        let screenshot = null;
+        if (screenshotFile) {
+          const contentType = String(screenshotFile.type || '').toLowerCase();
+          if (!['image/png', 'image/jpeg', 'image/webp'].includes(contentType)) {
+            return json({ error: 'Attach a PNG, JPG, or WebP screenshot.' }, { status: 400 });
+          }
+          if (Number(screenshotFile.size || 0) > 5 * 1024 * 1024) {
+            return json({ error: 'Screenshots must be 5 MB or smaller.' }, { status: 400 });
+          }
+          const extension = contentType === 'image/png' ? 'png' : contentType === 'image/webp' ? 'webp' : 'jpg';
+          screenshot = {
+            filename: String(screenshotFile.name || `screenshot.${extension}`).replace(/[\\/]/g, '_').slice(0, 160),
+            contentType,
+            bytes: await screenshotFile.arrayBuffer(),
+            size: Number(screenshotFile.size || 0),
+            extension,
+          };
+        }
         const reportId = crypto.randomUUID();
+        let screenshotKey = null;
+        if (screenshot && env.MEDIA) {
+          screenshotKey = `bug-reports/${user.household_id || 'account'}/${reportId}.${screenshot.extension}`;
+          await env.MEDIA.put(screenshotKey, screenshot.bytes, {
+            httpMetadata: { contentType: screenshot.contentType },
+            customMetadata: { reportId, userId: String(user.id) },
+          });
+        }
         await recordAudit(env, {
           userId: user.id,
           householdId: user.household_id,
@@ -2054,8 +2156,34 @@ async function handleFetch(request, env, ctx) {
             url: String(suppliedContext.url || '').slice(0, 500) || null,
             appVersion: String(suppliedContext.appVersion || '').slice(0, 40) || null,
             userAgent: String(suppliedContext.userAgent || request.headers.get('user-agent') || '').slice(0, 500) || null,
+            screenshot: screenshot ? {
+              filename: screenshot.filename,
+              contentType: screenshot.contentType,
+              size: screenshot.size,
+              key: screenshotKey,
+            } : null,
           },
         });
+        if (env.BUG_REPORT_TO) {
+          ctx.waitUntil(sendBugReportNotification(env, {
+            reportId,
+            title,
+            details,
+            context: suppliedContext,
+            user,
+            screenshot,
+          }).catch(async error => {
+            console.error('Postcards bug report email failed', error);
+            await recordOperationalEvent(env, {
+              action: 'email_failed',
+              requestId: reportId,
+              route: '/api/feedback/bugs',
+              userId: user.id,
+              householdId: user.household_id,
+              metadata: { kind: 'bug_report', recipient: String(env.BUG_REPORT_TO).slice(0, 254) },
+            });
+          }));
+        }
         return json({ id: reportId, message: 'Thanks — your report was saved.' }, { status: 201 });
       }
 

@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { query } from '../utils/db.js';
 import { createSession, destroySession, getSessionUser } from '../utils/sessions.js';
+import { isOperationsAdmin } from '../utils/admin.js';
 
 const router = Router();
 function normalizeEmail(value) {
@@ -48,7 +49,7 @@ router.post('/register', async (req, res, next) => {
 
     const user = result.rows[0];
     await createSession(user.id, res);
-    res.json({ user });
+    res.json({ user: { ...user, site_admin: isOperationsAdmin(user) } });
   } catch (err) {
     next(err);
   }
@@ -84,7 +85,7 @@ router.post('/login', async (req, res, next) => {
 
     await createSession(user.id, res);
     res.json({
-      user: { id: user.id, email: user.email, display_name: user.display_name, site_admin: Boolean(user.site_admin) },
+      user: { id: user.id, email: user.email, display_name: user.display_name, site_admin: isOperationsAdmin(user) },
     });
   } catch (err) {
     next(err);
@@ -114,7 +115,7 @@ router.get('/me', async (req, res, next) => {
       return res.status(401).json({ error: 'User not found' });
     }
 
-    res.json({ user: { ...result.rows[0], site_admin: Boolean(result.rows[0].site_admin) } });
+    res.json({ user: { ...result.rows[0], site_admin: isOperationsAdmin(result.rows[0]) } });
   } catch (err) {
     if (err.name === 'JsonWebTokenError') {
       return res.status(401).json({ error: 'Invalid token' });

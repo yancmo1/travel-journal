@@ -553,9 +553,14 @@ class ApiClient {
   }
 
   async submitBugReport(report) {
+    const body = new FormData();
+    body.set('title', report.title);
+    body.set('details', report.details);
+    body.set('context', JSON.stringify(report.context || {}));
+    if (report.screenshot) body.set('screenshot', report.screenshot);
     return this.request('/feedback/bugs', {
       method: 'POST',
-      body: JSON.stringify(report),
+      body,
     });
   }
 

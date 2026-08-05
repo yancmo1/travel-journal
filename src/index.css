@@ -128,6 +128,50 @@ body {
 
 .bug-reporter-form textarea { resize: vertical; }
 
+.bug-reporter-form input[type="file"] {
+  padding: 8px;
+  color: var(--brand-forest-700);
+  background: var(--brand-paper-100);
+  border-style: dashed;
+  font-size: 13px;
+}
+
+.bug-reporter-screenshot-preview {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-top: 12px;
+  padding: 10px;
+  background: var(--brand-paper-100);
+  border: 1px solid var(--brand-paper-300);
+  border-radius: 10px;
+}
+
+.bug-reporter-screenshot-preview img {
+  width: 88px;
+  height: 66px;
+  flex: 0 0 auto;
+  object-fit: cover;
+  border-radius: 6px;
+}
+
+.bug-reporter-screenshot-preview p {
+  overflow: hidden;
+  margin: 2px 0 6px;
+  color: var(--brand-forest-800);
+  font-size: 12px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bug-reporter-screenshot-preview button {
+  color: var(--brand-terracotta-700);
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: underline;
+}
+
 .bug-reporter-form input:focus,
 .bug-reporter-form textarea:focus {
   border-color: var(--brand-forest-700);
@@ -216,7 +260,10 @@ body {
 .bug-reporter-success .bug-reporter-primary { margin-top: 20px; }
 
 @media (max-width: 640px) {
-  .bug-reporter-trigger { right: 12px; bottom: max(12px, env(safe-area-inset-bottom)); }
+  .bug-reporter-trigger {
+    right: 12px;
+    bottom: calc(var(--mobile-nav-height, 74px) + 12px + env(safe-area-inset-bottom));
+  }
   .bug-reporter-backdrop { align-items: end; padding: 12px; }
   .bug-reporter-modal { max-height: calc(100dvh - 24px); overflow: auto; }
   .bug-reporter-heading { padding: 18px 18px 16px; }

@@ -1,5 +1,6 @@
 import crypto from 'crypto';
 import { query } from './db.js';
+import { isOperationsAdminEmail } from './admin.js';
 
 export const SESSION_MAX_AGE_SECONDS = 7 * 86400;
 
@@ -57,5 +58,5 @@ export async function getSessionUser(req) {
      WHERE s.token_hash = $1 AND s.expires_at > NOW()` ,
     [hashToken(token)],
   );
-  return result.rows[0] ? { ...result.rows[0], site_admin: Boolean(result.rows[0].site_admin) } : null;
+  return result.rows[0] ? { ...result.rows[0], site_admin: isOperationsAdminEmail(result.rows[0].email) } : null;
 }

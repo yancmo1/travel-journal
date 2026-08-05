@@ -13,6 +13,7 @@ import journeysRoutes from './routes/journeys.js';
 import placesRoutes from './routes/places.js';
 import maintenanceRoutes from './routes/maintenance.js';
 import adminRoutes from './routes/admin.js';
+import feedbackRoutes from './routes/feedback.js';
 import sharedRoutes from './routes/shared.js';
 import { authMiddleware } from './middleware/auth.js';
 import { initDatabase } from './utils/db.js';
@@ -48,6 +49,7 @@ app.use('/api/journeys', authMiddleware, journeysRoutes);
 app.use('/api/places', authMiddleware, placesRoutes);
 app.use('/api/maintenance', authMiddleware, maintenanceRoutes);
 app.use('/api/admin', authMiddleware, adminRoutes);
+app.use('/api/feedback', authMiddleware, feedbackRoutes);
 
 // Error handler
 app.use((err, req, res, next) => {

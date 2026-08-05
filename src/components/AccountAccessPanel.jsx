@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
 
-export default function AccountAccessPanel() {
+export default function AccountAccessPanel({ setPage }) {
   const { user, households, activeHouseholdId } = useAuth();
   const active = useMemo(() => households.find(site => Number(site.id) === Number(activeHouseholdId)), [households, activeHouseholdId]);
   const [access, setAccess] = useState({ members: [], invitations: [], role: active?.role || 'member' });
@@ -48,7 +48,7 @@ export default function AccountAccessPanel() {
         {access.members.map(member => <div key={member.id} className="flex items-center justify-between gap-3 py-3"><div><p className="font-semibold text-gray-900">{member.display_name || member.email || 'Family member'}</p><p className="text-sm text-gray-500">{member.email}</p></div><span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold capitalize text-gray-600">{member.role}</span></div>)}
         {access.invitations.map(invite => <div key={invite.id} className="flex items-center justify-between gap-3 py-3"><div><p className="font-semibold text-gray-900">{invite.email}</p><p className="text-sm text-amber-700">Invitation pending</p></div><span className="text-xs text-gray-500">Expires {new Date(invite.expires_at).toLocaleDateString()}</span></div>)}
       </div>
-      {['owner', 'admin'].includes(access.role) && <p className="mt-4 border-t border-gray-100 pt-4 text-sm text-gray-500">Need to invite someone? Use the <button type="button" className="font-semibold text-ocean-blue underline decoration-ocean-blue/30 underline-offset-2" onClick={() => { window.dispatchEvent(new CustomEvent('postcards-settings-section', { detail: 'beta-testers' })); }}>Beta testers</button> section for a dedicated invitation form.</p>}
+      {user?.site_admin && ['owner', 'admin'].includes(access.role) && <p className="mt-4 border-t border-gray-100 pt-4 text-sm text-gray-500">Need to invite someone? Use the <button type="button" className="font-semibold text-ocean-blue underline decoration-ocean-blue/30 underline-offset-2" onClick={() => { setPage('operations'); window.setTimeout(() => window.dispatchEvent(new CustomEvent('postcards-operations-section', { detail: 'beta-testers' })), 0); }}>Operations</button> area for the dedicated beta invitation form.</p>}
     </section>
 
     <section className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">

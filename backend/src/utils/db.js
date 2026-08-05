@@ -32,6 +32,24 @@ export async function initDatabase() {
   `);
   await query('CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id)');
   await query('CREATE INDEX IF NOT EXISTS idx_sessions_expires_at ON sessions(expires_at)');
+  await query(`
+    CREATE TABLE IF NOT EXISTS bug_reports (
+      id UUID PRIMARY KEY,
+      user_id INT REFERENCES users(id) ON DELETE SET NULL,
+      title VARCHAR(120) NOT NULL,
+      details TEXT NOT NULL,
+      request_id VARCHAR(120),
+      page VARCHAR(200),
+      url VARCHAR(500),
+      app_version VARCHAR(40),
+      user_agent VARCHAR(500),
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+  await query('CREATE INDEX IF NOT EXISTS idx_bug_reports_created_at ON bug_reports(created_at DESC)');
+  await query('ALTER TABLE bug_reports ADD COLUMN IF NOT EXISTS screenshot BYTEA');
+  await query('ALTER TABLE bug_reports ADD COLUMN IF NOT EXISTS screenshot_filename VARCHAR(160)');
+  await query('ALTER TABLE bug_reports ADD COLUMN IF NOT EXISTS screenshot_mime_type VARCHAR(80)');
   await query('ALTER TABLE trips ADD COLUMN IF NOT EXISTS city VARCHAR(100)');
   await query('ALTER TABLE trips ADD COLUMN IF NOT EXISTS date_label VARCHAR(100)');
   await query("ALTER TABLE trips ADD COLUMN IF NOT EXISTS date_precision VARCHAR(20) DEFAULT 'exact'");

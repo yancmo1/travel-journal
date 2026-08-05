@@ -286,19 +286,19 @@ test('admin operations exposes recent failed-login monitoring counters', async (
   const MEDIA = new MemoryR2();
   const passwordHash = bcrypt.hashSync('correct horse battery staple', 4);
   await DB.batch([
-    DB.prepare('INSERT INTO users (username, email, email_verified_at, password_hash, display_name, site_admin) VALUES (?, ?, CURRENT_TIMESTAMP, ?, ?, 1)').bind('monitor-owner', 'monitor@example.com', passwordHash, 'Monitor Owner'),
+    DB.prepare('INSERT INTO users (username, email, email_verified_at, password_hash, display_name, site_admin) VALUES (?, ?, CURRENT_TIMESTAMP, ?, ?, 1)').bind('monitor-owner', 'yancmo@gmail.com', passwordHash, 'Monitor Owner'),
     DB.prepare('INSERT INTO households (slug, name) VALUES (?, ?)').bind('monitor-family', 'Monitor Family'),
     DB.prepare('INSERT INTO household_members (household_id, user_id, role) VALUES (1, 1, ?)').bind('owner'),
   ]);
   const env = { DB, MEDIA };
   const pending = [];
   const failedLogin = await worker.fetch(request('/api/auth/login', {
-    method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email: 'monitor@example.com', password: 'wrong password' }),
+    method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email: 'yancmo@gmail.com', password: 'wrong password' }),
   }), env, { waitUntil(promise) { pending.push(promise); } });
   assert.equal(failedLogin.status, 401);
   await Promise.all(pending);
   const login = await worker.fetch(request('/api/auth/login', {
-    method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email: 'monitor@example.com', password: 'correct horse battery staple' }),
+    method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email: 'yancmo@gmail.com', password: 'correct horse battery staple' }),
   }), env, context());
   const operations = await worker.fetch(request('/api/admin/operations', { headers: { cookie: cookieFrom(login) } }), env, context());
   const body = await operations.json();

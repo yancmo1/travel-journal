@@ -30,7 +30,7 @@ async function fixture() {
   const MEDIA = new MemoryR2();
   const passwordHash = bcrypt.hashSync('correct horse battery staple', 4);
   await DB.batch([
-    DB.prepare('INSERT INTO users (username, email, email_verified_at, password_hash, display_name, site_admin) VALUES (?, ?, CURRENT_TIMESTAMP, ?, ?, 1)').bind('owner', 'owner@example.com', passwordHash, 'Owner'),
+    DB.prepare('INSERT INTO users (username, email, email_verified_at, password_hash, display_name, site_admin) VALUES (?, ?, CURRENT_TIMESTAMP, ?, ?, 1)').bind('owner', 'yancmo@gmail.com', passwordHash, 'Owner'),
     DB.prepare('INSERT INTO households (slug, name) VALUES (?, ?)').bind('first', 'First family'),
     DB.prepare('INSERT INTO households (slug, name) VALUES (?, ?)').bind('second', 'Second family'),
     DB.prepare('INSERT INTO household_members (household_id, user_id, role) VALUES (1, 1, ?)').bind('owner'),
@@ -52,7 +52,7 @@ async function fixture() {
   const login = await worker.fetch(request('/api/auth/login', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ email: 'owner@example.com', password: 'correct horse battery staple' }),
+    body: JSON.stringify({ email: 'yancmo@gmail.com', password: 'correct horse battery staple' }),
   }), env, context());
   assert.equal(login.status, 200);
   return { DB, MEDIA, env, cookie: cookieFrom(login) };
@@ -101,6 +101,30 @@ test('authenticated route contract returns bounded shapes and security headers',
   }), env, context());
   assert.equal(methodRejected.status, 404);
   assert.equal((await methodRejected.json()).error, 'Not found');
+  DB.close();
+});
+
+test('Operations access is reserved for yancmo@gmail.com', async () => {
+  const DB = createD1Database();
+  const MEDIA = new MemoryR2();
+  const passwordHash = bcrypt.hashSync('correct horse battery staple', 4);
+  await DB.batch([
+    DB.prepare('INSERT INTO users (username, email, email_verified_at, password_hash, display_name, site_admin) VALUES (?, ?, CURRENT_TIMESTAMP, ?, ?, 1)').bind('legacy-admin', 'legacy-admin@example.com', passwordHash, 'Legacy Admin'),
+    DB.prepare('INSERT INTO households (slug, name) VALUES (?, ?)').bind('legacy-family', 'Legacy family'),
+    DB.prepare('INSERT INTO household_members (household_id, user_id, role) VALUES (1, 1, ?)').bind('owner'),
+  ]);
+  const login = await worker.fetch(request('/api/auth/login', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ email: 'legacy-admin@example.com', password: 'correct horse battery staple' }),
+  }), { DB, MEDIA }, context());
+  assert.equal(login.status, 200);
+  assert.equal((await login.clone().json()).user.site_admin, false);
+
+  const operations = await worker.fetch(request('/api/admin/operations', {
+    headers: { cookie: cookieFrom(login) },
+  }), { DB, MEDIA }, context());
+  assert.equal(operations.status, 403);
   DB.close();
 });
 

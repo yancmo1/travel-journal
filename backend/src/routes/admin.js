@@ -45,6 +45,12 @@ router.get('/operations', async (req, res, next) => {
       query('SELECT COUNT(*)::int AS count FROM trips'),
       query('SELECT COUNT(*)::int AS count FROM photos'),
     ]);
+    const bugReports = await query(`
+      SELECT id, title, details, request_id, page, url, app_version, user_agent, screenshot_filename, screenshot_mime_type, (screenshot IS NOT NULL) AS has_screenshot, created_at
+      FROM bug_reports
+      ORDER BY created_at DESC
+      LIMIT 20
+    `);
     res.json({
       checkedAt: new Date().toISOString(),
       database: {
@@ -58,6 +64,7 @@ router.get('/operations', async (req, res, next) => {
         grafanaUrl: process.env.GRAFANA_URL || null,
         prometheusUrl: process.env.PROMETHEUS_URL || null,
       },
+      bugReports: bugReports.rows,
     });
   } catch (error) {
     next(error);

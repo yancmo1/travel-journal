@@ -1,6 +1,15 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
+import { Activity, MailPlus, Palette } from 'lucide-react';
+import BetaTesterInvitePanel from '../components/BetaTesterInvitePanel';
+import StyleGuidePage from './StyleGuidePage';
+
+const OPERATIONS_SECTIONS = [
+  { id: 'overview', label: 'Overview', description: 'Runtime and feedback health', icon: Activity },
+  { id: 'beta-testers', label: 'Beta testers', description: 'Invite private testers', icon: MailPlus },
+  { id: 'style-guide', label: 'Style guide', description: 'Visual system and tokens', icon: Palette },
+];
 
 export default function OperationsPage() {
   const { user } = useAuth();
@@ -9,6 +18,7 @@ export default function OperationsPage() {
   const [refreshing, setRefreshing] = useState(false);
   const [backingUp, setBackingUp] = useState(false);
   const [error, setError] = useState('');
+  const [section, setSection] = useState('overview');
 
   const loadOperations = useCallback(async ({ quiet = false } = {}) => {
     if (!user?.site_admin) return;
@@ -26,6 +36,14 @@ export default function OperationsPage() {
   }, [user?.site_admin]);
 
   useEffect(() => { loadOperations(); }, [loadOperations]);
+
+  useEffect(() => {
+    function selectRequestedSection(event) {
+      if (OPERATIONS_SECTIONS.some(item => item.id === event.detail)) setSection(event.detail);
+    }
+    window.addEventListener('postcards-operations-section', selectRequestedSection);
+    return () => window.removeEventListener('postcards-operations-section', selectRequestedSection);
+  }, []);
 
   if (!user?.site_admin) return null;
 
@@ -53,21 +71,47 @@ export default function OperationsPage() {
         <div>
           <p className="memory-eyebrow">Private operator area</p>
           <h1>Operations</h1>
-          <p>Monitor the app, backups, Cloudflare runtime, and account delivery health.</p>
+          <p>{OPERATIONS_SECTIONS.find(item => item.id === section)?.description}</p>
         </div>
-        <button
-          type="button"
-          onClick={() => loadOperations({ quiet: true })}
-          disabled={loading || refreshing}
-          className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 disabled:opacity-60"
-        >
-          {refreshing ? 'Refreshing…' : 'Refresh'}
-        </button>
+        {section === 'overview' && (
+          <button
+            type="button"
+            onClick={() => loadOperations({ quiet: true })}
+            disabled={loading || refreshing}
+            className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 disabled:opacity-60"
+          >
+            {refreshing ? 'Refreshing…' : 'Refresh'}
+          </button>
+        )}
       </header>
 
-      {error && <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800" role="alert">{error}</div>}
+      <nav className="grid gap-2 sm:grid-cols-3" aria-label="Operations sections">
+        {OPERATIONS_SECTIONS.map(item => {
+          const Icon = item.icon;
+          return (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => setSection(item.id)}
+              className={`flex items-center gap-3 rounded-xl border p-3 text-left transition ${section === item.id ? 'border-ocean-blue bg-ocean-blue/10 text-ocean-dark' : 'border-gray-200 bg-white text-gray-600 hover:border-ocean-blue/40'}`}
+              aria-current={section === item.id ? 'page' : undefined}
+            >
+              <Icon size={19} aria-hidden="true" />
+              <span>
+                <strong className="block text-sm">{item.label}</strong>
+                <small className="mt-0.5 block text-xs opacity-75">{item.description}</small>
+              </span>
+            </button>
+          );
+        })}
+      </nav>
 
-      {loading ? (
+      {section === 'beta-testers' && <BetaTesterInvitePanel />}
+      {section === 'style-guide' && <StyleGuidePage />}
+
+      {section === 'overview' && error && <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800" role="alert">{error}</div>}
+
+      {section === 'overview' && (loading ? (
         <section className="rounded-2xl border border-gray-100 bg-white p-6 text-sm text-gray-600 shadow-sm">Loading operations data…</section>
       ) : (
         <>
@@ -134,6 +178,9 @@ export default function OperationsPage() {
                       <time className="text-xs text-gray-500">{formatStatusDate(report.created_at)}</time>
                     </div>
                     <p className="mt-2 whitespace-pre-wrap text-sm text-gray-700">{report.details}</p>
+                    {(report.screenshot?.filename || report.screenshot_filename) && (
+                      <p className="mt-2 text-xs font-semibold text-ocean-dark">Screenshot attached: {report.screenshot?.filename || report.screenshot_filename}</p>
+                    )}
                     {report.requestId && <p className="mt-2 text-xs text-gray-500">Request reference: <code>{report.requestId}</code></p>}
                   </article>
                 ))}
@@ -143,7 +190,7 @@ export default function OperationsPage() {
             )}
           </section>
         </>
-      )}
+      ))}
     </div>
   );
 }
