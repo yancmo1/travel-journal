@@ -24,7 +24,7 @@ export async function authMiddleware(req, res, next) {
   try {
     const token = authHeader.split(' ')[1];
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const result = await query('SELECT id, email, display_name, site_admin FROM users WHERE id = $1', [decoded.id]);
+    const result = await query('SELECT id, email, display_name, site_admin, home_latitude, home_longitude, home_label, home_icon FROM users WHERE id = $1', [decoded.id]);
     if (!result.rows.length) return res.status(401).json({ error: 'User not found' });
     req.user = { ...decoded, ...result.rows[0], site_admin: isOperationsAdmin(result.rows[0]) };
     next();

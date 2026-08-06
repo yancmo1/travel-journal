@@ -8,6 +8,10 @@ CREATE TABLE IF NOT EXISTS users (
   password_hash VARCHAR(255) NOT NULL,
   display_name VARCHAR(100),
   site_admin BOOLEAN NOT NULL DEFAULT FALSE,
+  home_latitude DECIMAL(10, 8),
+  home_longitude DECIMAL(11, 8),
+  home_label VARCHAR(255),
+  home_icon VARCHAR(40) NOT NULL DEFAULT 'h',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

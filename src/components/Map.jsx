@@ -2,6 +2,31 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { formatDateOnly } from '../utils/format';
+import { useAuth } from '../context/AuthContext';
+import { HOME_ICONS, homeBadgeHtml } from '../utils/homeIcons';
+
+// Default home base used until a user saves one in Settings (Oklahoma City).
+const DEFAULT_HOME = { latitude: 35.4676, longitude: -97.5164, label: 'Oklahoma City, OK' };
+
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function createHomeMarker(latitude, longitude, label, iconId) {
+  const icon = L.divIcon({
+    className: 'custom-marker',
+    html: homeBadgeHtml(iconId),
+    iconSize: [20, 20],
+    iconAnchor: [10, 10],
+  });
+  return L.marker([latitude, longitude], { icon })
+    .bindPopup(`<strong>Home</strong><br/>${escapeHtml(label)}`);
+}
 
 // Color mapping for trip types
 const tripTypeColors = {
@@ -17,6 +42,12 @@ export default function MapView({ trips = [], onSelectTrip, showRoutes = false, 
   const mapContainer = useRef(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const onSelectTripRef = useRef(onSelectTrip);
+  const { user } = useAuth();
+
+  const homeLatitude = user?.home_latitude != null ? Number(user.home_latitude) : DEFAULT_HOME.latitude;
+  const homeLongitude = user?.home_longitude != null ? Number(user.home_longitude) : DEFAULT_HOME.longitude;
+  const homeLabel = user?.home_label || (user?.home_latitude != null ? 'Home' : DEFAULT_HOME.label);
+  const homeIcon = HOME_ICONS[user?.home_icon] ? user.home_icon : 'h';
 
   // Keep ref updated
   useEffect(() => {
@@ -46,19 +77,8 @@ export default function MapView({ trips = [], onSelectTrip, showRoutes = false, 
       maxZoom: 19,
     }).addTo(map);
 
-    // Home marker (Oklahoma City)
-    const homeIcon = L.divIcon({
-      className: 'custom-marker',
-      html: `<div style="background: #12392f; width: 22px; height: 22px; border-radius: 50%; border: 3px solid #fff9ec; box-shadow: 0 2px 6px rgba(18,57,47,0.28); display: flex; align-items: center; justify-content: center;">
-        <span style="color: #fff9ec; font: 600 10px Georgia, serif;">H</span>
-      </div>`,
-      iconSize: [20, 20],
-      iconAnchor: [10, 10],
-    });
-
-    L.marker([35.4676, -97.5164], { icon: homeIcon })
-      .addTo(map)
-      .bindPopup('<strong>Home</strong><br/>Oklahoma City, OK');
+    // Home marker is managed by a dedicated effect so it follows the user's
+    // saved home base and icon from Settings.
 
     // Leaflet can calculate a zero-sized viewport when a page is restored from
     // the PWA cache or when the map was mounted while its parent was hidden.
@@ -82,6 +102,18 @@ export default function MapView({ trips = [], onSelectTrip, showRoutes = false, 
       mapRef.current = null;
     };
   }, []);
+
+  // Keep the home marker in sync with the user's saved home base from Settings.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    if (map._homeMarker && map.hasLayer(map._homeMarker)) {
+      map.removeLayer(map._homeMarker);
+    }
+    map._homeMarker = createHomeMarker(homeLatitude, homeLongitude, homeLabel, homeIcon);
+    map._homeMarker.addTo(map);
+  }, [homeLatitude, homeLongitude, homeLabel, homeIcon]);
 
   // Handle Escape key to exit fullscreen
   useEffect(() => {
@@ -197,7 +229,7 @@ export default function MapView({ trips = [], onSelectTrip, showRoutes = false, 
     if (tripsWithCoords.length > 0) {
       const bounds = L.latLngBounds(tripsWithCoords.map(t => [t.latitude, t.longitude]));
       // Include home in bounds
-      bounds.extend([35.4676, -97.5164]);
+      bounds.extend([homeLatitude, homeLongitude]);
       map.fitBounds(bounds, { padding: [50, 50], maxZoom: 8 });
     }
   }, [trips, showRoutes]);

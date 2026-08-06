@@ -93,27 +93,77 @@ router.post('/login', async (req, res, next) => {
 });
 
 // Verify token / get current user
+async function resolveCurrentUser(req) {
+  const sessionUser = await getSessionUser(req);
+  if (sessionUser) return sessionUser;
+
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return null;
+  }
+
+  const token = authHeader.split(' ')[1];
+  const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+  const result = await query(
+    'SELECT id, email, display_name, site_admin, home_latitude, home_longitude, home_label, home_icon FROM users WHERE id = $1',
+    [decoded.id]
+  );
+
+  if (result.rows.length === 0) return null;
+  return { ...result.rows[0], site_admin: isOperationsAdmin(result.rows[0]) };
+}
+
+const HOME_ICONS = ['h', 'house', 'cabin', 'cottage'];
+
 router.get('/me', async (req, res, next) => {
   try {
-    const sessionUser = await getSessionUser(req);
+    const sessionUser = await resolveCurrentUser(req);
     if (sessionUser) return res.json({ user: sessionUser });
+    return res.status(401).json({ error: 'No token' });
+  } catch (err) {
+    if (err.name === 'JsonWebTokenError') {
+      return res.status(401).json({ error: 'Invalid token' });
+    }
+    next(err);
+  }
+});
 
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({ error: 'No token' });
+// Save the user's home base (used for the map's home marker and distance-from-home).
+router.patch('/me', async (req, res, next) => {
+  try {
+    const user = await resolveCurrentUser(req);
+    if (!user) return res.status(401).json({ error: 'Sign in required' });
+
+    const { homeLatitude, homeLongitude, homeLabel, homeIcon } = req.body || {};
+
+    const latitude = homeLatitude === null || homeLatitude === undefined || String(homeLatitude).trim() === ''
+      ? null
+      : Number(homeLatitude);
+    const longitude = homeLongitude === null || homeLongitude === undefined || String(homeLongitude).trim() === ''
+      ? null
+      : Number(homeLongitude);
+
+    if (latitude !== null && (!Number.isFinite(latitude) || latitude < -90 || latitude > 90)) {
+      return res.status(400).json({ error: 'Home latitude is invalid.' });
+    }
+    if (longitude !== null && (!Number.isFinite(longitude) || longitude < -180 || longitude > 180)) {
+      return res.status(400).json({ error: 'Home longitude is invalid.' });
+    }
+    if ((latitude === null) !== (longitude === null)) {
+      return res.status(400).json({ error: 'Home needs both a latitude and a longitude.' });
     }
 
-    const token = authHeader.split(' ')[1];
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    
+    const label = homeLabel === null || homeLabel === undefined ? null : String(homeLabel).trim().slice(0, 255) || null;
+    const icon = HOME_ICONS.includes(homeIcon) ? homeIcon : 'h';
+
     const result = await query(
-      'SELECT id, email, display_name, site_admin FROM users WHERE id = $1',
-      [decoded.id]
+      `UPDATE users
+       SET home_latitude = $1, home_longitude = $2, home_label = $3, home_icon = $4
+       WHERE id = $5
+       RETURNING id, email, display_name, site_admin, home_latitude, home_longitude, home_label, home_icon`,
+      [latitude, longitude, label, icon, user.id]
     );
-
-    if (result.rows.length === 0) {
-      return res.status(401).json({ error: 'User not found' });
-    }
 
     res.json({ user: { ...result.rows[0], site_admin: isOperationsAdmin(result.rows[0]) } });
   } catch (err) {

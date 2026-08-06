@@ -250,7 +250,11 @@ export default function TripsPage({ initialTravelerFilter = 'all' }) {
       )}
 
       {photoTrip && (
-        <MemoryPhotosModal memory={photoTrip} onClose={() => setPhotoTrip(null)} />
+        <MemoryPhotosModal
+          memory={photoTrip}
+          onClose={() => setPhotoTrip(null)}
+          onEdit={() => { setEditTrip(photoTrip); setPhotoTrip(null); setShowForm(true); }}
+        />
       )}
 
       {/* Delete Confirmation */}

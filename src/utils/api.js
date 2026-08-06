@@ -120,6 +120,13 @@ class ApiClient {
     return this.request('/auth/me', { skipUnauthorizedRedirect: true });
   }
 
+  async updateHome(home) {
+    return this.request('/auth/me', {
+      method: 'PATCH',
+      body: JSON.stringify(home),
+    });
+  }
+
   logout() {
     this.clearToken();
     return this.request('/auth/logout', { method: 'POST', skipUnauthorizedRedirect: true }).catch(() => null);

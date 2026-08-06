@@ -13,10 +13,12 @@ export function haversineDistance(lat1, lon1, lat2, lon2) {
   return R * c;
 }
 
-// Calculate distance from home (Oklahoma City)
-export function distanceFromHome(lat, lon) {
-  const homeLat = parseFloat(process.env.HOME_LATITUDE) || 35.4676;
-  const homeLon = parseFloat(process.env.HOME_LONGITUDE) || -97.5164;
+// Calculate distance from home. Uses the signed-in user's saved home base when
+// available, falling back to the HOME_LATITUDE/HOME_LONGITUDE env setting
+// (historically Oklahoma City).
+export function distanceFromHome(lat, lon, home = {}) {
+  const homeLat = home.home_latitude != null ? Number(home.home_latitude) : (parseFloat(process.env.HOME_LATITUDE) || 35.4676);
+  const homeLon = home.home_longitude != null ? Number(home.home_longitude) : (parseFloat(process.env.HOME_LONGITUDE) || -97.5164);
   return haversineDistance(homeLat, homeLon, lat, lon);
 }
 

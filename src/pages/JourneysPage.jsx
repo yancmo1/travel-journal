@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useData } from '../context/DataContext';
 import JourneyForm from '../components/JourneyForm';
+import TripForm from '../components/TripForm';
 import MapView from '../components/Map';
 import MemoryPhotosModal from '../components/MemoryPhotosModal';
 import MemoryPlaceDetails from '../components/MemoryPlaceDetails';
@@ -13,6 +14,7 @@ export default function JourneysPage() {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
   const [selected, setSelected] = useState(null);
+  const [editTrip, setEditTrip] = useState(null);
   const [photoMemory, setPhotoMemory] = useState(null);
   const [printJourney, setPrintJourney] = useState(null);
 
@@ -82,6 +84,7 @@ export default function JourneysPage() {
       )}
 
       {showForm && <JourneyForm journey={editing} onClose={closeForm} />}
+      {editTrip && <TripForm trip={editTrip} onClose={() => setEditTrip(null)} />}
       {selected && (
         <JourneyDetail
           journey={selected}
@@ -96,7 +99,13 @@ export default function JourneysPage() {
           }}
         />
       )}
-      {photoMemory && <MemoryPhotosModal memory={photoMemory} onClose={() => setPhotoMemory(null)} />}
+      {photoMemory && (
+        <MemoryPhotosModal
+          memory={photoMemory}
+          onClose={() => setPhotoMemory(null)}
+          onEdit={() => { setEditTrip(photoMemory); setPhotoMemory(null); setSelected(null); }}
+        />
+      )}
       {printJourney && <TravelBookPrint journey={printJourney} onClose={() => setPrintJourney(null)} />}
     </div>
   );
