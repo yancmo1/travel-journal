@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import { ArrowDown, ArrowUp } from 'lucide-react';
 import { useData } from '../context/DataContext';
 import JourneyForm from '../components/JourneyForm';
 import TripForm from '../components/TripForm';
@@ -17,6 +18,10 @@ export default function JourneysPage() {
   const [editTrip, setEditTrip] = useState(null);
   const [photoMemory, setPhotoMemory] = useState(null);
   const [printJourney, setPrintJourney] = useState(null);
+  const [journeySort, setJourneySort] = useState('asc');
+  const sortedJourneys = useMemo(() => (
+    [...journeys].sort((a, b) => compareJourneys(a, b, journeySort))
+  ), [journeys, journeySort]);
 
   function closeForm() {
     setShowForm(false);
@@ -41,39 +46,70 @@ export default function JourneysPage() {
       </section>
 
       {journeys.length ? (
-        <div className="journey-grid">
-          {journeys.map(journey => {
-            const cover = findCover(journey);
-            const photoCount = journey.memories.reduce((total, memory) => total + (memory.photos?.length || 0), 0);
-            return (
-              <article key={journey.id} className="journey-card">
-                <button type="button" className="journey-card-open" onClick={() => setSelected(journey)}>
-                  <div className={`journey-cover ${cover ? 'has-photo' : ''}`}>
-                    {getPhotoPreviewPath(cover) ? (
-                      <img src={`/photos/${getPhotoPreviewPath(cover)}`} alt="" style={getPhotoImageStyle(cover)} />
-                    ) : (
-                      <div className="journey-cover-art" aria-hidden="true"><span>✦</span></div>
-                    )}
-                    <span className="journey-type">{journey.journey_type || 'Journey'}</span>
-                  </div>
-                  <div className="journey-card-copy">
-                    <p>{formatJourneyDate(journey)}</p>
-                    <h2>{journey.title}</h2>
-                    <span>{journey.memories.length} memories · {photoCount} photos</span>
-                    <strong>Open the story →</strong>
-                  </div>
-                </button>
-                <button
-                  type="button"
-                  className="journey-card-edit"
-                  onClick={() => { setEditing(journey); setShowForm(true); }}
-                >
-                  Edit
-                </button>
-              </article>
-            );
-          })}
-        </div>
+        <>
+          <div className="journeys-toolbar">
+            <div className="journeys-sort-copy">
+              <span className="journeys-sort-label">Journey order</span>
+              <span className="journeys-sort-summary">
+                {journeySort === 'asc' ? 'Oldest journeys first' : 'Newest journeys first'}
+              </span>
+            </div>
+            <div className="journeys-sort-control" role="group" aria-label="Sort journeys by date">
+              <button
+                type="button"
+                className="journey-sort-option"
+                aria-pressed={journeySort === 'asc'}
+                onClick={() => setJourneySort('asc')}
+              >
+                <ArrowUp aria-hidden="true" />
+                Oldest first
+              </button>
+              <button
+                type="button"
+                className="journey-sort-option"
+                aria-pressed={journeySort === 'desc'}
+                onClick={() => setJourneySort('desc')}
+              >
+                <ArrowDown aria-hidden="true" />
+                Newest first
+              </button>
+            </div>
+          </div>
+
+          <div className="journey-grid">
+            {sortedJourneys.map(journey => {
+              const cover = findCover(journey);
+              const photoCount = journey.memories.reduce((total, memory) => total + (memory.photos?.length || 0), 0);
+              return (
+                <article key={journey.id} className="journey-card">
+                  <button type="button" className="journey-card-open" onClick={() => setSelected(journey)}>
+                    <div className={`journey-cover ${cover ? 'has-photo' : ''}`}>
+                      {getPhotoPreviewPath(cover) ? (
+                        <img src={`/photos/${getPhotoPreviewPath(cover)}`} alt="" style={getPhotoImageStyle(cover)} />
+                      ) : (
+                        <div className="journey-cover-art" aria-hidden="true"><span>✦</span></div>
+                      )}
+                      <span className="journey-type">{journey.journey_type || 'Journey'}</span>
+                    </div>
+                    <div className="journey-card-copy">
+                      <p>{formatJourneyDate(journey)}</p>
+                      <h2>{journey.title}</h2>
+                      <span>{journey.memories.length} memories · {photoCount} photos</span>
+                      <strong>Open the story →</strong>
+                    </div>
+                  </button>
+                  <button
+                    type="button"
+                    className="journey-card-edit"
+                    onClick={() => { setEditing(journey); setShowForm(true); }}
+                  >
+                    Edit
+                  </button>
+                </article>
+              );
+            })}
+          </div>
+        </>
       ) : (
         <section className="journeys-empty">
           <span aria-hidden="true">⌁</span>
@@ -290,4 +326,23 @@ function formatMemoryDate(memory) {
   return formatDateOnly(memory.start_date, {
     weekday: 'short', month: 'short', day: 'numeric', year: 'numeric'
   });
+}
+
+function compareJourneys(a, b, direction) {
+  const aTime = journeyDateValue(a);
+  const bTime = journeyDateValue(b);
+
+  if (aTime === null && bTime !== null) return 1;
+  if (aTime !== null && bTime === null) return -1;
+  if (aTime !== null && bTime !== null && aTime !== bTime) {
+    return direction === 'asc' ? aTime - bTime : bTime - aTime;
+  }
+
+  return String(a.title || '').localeCompare(String(b.title || ''));
+}
+
+function journeyDateValue(journey) {
+  if (!journey.start_date) return null;
+  const timestamp = Date.parse(journey.start_date);
+  return Number.isNaN(timestamp) ? null : timestamp;
 }
