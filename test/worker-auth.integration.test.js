@@ -412,7 +412,7 @@ test('cookie session rotation invalidates the prior household context', async ()
     DB.prepare('INSERT INTO travelers (household_id, name, relationship) VALUES (2, ?, ?)').bind('Second traveler', 'spouse'),
     DB.prepare('INSERT INTO trips (household_id, location_name, created_by) VALUES (1, ?, 1)').bind('First trip'),
     DB.prepare('INSERT INTO trip_travelers (trip_id, traveler_id) VALUES (1, 2)'),
-    DB.prepare('INSERT INTO journeys (household_id, title, created_by) VALUES (1, ?, 1)').bind('First journey'),
+    DB.prepare('INSERT INTO journeys (household_id, title, start_date, end_date, created_by) VALUES (1, ?, ?, ?, 1)').bind('First journey', '2026-07-10', '2026-07-20'),
     DB.prepare('INSERT INTO photos (household_id, trip_id, r2_key, original_filename, file_size, mime_type) VALUES (1, 1, ?, ?, ?, ?)').bind('households/1/trips/1/original/photo.jpg', 'photo.jpg', 12, 'image/jpeg'),
   ]);
   await MEDIA.put('households/1/trips/1/original/photo.jpg', new TextEncoder().encode('private-photo'), { httpMetadata: { contentType: 'image/jpeg' } });
@@ -522,6 +522,16 @@ test('cookie session rotation invalidates the prior household context', async ()
   const storedTrip = await DB.prepare('SELECT place_name, formatted_address FROM trips WHERE id = ?').bind(firstTripBody.id).first();
   assert.equal(storedTrip.place_name, 'Idempotent Museum');
   assert.equal(storedTrip.formatted_address, '123 Example St, Oklahoma City, OK, United States');
+  const journeyMatchForm = new FormData();
+  journeyMatchForm.append('photos', new File([jpegBytes('journey-match-photo')], 'journey-match.jpg', { type: 'image/jpeg' }));
+  journeyMatchForm.append('photoUploadIds', JSON.stringify(['journey-match-upload-1']));
+  journeyMatchForm.append('uploadAttemptId', 'journey-match-attempt-1');
+  journeyMatchForm.append('photoMetadata', JSON.stringify([{ dateTaken: '2026-07-15T12:00:00.000Z' }]));
+  const journeyMatchUpload = await worker.fetch(request('/api/photos/2', { method: 'POST', headers: { cookie: oldCookie }, body: journeyMatchForm }), env, context());
+  assert.equal(journeyMatchUpload.status, 201);
+  const journeyMatch = await DB.prepare('SELECT journey_id, journey_order FROM trips WHERE id = 2').first();
+  assert.equal(journeyMatch.journey_id, 1);
+  assert.equal(journeyMatch.journey_order, 1);
   const replayTrip = await worker.fetch(request('/api/trips', createTripOptions), env, context());
   assert.equal(replayTrip.status, 201);
   assert.equal(replayTrip.headers.get('idempotent-replay'), 'true');

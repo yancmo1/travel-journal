@@ -24,6 +24,51 @@ async function removePhotoDirectories(ids) {
   });
 }
 
+export async function autoAssignJourneyForTrip(tripId, userId) {
+  const rangeResult = await query(`
+    SELECT
+      t.start_date AS trip_start_date,
+      t.end_date AS trip_end_date,
+      MIN(p.date_taken)::date AS photo_start_date,
+      MAX(p.date_taken)::date AS photo_end_date
+    FROM trips t
+    LEFT JOIN photos p ON p.trip_id = t.id AND p.date_taken IS NOT NULL
+    WHERE t.id = $1 AND t.created_by = $2 AND t.journey_id IS NULL
+    GROUP BY t.id
+  `, [tripId, userId]);
+  const range = rangeResult.rows[0];
+  if (!range) return null;
+
+  const startDate = range.photo_start_date || range.trip_start_date;
+  const endDate = range.photo_end_date || range.trip_end_date || startDate;
+  if (!startDate) return null;
+
+  const journeyResult = await query(`
+    SELECT id
+    FROM journeys
+    WHERE created_by = $1
+      AND start_date IS NOT NULL
+      AND start_date <= $2::date
+      AND COALESCE(end_date, start_date) >= $3::date
+    ORDER BY (COALESCE(end_date, start_date) - start_date), id
+    LIMIT 1
+  `, [userId, endDate, startDate]);
+  const journey = journeyResult.rows[0];
+  if (!journey) return null;
+
+  await query(`
+    UPDATE trips
+    SET journey_id = $1,
+        journey_order = (
+          SELECT COALESCE(MAX(journey_order), 0) + 1
+          FROM trips
+          WHERE journey_id = $1 AND created_by = $2
+        )
+    WHERE id = $3 AND created_by = $2 AND journey_id IS NULL
+  `, [journey.id, userId, tripId]);
+  return journey.id;
+}
+
 // Get all trips
 router.get('/', async (req, res, next) => {
   try {
@@ -154,6 +199,7 @@ router.post('/', async (req, res, next) => {
     ]);
 
     const trip = result.rows[0];
+    await autoAssignJourneyForTrip(trip.id, req.user.id);
 
     // Add travelers
     if (travelerIds && travelerIds.length > 0) {
@@ -178,12 +224,13 @@ router.post('/', async (req, res, next) => {
 
     // Fetch full trip with travelers
     const fullTrip = await query(`
-      SELECT t.*, json_agg(tr.*) as travelers
+      SELECT t.*, j.title AS journey_title, json_agg(tr.*) as travelers
       FROM trips t
+      LEFT JOIN journeys j ON t.journey_id = j.id AND j.created_by = $2
       LEFT JOIN trip_travelers tt ON t.id = tt.trip_id
       LEFT JOIN travelers tr ON tt.traveler_id = tr.id
       WHERE t.id = $1 AND t.created_by = $2
-      GROUP BY t.id
+      GROUP BY t.id, j.title
     `, [trip.id, req.user.id]);
 
     res.status(201).json(fullTrip.rows[0]);
@@ -219,6 +266,7 @@ router.put('/:id', async (req, res, next) => {
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Trip not found' });
     }
+    await autoAssignJourneyForTrip(id, req.user.id);
 
     // Update travelers
     await query('DELETE FROM trip_travelers WHERE trip_id = $1', [id]);
@@ -244,12 +292,13 @@ router.put('/:id', async (req, res, next) => {
 
     // Fetch complete trip
     const fullTrip = await query(`
-      SELECT t.*, COALESCE(json_agg(tr.*) FILTER (WHERE tr.id IS NOT NULL), '[]') as travelers
+      SELECT t.*, j.title AS journey_title, COALESCE(json_agg(tr.*) FILTER (WHERE tr.id IS NOT NULL), '[]') as travelers
       FROM trips t
+      LEFT JOIN journeys j ON t.journey_id = j.id AND j.created_by = $2
       LEFT JOIN trip_travelers tt ON t.id = tt.trip_id
       LEFT JOIN travelers tr ON tt.traveler_id = tr.id
       WHERE t.id = $1 AND t.created_by = $2
-      GROUP BY t.id
+      GROUP BY t.id, j.title
     `, [id, req.user.id]);
 
     res.json(fullTrip.rows[0]);

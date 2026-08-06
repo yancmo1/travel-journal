@@ -1286,6 +1286,49 @@ function tripInput(body) {
   };
 }
 
+async function autoAssignJourneyForTrip(env, householdId, tripId) {
+  const trip = await env.DB.prepare(`
+    SELECT id, start_date, end_date
+    FROM trips
+    WHERE id = ? AND household_id = ? AND journey_id IS NULL
+    LIMIT 1
+  `).bind(tripId, householdId).first();
+  if (!trip) return null;
+
+  const range = await env.DB.prepare(`
+    SELECT date(MIN(date_taken)) AS photo_start_date, date(MAX(date_taken)) AS photo_end_date
+    FROM photos
+    WHERE trip_id = ? AND household_id = ? AND date_taken IS NOT NULL
+  `).bind(tripId, householdId).first();
+  const startDate = range?.photo_start_date || trip.start_date;
+  const endDate = range?.photo_end_date || trip.end_date || startDate;
+  if (!startDate) return null;
+
+  const journey = await env.DB.prepare(`
+    SELECT id
+    FROM journeys
+    WHERE household_id = ?
+      AND start_date IS NOT NULL
+      AND start_date <= ?
+      AND COALESCE(end_date, start_date) >= ?
+    ORDER BY (julianday(COALESCE(end_date, start_date)) - julianday(start_date)), id
+    LIMIT 1
+  `).bind(householdId, endDate, startDate).first();
+  if (!journey) return null;
+
+  const nextOrder = await env.DB.prepare(`
+    SELECT COALESCE(MAX(journey_order), 0) + 1 AS next_order
+    FROM trips
+    WHERE household_id = ? AND journey_id = ?
+  `).bind(householdId, journey.id).first();
+  await env.DB.prepare(`
+    UPDATE trips
+    SET journey_id = ?, journey_order = ?
+    WHERE id = ? AND household_id = ? AND journey_id IS NULL
+  `).bind(journey.id, Number(nextOrder?.next_order || 1), tripId, householdId).run();
+  return journey.id;
+}
+
 function journeyInput(body) {
   const title = String(body?.title || '').trim();
   if (!title || title.length > 200) return { error: 'Journey name is required.' };
@@ -2827,6 +2870,7 @@ async function handleFetch(request, env, ctx) {
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           `).bind(user.household_id, input.locationName, input.placeName, input.formattedAddress, input.city, input.latitude, input.longitude, input.country, input.state, input.startDate, input.endDate, input.dateLabel, input.datePrecision, input.tripType, input.notes, user.id).run();
           const tripId = Number(created.meta.last_row_id);
+          await autoAssignJourneyForTrip(env, user.household_id, tripId);
           const travelerIds = await householdTravelerIds(env, user.household_id, input.travelerIds);
           if (travelerIds.length) await env.DB.batch(travelerIds.map(travelerId => env.DB.prepare('INSERT OR IGNORE INTO trip_travelers (trip_id, traveler_id) VALUES (?, ?)').bind(tripId, travelerId)));
           const trips = await decorateTrips(env, user.household_id, 'AND t.id = ?', [tripId]);
@@ -2956,8 +3000,9 @@ async function handleFetch(request, env, ctx) {
             WHERE id = ? AND household_id = ?
           `).bind(input.locationName, input.placeName, input.formattedAddress, input.city, input.latitude, input.longitude, input.country, input.state, input.startDate, input.endDate, input.dateLabel, input.datePrecision, input.tripType, input.notes, tripId, user.household_id),
           env.DB.prepare('DELETE FROM trip_travelers WHERE trip_id = ?').bind(tripId),
-          ...travelerIds.map(travelerId => env.DB.prepare('INSERT OR IGNORE INTO trip_travelers (trip_id, traveler_id) VALUES (?, ?)').bind(tripId, travelerId)),
-        ]);
+            ...travelerIds.map(travelerId => env.DB.prepare('INSERT OR IGNORE INTO trip_travelers (trip_id, traveler_id) VALUES (?, ?)').bind(tripId, travelerId)),
+          ]);
+        await autoAssignJourneyForTrip(env, user.household_id, tripId);
         const trips = await decorateTrips(env, user.household_id, 'AND t.id = ?', [tripId]);
         return json(trips[0]);
       }
@@ -3549,6 +3594,7 @@ async function handleFetch(request, env, ctx) {
             env.DB.prepare("UPDATE photo_upload_sessions SET status = 'finalized', updated_at = CURRENT_TIMESTAMP WHERE id = ? AND household_id = ?").bind(session.id, user.household_id),
             env.DB.prepare('DELETE FROM upload_reservations WHERE household_id = ? AND reservation_token = ? AND client_upload_id = ?').bind(user.household_id, session.reservation_token, session.client_upload_id),
           ]);
+          await autoAssignJourneyForTrip(env, user.household_id, session.trip_id);
           const photo = await env.DB.prepare('SELECT * FROM photos WHERE household_id = ? AND client_upload_id = ? LIMIT 1').bind(user.household_id, session.client_upload_id).first();
           const responseBody = photoJson(photo);
           await completeIdempotency(env, idempotency, responseBody, 201);
@@ -3702,6 +3748,7 @@ async function handleFetch(request, env, ctx) {
             INSERT INTO photos (household_id, trip_id, client_upload_id, r2_key, display_r2_key, thumbnail_r2_key, original_filename, file_size, mime_type, checksum, processing_status, processing_version, metadata_source, date_taken, latitude, longitude, sort_order, is_cover)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           `).bind(user.household_id, tripId, upload.clientUploadId, upload.key, upload.displayKey, upload.thumbnailKey, String(upload.file.name || 'photo').slice(0, 255), upload.file.size, upload.mimeType, upload.checksum, upload.displayFile && upload.thumbnailFile ? 'ready' : 'pending_processing', 1, 'client', upload.metadata.dateTaken || null, upload.metadata.latitude ?? null, upload.metadata.longitude ?? null, upload.sortOrder, upload.isCover ? 1 : 0)));
+          await autoAssignJourneyForTrip(env, user.household_id, tripId);
           const persistedRows = uploads.length
             ? ((await env.DB.prepare(`SELECT * FROM photos WHERE household_id = ? AND client_upload_id IN (${uploadIdPlaceholders})`).bind(user.household_id, ...clientIds).all()).results || [])
             : [];

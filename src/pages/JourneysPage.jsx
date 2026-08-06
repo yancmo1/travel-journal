@@ -279,9 +279,9 @@ function TravelBookPrint({ journey, onClose }) {
 
 function formatJourneyDate(journey) {
   if (!journey.start_date) return journey.date_label || 'Dates still being remembered';
-  const start = formatDateOnly(journey.start_date, { month: 'short', year: 'numeric' });
+  const start = formatDateOnly(journey.start_date, { month: 'short', day: 'numeric', year: 'numeric' });
   if (!journey.end_date || journey.end_date === journey.start_date) return start;
-  const end = formatDateOnly(journey.end_date, { month: 'short', year: 'numeric' });
+  const end = formatDateOnly(journey.end_date, { month: 'short', day: 'numeric', year: 'numeric' });
   return start === end ? start : `${start} — ${end}`;
 }
 

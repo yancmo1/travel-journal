@@ -5,6 +5,7 @@ import { query } from '../utils/db.js';
 import { upload } from '../middleware/upload.js';
 import { extractExifData, hasGPSData } from '../utils/exifReader.js';
 import { processImage, deleteProcessedImages } from '../utils/imageProcessor.js';
+import { autoAssignJourneyForTrip } from './trips.js';
 import { smartCluster } from '../utils/photoClustering.js';
 import { reverseGeocode, areCoordinatesClose } from '../utils/geocoding.js';
 import { v4 as uuidv4 } from 'uuid';
@@ -315,8 +316,10 @@ router.post('/create-from-analysis', async (req, res, next) => {
       }
     }
 
+    await autoAssignJourneyForTrip(trip.id, req.user.id);
     console.log(`[CREATE FROM ANALYSIS] Trip created with ${photos.length} photos`);
 
+    await autoAssignJourneyForTrip(tripId, req.user.id);
     res.status(201).json({
       success: true,
       trip,

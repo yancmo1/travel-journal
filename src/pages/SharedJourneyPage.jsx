@@ -42,9 +42,9 @@ export default function SharedJourneyPage({ token }) {
 
 function formatJourneyDate(journey) {
   if (!journey.start_date) return journey.date_label || 'Dates still being remembered';
-  const start = formatDateOnly(journey.start_date, { month: 'long', year: 'numeric' });
+  const start = formatDateOnly(journey.start_date, { month: 'long', day: 'numeric', year: 'numeric' });
   if (!journey.end_date || journey.end_date === journey.start_date) return start;
-  return `${start} — ${formatDateOnly(journey.end_date, { month: 'long', year: 'numeric' })}`;
+  return `${start} — ${formatDateOnly(journey.end_date, { month: 'long', day: 'numeric', year: 'numeric' })}`;
 }
 
 function formatMemoryDate(memory) {
