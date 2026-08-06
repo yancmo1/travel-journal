@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useData } from '../context/DataContext';
 import { formatDateOnly } from '../utils/format';
 
@@ -19,6 +19,7 @@ export default function JourneyForm({ journey, onClose }) {
   const [search, setSearch] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const endDateAutoFilled = useRef(false);
 
   const visibleMemories = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -47,6 +48,24 @@ export default function JourneyForm({ journey, onClose }) {
         ? current.memoryIds.filter(memoryId => memoryId !== id)
         : [...current.memoryIds, id],
     }));
+  }
+
+  function handleDateChange(field, value) {
+    if (field === 'endDate') {
+      endDateAutoFilled.current = false;
+      setForm(current => ({ ...current, endDate: value }));
+      return;
+    }
+
+    setForm(current => {
+      const mirrorEndDate = endDateAutoFilled.current || (!journey && !current.endDate);
+      endDateAutoFilled.current = mirrorEndDate && Boolean(value);
+      return {
+        ...current,
+        startDate: value,
+        ...(mirrorEndDate ? { endDate: value } : {}),
+      };
+    });
   }
 
   async function handleSubmit(event) {
@@ -98,11 +117,11 @@ export default function JourneyForm({ journey, onClose }) {
           <div className="journey-form-row">
             <label>
               <span>Start date</span>
-              <input type="date" value={form.startDate} onChange={event => setForm({ ...form, startDate: event.target.value })} />
+              <input type="date" value={form.startDate} onChange={event => handleDateChange('startDate', event.target.value)} />
             </label>
             <label>
               <span>End date</span>
-              <input type="date" value={form.endDate} onChange={event => setForm({ ...form, endDate: event.target.value })} />
+              <input type="date" value={form.endDate} onChange={event => handleDateChange('endDate', event.target.value)} />
             </label>
             <label>
               <span>Type</span>

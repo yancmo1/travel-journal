@@ -62,6 +62,7 @@ export default function TripForm({ trip, onClose }) {
   const metadataRequestId = useRef(0);
   const googleSearchTimer = useRef(null);
   const googleSearchRequestId = useRef(0);
+  const endDateAutoFilled = useRef(false);
 
   const selectableTravelers = sortTravelers(travelers.filter(traveler => (
     traveler.is_active !== false || form.travelerIds.includes(traveler.id)
@@ -135,6 +136,23 @@ export default function TripForm({ trip, onClose }) {
 
     if (isSearchField) {
       setActiveSearchField(name);
+    }
+
+    if (name === 'endDate') {
+      endDateAutoFilled.current = false;
+    }
+
+    if (name === 'startDate') {
+      setForm(prev => {
+        const mirrorEndDate = endDateAutoFilled.current || (!trip && !prev.endDate);
+        endDateAutoFilled.current = mirrorEndDate && Boolean(value);
+        return {
+          ...prev,
+          startDate: value,
+          ...(mirrorEndDate ? { endDate: value } : {}),
+        };
+      });
+      return;
     }
 
     setForm(prev => ({
