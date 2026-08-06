@@ -12,6 +12,7 @@ import { getPhotoPreviewPath } from '../utils/photos';
 export default function Dashboard() {
   const { trips, analytics, loading } = useData();
   const [showForm, setShowForm] = useState(false);
+  const [editTrip, setEditTrip] = useState(null);
   const [selectedTrip, setSelectedTrip] = useState(null);
 
   const summary = analytics?.summary || {};
@@ -25,7 +26,7 @@ export default function Dashboard() {
         <div className="dashboard-intro-actions">
           <img className="dashboard-postmark" src={postmark} alt="" aria-hidden="true" />
           <button
-            onClick={() => setShowForm(true)}
+            onClick={() => { setEditTrip(null); setShowForm(true); }}
             className="dashboard-add-memory dashboard-add-memory-top"
           >
             <img className="dashboard-add-memory-art" src={addMemoryButton} alt="" aria-hidden="true" />
@@ -116,8 +117,8 @@ export default function Dashboard() {
       {/* Memory Form Modal */}
       {showForm && (
         <TripForm
-          trip={null}
-          onClose={() => setShowForm(false)}
+          trip={editTrip}
+          onClose={() => { setShowForm(false); setEditTrip(null); }}
         />
       )}
 
@@ -126,13 +127,14 @@ export default function Dashboard() {
         <TripDetailModal
           trip={selectedTrip}
           onClose={() => setSelectedTrip(null)}
+          onEdit={() => { setEditTrip(selectedTrip); setSelectedTrip(null); setShowForm(true); }}
         />
       )}
     </div>
   );
 }
 
-function TripDetailModal({ trip, onClose }) {
+function TripDetailModal({ trip, onClose, onEdit }) {
   return (
     <div className="memory-detail-modal fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[1500]">
       <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-auto">
@@ -149,12 +151,24 @@ function TripDetailModal({ trip, onClose }) {
                   ` - ${formatDate(trip.end_date)}`}
               </p>
             </div>
-            <button
-              onClick={onClose}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-            >
-              ✕
-            </button>
+            <div className="flex items-center gap-2 shrink-0">
+              {onEdit && (
+                <button
+                  onClick={onEdit}
+                  className="px-3 py-1.5 text-sm font-medium text-ocean-blue hover:bg-blue-50 rounded-lg transition-colors"
+                  aria-label="Edit this memory"
+                >
+                  Edit
+                </button>
+              )}
+              <button
+                onClick={onClose}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                aria-label="Close"
+              >
+                ✕
+              </button>
+            </div>
           </div>
 
           <div className="space-y-4">

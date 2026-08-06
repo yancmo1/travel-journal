@@ -5,7 +5,7 @@ import PhotoUploader from './PhotoUploader';
 import PhotoGallery from './PhotoGallery';
 import MemoryPlaceDetails from './MemoryPlaceDetails';
 
-export default function MemoryPhotosModal({ memory, onClose }) {
+export default function MemoryPhotosModal({ memory, onClose, onEdit }) {
   const { loadTrips, loadJourneys } = useData();
   const [photos, setPhotos] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -80,7 +80,19 @@ export default function MemoryPhotosModal({ memory, onClose }) {
             <MemoryPlaceDetails memory={memory} className="mt-2" />
             <p>We save smaller, display-quality copies to keep storage reasonable.</p>
           </div>
-          <button type="button" onClick={onClose} aria-label="Close photos">✕</button>
+          <div className="flex items-center gap-2">
+            {onEdit && (
+              <button
+                type="button"
+                onClick={onEdit}
+                className="px-3 py-1.5 text-sm font-medium text-ocean-blue hover:bg-blue-50 rounded-lg transition-colors"
+                aria-label="Edit this memory"
+              >
+                Edit
+              </button>
+            )}
+            <button type="button" onClick={onClose} aria-label="Close photos">✕</button>
+          </div>
         </div>
 
         <div className="photo-modal-body">

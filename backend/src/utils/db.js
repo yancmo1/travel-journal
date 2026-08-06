@@ -22,6 +22,10 @@ export async function initDatabase() {
   await query('ALTER TABLE users ADD COLUMN IF NOT EXISTS email VARCHAR(254)');
   await query('CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email ON users(email)');
   await query('ALTER TABLE users ADD COLUMN IF NOT EXISTS site_admin BOOLEAN NOT NULL DEFAULT FALSE');
+  await query('ALTER TABLE users ADD COLUMN IF NOT EXISTS home_latitude DECIMAL(10, 8)');
+  await query('ALTER TABLE users ADD COLUMN IF NOT EXISTS home_longitude DECIMAL(11, 8)');
+  await query('ALTER TABLE users ADD COLUMN IF NOT EXISTS home_label VARCHAR(255)');
+  await query("ALTER TABLE users ADD COLUMN IF NOT EXISTS home_icon VARCHAR(40) NOT NULL DEFAULT 'h'");
   await query(`
     CREATE TABLE IF NOT EXISTS sessions (
       token_hash VARCHAR(64) PRIMARY KEY,

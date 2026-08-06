@@ -351,7 +351,13 @@ export default function CleanupPage() {
       </section>
 
       {editTrip && <TripForm trip={editTrip} onClose={() => setEditTrip(null)} />}
-      {photoTrip && <MemoryPhotosModal memory={photoTrip} onClose={() => setPhotoTrip(null)} />}
+      {photoTrip && (
+        <MemoryPhotosModal
+          memory={photoTrip}
+          onClose={() => setPhotoTrip(null)}
+          onEdit={() => { setEditTrip(photoTrip); setPhotoTrip(null); }}
+        />
+      )}
 
       {deleteCandidates.length > 0 && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[1600]">

@@ -52,7 +52,7 @@ export async function getSessionUser(req) {
   const token = parseCookies(req.headers.cookie).postcards_session;
   if (!token) return null;
   const result = await query(
-    `SELECT u.id, u.email, u.display_name, u.site_admin
+    `SELECT u.id, u.email, u.display_name, u.site_admin, u.home_latitude, u.home_longitude, u.home_label, u.home_icon
      FROM sessions s
      JOIN users u ON u.id = s.user_id
      WHERE s.token_hash = $1 AND s.expires_at > NOW()` ,

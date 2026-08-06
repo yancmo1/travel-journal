@@ -105,6 +105,15 @@ export function AuthProvider({ children }) {
     return data;
   }
 
+  async function updateHome(home) {
+    const data = await api.updateHome(home);
+    if (data.user) {
+      setUser(data.user);
+      await Promise.all([saveSnapshot(data.user.id, { user: data.user }), saveSnapshot('last-user', { user: data.user })]);
+    }
+    return data;
+  }
+
   async function switchHousehold(householdId) {
     await api.switchHousehold(householdId);
     setActiveHouseholdId(Number(householdId));
@@ -121,7 +130,7 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, households, activeHouseholdId, loading, offline, login, register, registerInvitation, refreshAuth, switchHousehold, logout }}>
+    <AuthContext.Provider value={{ user, households, activeHouseholdId, loading, offline, login, register, registerInvitation, refreshAuth, updateHome, switchHousehold, logout }}>
       {children}
     </AuthContext.Provider>
   );
