@@ -22,11 +22,13 @@ export default function JourneyForm({ journey, onClose }) {
   const endDateAutoFilled = useRef(false);
 
   const visibleMemories = useMemo(() => {
-    const query = search.trim().toLowerCase();
+    const queryTokens = search.trim().toLowerCase().split(/\s+/).filter(Boolean);
     return [...trips]
-      .filter(memory => !query || [
-        memory.location_name, memory.city, memory.state, memory.country, memory.notes
-      ].some(value => value?.toLowerCase().includes(query)))
+      .filter(memory => {
+        if (!queryTokens.length) return true;
+        const searchText = getMemorySearchText(memory);
+        return queryTokens.every(token => searchText.includes(token));
+      })
       .sort((a, b) => {
         if (!a.start_date) return 1;
         if (!b.start_date) return -1;
@@ -174,7 +176,7 @@ export default function JourneyForm({ journey, onClose }) {
               <input
                 value={search}
                 onChange={event => setSearch(event.target.value)}
-                placeholder="Find a place"
+                placeholder="Search memories, dates, places…"
                 aria-label="Find a memory"
               />
             </div>
@@ -213,4 +215,35 @@ function formatMemoryDate(memory) {
     });
   }
   return memory.date_label || 'Date unknown';
+}
+
+function getMemorySearchText(memory) {
+  const dateText = [memory.start_date, memory.end_date]
+    .filter(Boolean)
+    .map(date => [
+      date,
+      formatDateOnly(date, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }),
+      formatDateOnly(date, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }),
+      formatDateOnly(date, { month: 'numeric', day: 'numeric', year: 'numeric' }),
+    ].join(' '));
+  const photoText = (memory.photos || []).flatMap(photo => [photo.caption, photo.filename]);
+  const travelerText = (memory.travelers || []).map(traveler => traveler.name);
+
+  return [
+    memory.location_name,
+    memory.place_name,
+    memory.formatted_address,
+    memory.city,
+    memory.state,
+    memory.country,
+    memory.trip_type,
+    memory.notes,
+    memory.date_label,
+    ...dateText,
+    ...photoText,
+    ...travelerText,
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
 }
