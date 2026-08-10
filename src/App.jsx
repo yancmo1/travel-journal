@@ -17,6 +17,7 @@ import VerifyEmailPage from './pages/VerifyEmailPage';
 import PwaStatus from './components/PwaStatus';
 import PullToRefresh from './components/PullToRefresh';
 import BugReporter from './components/BugReporter';
+import HomeBaseOnboarding from './components/HomeBaseOnboarding';
 import paperBackground from '../assets/travel-paper-background.webp';
 
 function AppContent() {
@@ -54,6 +55,7 @@ function AppContent() {
         style={{ '--paper-background-art': `url(${paperBackground})` }}
       >
         <Header currentPage={page} setPage={setPage} />
+        <HomeBaseOnboarding />
         <PwaStatus />
         <PullToRefresh />
         <BugReporter />
