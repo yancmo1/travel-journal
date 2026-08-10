@@ -5071,6 +5071,14 @@ body {
 .landing-beta-label,
 .landing-kicker { color: var(--brand-terracotta-700); }
 
+.landing-plan-link {
+  color: var(--brand-forest-700);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.landing-plan-link:hover { color: var(--brand-terracotta-700); }
+
 .landing-hero {
   padding-top: 72px;
   padding-bottom: 96px;
@@ -5562,6 +5570,164 @@ body {
 .landing-memory-flow .landing-feature h3 { margin-top: 22px; }
 .landing-memory-flow .landing-feature p { max-width: 34ch; }
 
+.landing-plans {
+  width: min(1160px, calc(100% - 40px));
+  margin: 0 auto;
+  padding: 22px 0 116px;
+}
+
+.landing-plans-heading {
+  max-width: 760px;
+}
+
+.landing-plans-heading h2 {
+  color: var(--brand-forest-900);
+  font: 600 clamp(38px, 4.5vw, 58px)/1.02 var(--brand-font-display);
+  letter-spacing: -.035em;
+}
+
+.landing-plans-heading p {
+  max-width: 650px;
+  margin-top: 18px;
+  color: var(--brand-forest-500);
+  font-size: 17px;
+  line-height: 1.65;
+}
+
+.landing-plans-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+  margin-top: 52px;
+}
+
+.landing-plan-card {
+  display: flex;
+  min-height: 440px;
+  flex-direction: column;
+  padding: clamp(26px, 3.2vw, 38px);
+  border-radius: var(--brand-radius-lg);
+}
+
+.landing-plan-card-free {
+  color: var(--brand-forest-800);
+  background: rgba(255, 253, 245, .84);
+  border: 1px solid var(--brand-border);
+  box-shadow: var(--brand-shadow);
+}
+
+.landing-plan-card-plus {
+  color: var(--brand-paper-50);
+  background: var(--brand-forest-900);
+  box-shadow: 0 20px 44px rgba(18, 57, 47, .2);
+}
+
+.landing-plan-card-topline {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.landing-plan-name {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+
+.landing-plan-card-free .landing-plan-name { color: var(--brand-terracotta-700); }
+.landing-plan-card-plus .landing-plan-name { color: var(--brand-terracotta-200); }
+
+.landing-plan-price {
+  margin-top: 9px;
+  font: 600 clamp(36px, 4vw, 48px)/1 var(--brand-font-display);
+  letter-spacing: -.035em;
+}
+
+.landing-plan-price span {
+  font: 600 14px/1.2 var(--brand-font-body);
+  letter-spacing: 0;
+}
+
+.landing-plan-badge,
+.landing-plan-alt-price {
+  margin-top: 2px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.landing-plan-badge {
+  padding: 7px 10px;
+  color: var(--brand-forest-800);
+  background: var(--brand-paper-100);
+  border-radius: 999px;
+}
+
+.landing-plan-alt-price { color: var(--brand-paper-200); text-align: right; }
+
+.landing-plan-intro {
+  max-width: 37ch;
+  margin-top: 24px;
+  font-size: 16px;
+  line-height: 1.55;
+}
+
+.landing-plan-card-free .landing-plan-intro { color: var(--brand-forest-600); }
+.landing-plan-card-plus .landing-plan-intro { color: var(--brand-paper-200); }
+
+.landing-plan-list {
+  display: grid;
+  gap: 13px;
+  margin-top: 26px;
+  padding-top: 22px;
+  border-top: 1px solid currentColor;
+  opacity: .92;
+}
+
+.landing-plan-list li {
+  position: relative;
+  padding-left: 22px;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+.landing-plan-list li::before {
+  content: '✓';
+  position: absolute;
+  left: 0;
+  color: var(--brand-terracotta-500);
+  font-weight: 800;
+}
+
+.landing-plan-button {
+  align-self: flex-start;
+  margin-top: auto;
+}
+
+.landing-plan-coming-soon {
+  align-self: flex-start;
+  margin-top: auto;
+  padding-top: 17px;
+  color: var(--brand-paper-100);
+  border-top: 1px solid rgba(255, 253, 245, .26);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.landing-plans-note {
+  margin-top: 25px;
+  color: var(--brand-forest-500);
+  font-size: 13px;
+  text-align: center;
+}
+
 @media (max-width: 900px) {
   .landing-product-tour { padding: 78px 0 88px; }
 
@@ -5614,4 +5780,14 @@ body {
   }
 
   .landing-memory-flow .landing-feature p { max-width: 48ch; }
+
+  .landing-plans {
+    width: min(100% - 28px, 560px);
+    padding: 12px 0 80px;
+  }
+
+  .landing-plans-heading h2 { font-size: 40px; }
+  .landing-plans-heading p { font-size: 16px; }
+  .landing-plans-grid { grid-template-columns: 1fr; gap: 18px; margin-top: 38px; }
+  .landing-plan-card { min-height: 0; padding: 27px 24px 25px; }
 }

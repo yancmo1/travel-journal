@@ -25,7 +25,8 @@ status: active
 - Video uploads
 - Unrestricted public signup
 - Public social-network features
-- Billing before value and operating costs are understood
+- Public Free-plan limits and registration may run during beta as a learning
+  funnel, while invited beta households retain an explicit beta override.
 
 ## Beta exit conditions
 

@@ -231,8 +231,10 @@ export default function PhotoUploader({ tripId, onUploadComplete, showAnalyzer =
       {quota?.warning && (
         <div className={`rounded-lg border p-3 text-sm ${quota.blocked ? 'border-red-200 bg-red-50 text-red-700' : 'border-amber-200 bg-amber-50 text-amber-800'}`} role="status">
           {quota.blocked
-            ? 'This memory site has reached its photo storage allowance. Remove older photos before adding more.'
-            : `This memory site is using ${quota.storage_usage_percent}% of its photo storage allowance.`}
+            ? quota.plan === 'free'
+              ? 'Your Free plan has reached its photo allowance. You can keep enjoying your stories and export your memories; upgrade when you are ready to add more.'
+              : 'This memory site has reached its photo storage allowance. Remove older photos before adding more.'
+            : `Your ${quota.plan === 'free' ? 'Free plan is' : 'memory site is'} using ${quota.storage_usage_percent}% of its photo storage allowance.`}
         </div>
       )}
 

@@ -45,6 +45,23 @@ export function featureEnabled(env, name, fallback = true) {
   return !['0', 'false', 'off', 'disabled', 'no'].includes(String(raw).trim().toLowerCase());
 }
 
+const PLAN_LIMITS = {
+  free: { storageBytes: 250 * 1024 * 1024, maxPhotos: 150, maxJourneys: 3, maxMembers: 2, maxShares: 1 },
+  beta: { storageBytes: 5 * 1024 * 1024 * 1024, maxPhotos: 0, maxJourneys: 0, maxMembers: 2, maxShares: 0 },
+  plus: { storageBytes: 5 * 1024 * 1024 * 1024, maxPhotos: 0, maxJourneys: 0, maxMembers: 8, maxShares: 0 },
+  founding: { storageBytes: 5 * 1024 * 1024 * 1024, maxPhotos: 0, maxJourneys: 0, maxMembers: 8, maxShares: 0 },
+};
+
+export function planLimits(env, plan = 'free') {
+  const normalized = String(plan || 'free').toLowerCase();
+  const base = PLAN_LIMITS[normalized] || PLAN_LIMITS.free;
+  const storageEnv = normalized === 'free' ? env?.MAX_STORAGE_BYTES_PER_FREE_HOUSEHOLD : env?.MAX_STORAGE_BYTES_PER_BETA_HOUSEHOLD;
+  return {
+    ...base,
+    storageBytes: Math.max(0, Number(storageEnv || base.storageBytes)),
+  };
+}
+
 export function uploadQuotaExceeded({
   currentStorageBytes = 0,
   incomingBytes = 0,
@@ -430,7 +447,7 @@ async function rotateCurrentSession(env, user, householdId, { revokeOthers = fal
 
 async function userHouseholds(env, userId) {
   return (await env.DB.prepare(`
-    SELECT h.id, h.slug, h.name, hm.role,
+    SELECT h.id, h.slug, h.name, h.plan, hm.role,
       (SELECT COUNT(*) FROM household_members members WHERE members.household_id = h.id) AS member_count
     FROM household_members hm JOIN households h ON h.id = hm.household_id
     WHERE hm.user_id = ? ORDER BY h.created_at, h.id
@@ -450,6 +467,7 @@ function toPublicUser(user) {
     email_verified_at: user.email_verified_at,
     display_name: user.display_name,
     site_admin: isOperationsAdmin(user),
+    household_plan: user.household_plan || 'free',
   };
 }
 
@@ -474,7 +492,7 @@ async function authenticate(request, env) {
     const user = await env.DB.prepare(`
       SELECT u.id, u.email, u.email_verified_at, u.password_updated_at, u.display_name, u.site_admin,
         s.token_hash AS session_token_hash, s.household_id,
-        hm.role, h.name AS household_name
+        hm.role, h.name AS household_name, h.plan AS household_plan
       FROM sessions s
       JOIN users u ON u.id = s.user_id
       LEFT JOIN household_members hm ON hm.user_id = u.id AND hm.household_id = s.household_id
@@ -490,7 +508,7 @@ async function authenticate(request, env) {
     const claims = await verifyToken(authorization.slice(7), env.JWT_SECRET);
     const user = await env.DB.prepare(`
       SELECT u.id, u.email, u.email_verified_at, u.password_updated_at, u.display_name, u.site_admin,
-        hm.household_id, hm.role, h.name AS household_name
+        hm.household_id, hm.role, h.name AS household_name, h.plan AS household_plan
       FROM users u JOIN household_members hm ON hm.user_id = u.id
       JOIN households h ON h.id = hm.household_id
       WHERE u.id = ? LIMIT 1
@@ -681,7 +699,7 @@ function requestFingerprint(request, identifier = '') {
 async function invitationByToken(env, rawToken) {
   if (!rawToken) return null;
   return env.DB.prepare(`
-    SELECT i.*, h.name AS household_name, u.display_name AS inviter_name,
+    SELECT i.*, h.name AS household_name, h.plan AS household_plan, u.display_name AS inviter_name,
       EXISTS(SELECT 1 FROM users existing WHERE existing.email = i.email) AS account_exists
     FROM invitations i
     JOIN households h ON h.id = i.household_id
@@ -1444,6 +1462,7 @@ export async function reserveUploadSlots(env, {
   uploads,
   reservationToken,
   maxStorageBytes,
+  maxPhotos = 0,
   maxUploadsPerDay,
   maxUploadBytesPerDay,
 }) {
@@ -1462,6 +1481,12 @@ export async function reserveUploadSlots(env, {
     )
     AND (
       ? = 0 OR
+      (SELECT COUNT(*) FROM photos WHERE household_id = ?) +
+      (SELECT COUNT(*) FROM upload_reservations WHERE household_id = ? AND datetime(expires_at) > CURRENT_TIMESTAMP) +
+      1 <= ?
+    )
+    AND (
+      ? = 0 OR
       (SELECT COUNT(*) FROM photos WHERE household_id = ? AND date(uploaded_at) = date('now')) +
       (SELECT COUNT(*) FROM upload_reservations WHERE household_id = ? AND datetime(expires_at) > CURRENT_TIMESTAMP AND date(created_at) = date('now')) +
       1 <= ?
@@ -1475,6 +1500,7 @@ export async function reserveUploadSlots(env, {
   `).bind(
     crypto.randomUUID(), householdId, tripId, upload.clientUploadId, reservationToken, upload.fileSize, upload.mimeType, expiresAt,
     maxStorageBytes, householdId, householdId, upload.fileSize, maxStorageBytes,
+    maxPhotos, householdId, householdId, maxPhotos,
     maxUploadsPerDay, householdId, householdId, maxUploadsPerDay,
     maxUploadBytesPerDay, householdId, householdId, upload.fileSize, maxUploadBytesPerDay,
   ));
@@ -2022,7 +2048,56 @@ async function handleFetch(request, env, ctx) {
       return json({ success: true }, { headers: { 'set-cookie': clearSessionCookie() } });
     }
 
-    if (url.pathname === '/api/auth/register' && request.method === 'POST') return json({ error: 'An invitation is required to create an account.' }, { status: 403 });
+    if (url.pathname === '/api/auth/register' && request.method === 'POST') {
+      if (!featureEnabled(env, 'ALLOW_PUBLIC_REGISTRATION', false)) {
+        return json({ error: 'An invitation is required to create an account.' }, { status: 403 });
+      }
+      const body = await parseJson(request);
+      const email = normalizeEmail(body?.email);
+      if (!validEmail(email)) return json({ error: 'A valid email address is required.' }, { status: 400 });
+      if (!(await rateLimit(env, 'register-public-ip', requestFingerprint(request), 8, 60 * 60))
+        || !(await rateLimit(env, 'register-public', requestFingerprint(request, email), 3, 60 * 60))) {
+        return json({ error: 'Too many account creation attempts. Please wait before trying again.' }, { status: 429 });
+      }
+      const problem = passwordProblem(body?.password);
+      if (problem) return json({ error: problem }, { status: 400 });
+      const displayName = String(body?.displayName || '').trim();
+      if (displayName.length < 2 || displayName.length > 80) return json({ error: 'Enter your name.' }, { status: 400 });
+      const passwordHash = await hashPassword(body.password);
+      let userId = null;
+      let householdId = null;
+      try {
+        const createdUser = await env.DB.prepare(`
+          INSERT INTO users (username, email, password_hash, password_updated_at, display_name)
+          VALUES (?, ?, ?, CURRENT_TIMESTAMP, ?)
+          RETURNING id, email, email_verified_at, site_admin, display_name
+        `).bind(email, email, passwordHash, displayName).first();
+        userId = Number(createdUser.id);
+        const baseSlug = displayName.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'memories';
+        const slug = `${baseSlug}-${randomToken(5).toLowerCase()}`;
+        const createdHousehold = await env.DB.prepare('INSERT INTO households (slug, name, plan) VALUES (?, ?, \'free\') RETURNING id').bind(slug, `${displayName}'s memories`).first();
+        householdId = Number(createdHousehold.id);
+        await env.DB.prepare("INSERT INTO household_members (household_id, user_id, role) VALUES (?, ?, 'owner')").bind(householdId, userId).run();
+        const session = await createSession(env, userId, householdId);
+        const user = { ...createdUser, household_id: householdId, household_plan: 'free' };
+        const responseBody = { user: toPublicUser(user), households: await userHouseholds(env, userId), active_household_id: householdId };
+        const tokenId = crypto.randomUUID();
+        const rawToken = randomToken();
+        await env.DB.prepare('INSERT INTO email_verification_tokens (id, user_id, email, token_hash, expires_at) VALUES (?, ?, ?, ?, ?)').bind(tokenId, userId, email, await sha256(rawToken), new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()).run();
+        ctx.waitUntil(sendVerificationEmail(env, request, user, rawToken, tokenId).catch(async error => {
+          console.error('Public registration verification email failed', error);
+          await env.DB.prepare('DELETE FROM email_verification_tokens WHERE id = ?').bind(tokenId).run();
+        }));
+        ctx.waitUntil(recordAudit(env, { userId, householdId, action: 'auth.public_registered', resourceType: 'household', resourceId: householdId, metadata: { plan: 'free' } }));
+        return json(responseBody, { status: 201, headers: { 'set-cookie': sessionCookie(session.token) } });
+      } catch (error) {
+        if (householdId) await env.DB.prepare('DELETE FROM households WHERE id = ?').bind(householdId).run();
+        if (userId) await env.DB.prepare('DELETE FROM users WHERE id = ?').bind(userId).run();
+        if (error?.message?.includes('UNIQUE')) return json({ error: 'An account already uses that email. Sign in instead.' }, { status: 409 });
+        console.error('Public registration failed', error);
+        return json({ error: 'Account creation is temporarily unavailable. Please try again.' }, { status: 500 });
+      }
+    }
 
     if (url.pathname.startsWith('/api/auth/invitations/') && request.method === 'GET') {
       const rawToken = decodeURIComponent(url.pathname.slice('/api/auth/invitations/'.length));
@@ -2086,9 +2161,9 @@ async function handleFetch(request, env, ctx) {
         const membership = await env.DB.prepare(`
           INSERT INTO household_members (household_id, user_id, role)
           SELECT ?, ?, ?
-          WHERE (SELECT COUNT(*) FROM household_members WHERE household_id = ?) < 2
+          WHERE (SELECT COUNT(*) FROM household_members WHERE household_id = ?) < ?
           RETURNING household_id
-        `).bind(invitation.household_id, user.id, invitation.role, invitation.household_id).first();
+        `).bind(invitation.household_id, user.id, invitation.role, invitation.household_id, planLimits(env, invitation.household_plan).maxMembers).first();
         if (!membership) {
           await env.DB.prepare('DELETE FROM users WHERE id = ?').bind(user.id).run();
           await releaseIdempotency(env, idempotency);
@@ -2650,11 +2725,12 @@ async function handleFetch(request, env, ctx) {
         const baseSlug = name.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'memories';
         const slug = `${baseSlug}-${randomToken(5).toLowerCase()}`;
         try {
-          const created = await env.DB.prepare('INSERT INTO households (slug, name) VALUES (?, ?)').bind(slug, name).run();
+          const inheritedPlan = user.household_plan || 'free';
+          const created = await env.DB.prepare('INSERT INTO households (slug, name, plan) VALUES (?, ?, ?)').bind(slug, name, inheritedPlan).run();
           const householdId = Number(created.meta.last_row_id);
           await env.DB.prepare("INSERT INTO household_members (household_id, user_id, role) VALUES (?, ?, 'owner')").bind(householdId, user.id).run();
           const session = await rotateCurrentSession(env, user, householdId);
-          const responseBody = { household: { id: householdId, slug, name, role: 'owner', member_count: 1 }, households: await userHouseholds(env, user.id), active_household_id: householdId };
+          const responseBody = { household: { id: householdId, slug, name, plan: inheritedPlan, role: 'owner', member_count: 1 }, households: await userHouseholds(env, user.id), active_household_id: householdId };
           await completeIdempotency(env, idempotency, responseBody, 201);
           ctx.waitUntil(recordAudit(env, { userId: user.id, householdId: householdId, action: 'household.created', resourceType: 'household', resourceId: householdId }));
           return json(responseBody, { status: 201, headers: { 'set-cookie': sessionCookie(session.token) } });
@@ -2706,7 +2782,7 @@ async function handleFetch(request, env, ctx) {
         try {
           const baseSlug = siteName.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'memories';
           const slug = `${baseSlug}-${randomToken(5).toLowerCase()}`;
-          const created = await env.DB.prepare('INSERT INTO households (slug, name) VALUES (?, ?)').bind(slug, siteName).run();
+          const created = await env.DB.prepare("INSERT INTO households (slug, name, plan) VALUES (?, ?, 'beta')").bind(slug, siteName).run();
           householdId = Number(created.meta.last_row_id);
           // Keep the inviter attached as an owner for support and a clean
           // rollback path, while the beta tester is also granted owner access
@@ -2730,7 +2806,7 @@ async function handleFetch(request, env, ctx) {
             return json({ error: 'The beta invitation email could not be sent. Please try again.' }, { status: 503 });
           }
           const responseBody = {
-            household: { id: householdId, slug, name: siteName, role: 'owner', member_count: 1 },
+            household: { id: householdId, slug, name: siteName, plan: 'beta', role: 'owner', member_count: 1 },
             invitation: { id: invitationId, email, role: 'owner', expires_at: expiresAt },
             message: `Beta invitation sent to ${email}.`,
           };
@@ -2774,12 +2850,12 @@ async function handleFetch(request, env, ctx) {
             WHERE (
               (SELECT COUNT(*) FROM household_members WHERE household_id = ?)
               + (SELECT COUNT(*) FROM invitations WHERE household_id = ? AND accepted_at IS NULL AND datetime(expires_at) > CURRENT_TIMESTAMP)
-            ) < 2
+            ) < ?
             RETURNING id
-          `).bind(invitationId, user.household_id, email, await sha256(rawToken), user.id, expiresAt, user.household_id, user.household_id).first();
+          `).bind(invitationId, user.household_id, email, await sha256(rawToken), user.id, expiresAt, user.household_id, user.household_id, planLimits(env, user.household_plan).maxMembers).first();
           if (!createdInvitation) {
             await releaseIdempotency(env, idempotency);
-            return json({ error: 'This memory site already has its owner and one additional user.' }, { status: 409 });
+            return json({ error: 'This memory site already has its owner and one additional user. Upgrade to add more family members.' }, { status: 409 });
           }
           const invitation = { id: invitationId, email, household_name: user.household_name, inviter_name: user.display_name || user.email };
           try { await sendInvitationEmail(env, request, invitation, rawToken); }
@@ -2820,12 +2896,12 @@ async function handleFetch(request, env, ctx) {
             const membership = await env.DB.prepare(`
               INSERT INTO household_members (household_id, user_id, role)
               SELECT ?, ?, ?
-              WHERE (SELECT COUNT(*) FROM household_members WHERE household_id = ?) < 2
+              WHERE (SELECT COUNT(*) FROM household_members WHERE household_id = ?) < ?
               RETURNING household_id
-            `).bind(invitation.household_id, user.id, invitation.role, invitation.household_id).first();
+            `).bind(invitation.household_id, user.id, invitation.role, invitation.household_id, planLimits(env, invitation.household_plan).maxMembers).first();
             if (!membership) {
               await releaseIdempotency(env, idempotency);
-              return json({ error: 'This memory site already has its owner and one additional user.' }, { status: 409 });
+              return json({ error: 'This memory site already has its owner and one additional user. Upgrade to add more family members.' }, { status: 409 });
             }
           }
           await env.DB.prepare('UPDATE invitations SET accepted_at = CURRENT_TIMESTAMP WHERE id = ?').bind(invitation.id).run();
@@ -3089,6 +3165,14 @@ async function handleFetch(request, env, ctx) {
         const idempotency = await claimIdempotency(env, request, user, 'journey.create', body);
         if (idempotency?.response) return idempotency.response;
         try {
+          const limits = planLimits(env, user.household_plan);
+          if (limits.maxJourneys) {
+            const current = await env.DB.prepare('SELECT COUNT(*) AS count FROM journeys WHERE household_id = ?').bind(user.household_id).first();
+            if (Number(current?.count || 0) >= limits.maxJourneys) {
+              await releaseIdempotency(env, idempotency);
+              return json({ error: 'Your Free plan includes three journeys. Upgrade to keep adding journeys.' }, { status: 402 });
+            }
+          }
           const cover = input.coverPhotoId
             ? await env.DB.prepare('SELECT id FROM photos WHERE id = ? AND household_id = ? LIMIT 1').bind(input.coverPhotoId, user.household_id).first()
             : null;
@@ -3164,6 +3248,15 @@ async function handleFetch(request, env, ctx) {
         const idempotency = await claimIdempotency(env, request, user, 'journey.share-create', { journeyId });
         if (idempotency?.response) return idempotency.response;
         try {
+          const limits = planLimits(env, user.household_plan);
+          if (limits.maxShares) {
+            const existing = await env.DB.prepare('SELECT share_token FROM journeys WHERE id = ? AND household_id = ? LIMIT 1').bind(journeyId, user.household_id).first();
+            const activeShares = await env.DB.prepare('SELECT COUNT(*) AS count FROM journeys WHERE household_id = ? AND share_token IS NOT NULL').bind(user.household_id).first();
+            if (existing && !existing.share_token && Number(activeShares?.count || 0) >= limits.maxShares) {
+              await releaseIdempotency(env, idempotency);
+              return json({ error: 'Your Free plan includes one active private share link. Upgrade to share more journeys.' }, { status: 402 });
+            }
+          }
           const token = base64url(crypto.getRandomValues(new Uint8Array(32)));
           const result = await env.DB.prepare('UPDATE journeys SET share_token = ?, share_expires_at = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND household_id = ?').bind(token, journeyId, user.household_id).run();
           if (!result.meta.changes) {
@@ -3373,7 +3466,8 @@ async function handleFetch(request, env, ctx) {
           FROM photos WHERE household_id = ? AND date(uploaded_at) = date('now')
         `).bind(user.household_id).first();
         const storage = await env.DB.prepare('SELECT COUNT(*) AS photo_count, COALESCE(SUM(file_size), 0) AS storage_bytes FROM photos WHERE household_id = ?').bind(user.household_id).first();
-        const storageLimit = Math.max(0, Number(env.MAX_STORAGE_BYTES_PER_HOUSEHOLD || 1024 * 1024 * 1024));
+        const limits = planLimits(env, user.household_plan);
+        const storageLimit = limits.storageBytes;
         const storageBytes = Number(storage?.storage_bytes || 0);
         const usagePercent = storageLimit ? Math.min(100, Number((storageBytes / storageLimit * 100).toFixed(1))) : 0;
         const dailyCountLimit = Math.max(0, Number(env.MAX_UPLOADS_PER_DAY || 0));
@@ -3389,6 +3483,11 @@ async function handleFetch(request, env, ctx) {
           daily_upload_count_limit: dailyCountLimit || null,
           daily_upload_bytes: Number(usage?.daily_bytes || 0),
           daily_upload_bytes_limit: dailyBytesLimit || null,
+          plan: user.household_plan || 'free',
+          photo_count_limit: limits.maxPhotos || null,
+          journey_count_limit: limits.maxJourneys || null,
+          member_count_limit: limits.maxMembers || null,
+          share_count_limit: limits.maxShares || null,
         });
       }
 
@@ -3460,13 +3559,15 @@ async function handleFetch(request, env, ctx) {
         const existingPhotoIds = new Set(existingPhotos.map(row => row.client_upload_id));
         const existingSessionIds = new Set(existingSessions.map(row => row.client_upload_id));
         const newSpecs = specs.filter(file => !existingPhotoIds.has(file.clientUploadId) && !existingSessionIds.has(file.clientUploadId));
-        const maxStorageBytes = Math.max(0, Number(env.MAX_STORAGE_BYTES_PER_HOUSEHOLD || 1024 * 1024 * 1024));
+        const limits = planLimits(env, user.household_plan);
+        const maxStorageBytes = limits.storageBytes;
         const reservation = await reserveUploadSlots(env, {
           householdId: user.household_id,
           tripId,
           reservationToken,
           uploads: newSpecs.map(file => ({ clientUploadId: file.clientUploadId, fileSize: file.bytes, mimeType: file.mimeType })),
           maxStorageBytes,
+          maxPhotos: limits.maxPhotos,
           maxUploadsPerDay: Math.max(0, Number(env.MAX_UPLOADS_PER_DAY || 0)),
           maxUploadBytesPerDay: Math.max(0, Number(env.MAX_UPLOAD_BYTES_PER_DAY || 0)),
         });
@@ -3642,7 +3743,8 @@ async function handleFetch(request, env, ctx) {
           || row.mime_type !== photoMimeType(files[clientIds.indexOf(row.client_upload_id)]))) {
           return json({ error: 'One of these photos is already being uploaded. Retry the same upload shortly.' }, { status: 409, headers: { 'retry-after': '5' } });
         }
-        const maxStorageBytes = Math.max(0, Number(env.MAX_STORAGE_BYTES_PER_HOUSEHOLD || 1024 * 1024 * 1024));
+        const limits = planLimits(env, user.household_plan);
+        const maxStorageBytes = limits.storageBytes;
         const maxUploadsPerDay = Math.max(0, Number(env.MAX_UPLOADS_PER_DAY || 0));
         const maxUploadBytesPerDay = Math.max(0, Number(env.MAX_UPLOAD_BYTES_PER_DAY || 0));
 
@@ -3709,6 +3811,7 @@ async function handleFetch(request, env, ctx) {
           uploads: unreservedUploads,
           reservationToken,
           maxStorageBytes,
+          maxPhotos: limits.maxPhotos,
           maxUploadsPerDay,
           maxUploadBytesPerDay,
         });

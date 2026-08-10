@@ -1,0 +1,1 @@
+ALTER TABLE `households` ADD `plan` text DEFAULT 'beta' NOT NULL;

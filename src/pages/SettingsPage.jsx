@@ -113,6 +113,8 @@ function SettingsOverview() {
     <div className="settings-overview space-y-6">
       <HomeBaseCard />
 
+      <PlanCard />
+
       <DataBackupPanel />
 
       <section className="settings-about-card rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
@@ -129,6 +131,35 @@ function SettingsOverview() {
         </div>
       </section>
     </div>
+  );
+}
+
+function PlanCard() {
+  const { user } = useAuth();
+  const plan = String(user?.household_plan || 'free').toLowerCase();
+  const isBeta = plan === 'beta';
+  return (
+    <section className="rounded-2xl border border-ocean-teal/20 bg-gradient-to-br from-white to-sky-50 p-5 shadow-sm" aria-labelledby="plan-heading">
+      <p className="memory-eyebrow">Your plan</p>
+      <div className="mt-3 flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h2 id="plan-heading" className="text-xl font-semibold text-ocean-dark">{isBeta ? 'Founding beta access' : 'Free plan'}</h2>
+          <p className="mt-1 max-w-2xl text-sm text-gray-600">
+            {isBeta
+              ? 'You have expanded beta access while we learn what families need. If you need more room, ask us directly.'
+              : 'Start with three journeys and approximately 150 photos or 250 MB. Your stories remain available when you reach a limit.'}
+          </p>
+        </div>
+        <span className="rounded-full bg-ocean-teal/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-ocean-dark">
+          {isBeta ? 'Beta' : 'Free'}
+        </span>
+      </div>
+      {!isBeta && (
+        <div className="mt-4 rounded-xl border border-dashed border-ocean-teal/30 bg-white/70 p-3 text-sm text-gray-700">
+          <strong>Need more room later?</strong> Plus will add more storage, journeys, sharing, and support. You’ll be able to upgrade when it becomes useful—not before.
+        </div>
+      )}
+    </section>
   );
 }
 
@@ -270,7 +301,7 @@ function HomeBaseCard() {
                 type="button"
                 role="option"
                 onMouseDown={() => pickResult(result)}
-                className="block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-blue-50 border-b last:border-b-0"
+                className="block w-full px-4 py-2 text-left text-sm text-ocean-dark hover:bg-blue-50 border-b last:border-b-0"
               >
                 {result.display_name}
               </button>

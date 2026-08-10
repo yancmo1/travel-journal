@@ -40,7 +40,8 @@ export default function LandingPage() {
           <span className="landing-brand-tagline">Our story, one memory at a time</span>
         </a>
         <div className="landing-nav-actions">
-          <span className="landing-beta-label">Private beta</span>
+          <span className="landing-beta-label">Free to begin</span>
+          <a className="landing-plan-link" href="#plans">Plans</a>
           <a className="landing-sign-in" href="/?login=1">Sign in</a>
         </div>
       </nav>
@@ -54,10 +55,10 @@ export default function LandingPage() {
             album—one place, one photo, and one memory at a time.
           </p>
           <div className="landing-actions">
-            <a className="landing-primary-button" href="/?login=1">Open your story</a>
+            <a className="landing-primary-button" href="/?login=1&amp;signup=1">Start your free story</a>
             <a className="landing-text-link" href="#how-it-works">See how it works <span aria-hidden="true">↓</span></a>
           </div>
-          <p className="landing-note">Private beta · Invitation required</p>
+          <p className="landing-note">Start free · Private by default · No card required</p>
         </div>
 
         <div className="landing-postcard-scene" aria-label="A postcard-style preview of a family journey">
@@ -171,11 +172,61 @@ export default function LandingPage() {
         </div>
       </section>
 
+      <section className="landing-plans" id="plans" aria-labelledby="plans-heading">
+        <div className="landing-plans-heading">
+          <h2 id="plans-heading">Start with the story. Grow into the archive.</h2>
+          <p>
+            Postcards is free to begin, with everything you need to make a private family
+            story. When your archive grows, Plus gives it more room to keep going.
+          </p>
+        </div>
+
+        <div className="landing-plans-grid">
+          <article className="landing-plan-card landing-plan-card-free">
+            <div className="landing-plan-card-topline">
+              <div>
+                <p className="landing-plan-name">Free</p>
+                <p className="landing-plan-price">$0 <span>to begin</span></p>
+              </div>
+              <span className="landing-plan-badge">Start here</span>
+            </div>
+            <p className="landing-plan-intro">A complete, private place for your family’s first stories.</p>
+            <ul className="landing-plan-list">
+              <li>1 private household · 2 members</li>
+              <li>3 journeys · roughly 150 photos</li>
+              <li>250 MB of storage</li>
+              <li>Full map, timeline, story, sharing, and export experience</li>
+            </ul>
+            <a className="landing-primary-button landing-plan-button" href="/?login=1&amp;signup=1">Create a Free account</a>
+          </article>
+
+          <article className="landing-plan-card landing-plan-card-plus">
+            <div className="landing-plan-card-topline">
+              <div>
+                <p className="landing-plan-name">Plus</p>
+                <p className="landing-plan-price">$59 <span>/ year</span></p>
+              </div>
+              <span className="landing-plan-alt-price">or $7.99 / month</span>
+            </div>
+            <p className="landing-plan-intro">More room for the people, places, and memories your family keeps adding.</p>
+            <ul className="landing-plan-list">
+              <li>More household members</li>
+              <li>5 GB storage and unlimited journeys</li>
+              <li>Unlimited private sharing</li>
+              <li>Scheduled backups and priority support</li>
+            </ul>
+            <span className="landing-plan-coming-soon">Plus is coming soon</span>
+          </article>
+        </div>
+
+        <p className="landing-plans-note">No card required. Your Free stories stay yours to view, edit, share, and export.</p>
+      </section>
+
       <section className="landing-cta" id="beta">
-        <p className="landing-kicker">Already invited?</p>
-        <h2>Your family’s stories are waiting for you.</h2>
-        <p>Postcards of Us is currently welcoming a small group of families by invitation.</p>
-        <a className="landing-primary-button landing-primary-button-light" href="/?login=1">Sign in to Postcards</a>
+        <p className="landing-kicker">Your story can start today</p>
+        <h2>Make the first journey. Keep the story growing.</h2>
+        <p>Start with a small private family archive. Add more when your memories call for it.</p>
+        <a className="landing-primary-button landing-primary-button-light" href="/?login=1&amp;signup=1">Create a Free account</a>
       </section>
 
       <footer className="landing-footer">

@@ -52,6 +52,25 @@ test('legacy username accounts can claim the email used for beta sign-in', async
   DB.close();
 });
 
+test('public registration creates a Free household with a session', async () => {
+  const DB = createD1Database();
+  const MEDIA = new MemoryR2();
+  const env = { DB, MEDIA, ALLOW_PUBLIC_REGISTRATION: 'true' };
+  const response = await worker.fetch(request('/api/auth/register', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ email: 'free@example.com', displayName: 'Free Family', password: 'another secure phrase' }),
+  }), env, context());
+  assert.equal(response.status, 201);
+  const body = await response.json();
+  assert.equal(body.user.email, 'free@example.com');
+  assert.equal(body.user.household_plan, 'free');
+  assert.equal(body.households[0].plan, 'free');
+  assert.ok(response.headers.get('set-cookie').startsWith('postcards_session='));
+  assert.equal((await DB.prepare('SELECT plan FROM households WHERE id = 1').first()).plan, 'free');
+  DB.close();
+});
+
 test('invited account creation replays safely after a client retry', async () => {
   const DB = createD1Database();
   const MEDIA = new MemoryR2();

@@ -20,6 +20,7 @@ export const households = sqliteTable('households', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   slug: text('slug').notNull().unique(),
   name: text('name').notNull(),
+  plan: text('plan').notNull().default('beta'),
   createdAt,
   updatedAt,
 });
