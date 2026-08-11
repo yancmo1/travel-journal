@@ -559,6 +559,17 @@ class ApiClient {
     return this.request('/admin/operations');
   }
 
+  async requestAdminSiteDeletion(siteId, confirmation) {
+    return this.request(`/admin/households/${encodeURIComponent(siteId)}/deletion`, {
+      method: 'POST',
+      body: JSON.stringify({ confirmation }),
+    });
+  }
+
+  async getAdminSiteDeletion(siteId) {
+    return this.request(`/admin/households/${encodeURIComponent(siteId)}/deletion`);
+  }
+
   getBugReportScreenshotUrl(reportId) {
     return `${this.baseUrl}/admin/bug-reports/${encodeURIComponent(reportId)}/screenshot`;
   }

@@ -91,6 +91,12 @@ test('authenticated route contract returns bounded shapes and security headers',
     }
     if (path === '/api/admin/operations') {
       assert.deepEqual(body.email, { provider: 'resend', sender_configured: false, delivery_configured: false });
+      assert.equal(body.sites.length, 2);
+      assert.equal(body.database.storage_bytes, 23);
+      assert.equal(body.sites[0].storage_bytes, 11);
+      assert.equal(body.sites[0].photo_count, 1);
+      assert.equal(body.sites[0].active_30d, true);
+      assert.equal(Object.hasOwn(body.sites[0], 'email'), false);
     }
   }
 
@@ -101,6 +107,33 @@ test('authenticated route contract returns bounded shapes and security headers',
   }), env, context());
   assert.equal(methodRejected.status, 404);
   assert.equal((await methodRejected.json()).error, 'Not found');
+  DB.close();
+});
+
+test('admin site deletion requires the exact name and queues a retryable deletion job', async () => {
+  const { DB, env, cookie } = await fixture();
+
+  const rejected = await worker.fetch(request('/api/admin/households/2/deletion', {
+    method: 'POST',
+    headers: { cookie, 'content-type': 'application/json' },
+    body: JSON.stringify({ confirmation: 'wrong name' }),
+  }), env, context());
+  assert.equal(rejected.status, 400);
+  assert.match((await rejected.json()).error, /exact site name/i);
+
+  const queued = await worker.fetch(request('/api/admin/households/2/deletion', {
+    method: 'POST',
+    headers: { cookie, 'content-type': 'application/json' },
+    body: JSON.stringify({ confirmation: 'Second family' }),
+  }), env, context());
+  assert.equal(queued.status, 202);
+  const queuedBody = await queued.json();
+  assert.equal(queuedBody.status, 'pending');
+  assert.equal(queuedBody.phase, 'preparing');
+
+  const status = await worker.fetch(request('/api/admin/households/2/deletion', { headers: { cookie } }), env, context());
+  assert.equal(status.status, 200);
+  assert.equal((await status.json()).status, 'pending');
   DB.close();
 });
 

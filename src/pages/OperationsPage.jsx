@@ -1,12 +1,13 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
-import { Activity, ExternalLink, Github, MailPlus, Palette, Trash2, X } from 'lucide-react';
+import { Activity, Database, ExternalLink, Github, HardDrive, MailPlus, Palette, ShieldAlert, Trash2, X } from 'lucide-react';
 import BetaTesterInvitePanel from '../components/BetaTesterInvitePanel';
 import StyleGuidePage from './StyleGuidePage';
 
 const OPERATIONS_SECTIONS = [
   { id: 'overview', label: 'Overview', description: 'Runtime and feedback health', icon: Activity },
+  { id: 'sites-usage', label: 'Sites & usage', description: 'Private metadata and capacity', icon: HardDrive },
   { id: 'beta-testers', label: 'Beta testers', description: 'Invite private testers', icon: MailPlus },
   { id: 'style-guide', label: 'Style guide', description: 'Visual system and tokens', icon: Palette },
 ];
@@ -22,6 +23,9 @@ export default function OperationsPage() {
   const [screenshotToView, setScreenshotToView] = useState(null);
   const [deletingReport, setDeletingReport] = useState('');
   const [pushingReport, setPushingReport] = useState('');
+  const [siteToDelete, setSiteToDelete] = useState(null);
+  const [siteConfirmation, setSiteConfirmation] = useState('');
+  const [deletingSite, setDeletingSite] = useState('');
 
   const loadOperations = useCallback(async ({ quiet = false } = {}) => {
     if (!user?.site_admin) return;
@@ -108,6 +112,24 @@ export default function OperationsPage() {
     }
   }
 
+  async function deleteSite(site) {
+    if (siteConfirmation !== site.name) return;
+    setDeletingSite(String(site.id));
+    setError('');
+    try {
+      const result = await api.requestAdminSiteDeletion(site.id, siteConfirmation);
+      setOperations(current => current
+        ? { ...current, sites: (current.sites || []).map(item => item.id === site.id ? { ...item, deletion_status: result.status } : item) }
+        : current);
+      setSiteToDelete(null);
+      setSiteConfirmation('');
+    } catch (requestError) {
+      setError(requestError.message || 'The site deletion could not be started.');
+    } finally {
+      setDeletingSite('');
+    }
+  }
+
   return (
     <div className="space-y-6">
       <header className="settings-heading">
@@ -116,7 +138,7 @@ export default function OperationsPage() {
           <h1>Operations</h1>
           <p>{OPERATIONS_SECTIONS.find(item => item.id === section)?.description}</p>
         </div>
-        {section === 'overview' && (
+        {(section === 'overview' || section === 'sites-usage') && (
           <button
             type="button"
             onClick={() => loadOperations({ quiet: true })}
@@ -128,7 +150,7 @@ export default function OperationsPage() {
         )}
       </header>
 
-      <nav className="grid gap-2 sm:grid-cols-3" aria-label="Operations sections">
+      <nav className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4" aria-label="Operations sections">
         {OPERATIONS_SECTIONS.map(item => {
           const Icon = item.icon;
           return (
@@ -151,6 +173,18 @@ export default function OperationsPage() {
 
       {section === 'beta-testers' && <BetaTesterInvitePanel />}
       {section === 'style-guide' && <StyleGuidePage />}
+      {section === 'sites-usage' && (
+        <SiteUsagePanel
+          operations={operations}
+          onDelete={site => { setSiteToDelete(site); setSiteConfirmation(''); }}
+          deletionSite={siteToDelete}
+          confirmation={siteConfirmation}
+          setConfirmation={setSiteConfirmation}
+          onConfirmDelete={deleteSite}
+          onCancelDelete={() => { setSiteToDelete(null); setSiteConfirmation(''); }}
+          deletingSite={deletingSite}
+        />
+      )}
 
       {section === 'overview' && error && <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800" role="alert">{error}</div>}
 
@@ -365,6 +399,69 @@ function ObservabilityLink({ label, href }) {
   return <a href={href} target="_blank" rel="noreferrer" className="rounded-lg bg-ocean-blue px-4 py-2 text-sm font-semibold text-white">{label} ↗</a>;
 }
 
+function SiteUsagePanel({ operations, onDelete, deletionSite, confirmation, setConfirmation, onConfirmDelete, onCancelDelete, deletingSite }) {
+  const database = operations?.database || {};
+  const sites = operations?.sites || [];
+  return (
+    <div className="space-y-6">
+      <section className="rounded-2xl border border-ocean-blue/20 bg-sky-50/60 p-5 shadow-sm">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <p className="memory-eyebrow">Metadata-only monitor</p>
+            <h2 className="mt-1 text-xl font-semibold text-ocean-dark">Sites, capacity, and activity</h2>
+            <p className="mt-1 max-w-3xl text-sm text-gray-600">This view contains operational metadata only. It does not expose photos, captions, memories, or exports.</p>
+          </div>
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-gray-600"><Database size={14} aria-hidden="true" /> Snapshot {formatStatusDate(operations?.checkedAt)}</span>
+        </div>
+        <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          <MetricCard label="Sites" value={database.households ?? 0} />
+          <MetricCard label="Users" value={database.users ?? 0} />
+          <MetricCard label="Physical storage" value={formatBytes(database.storage_bytes)} />
+          <MetricCard label="Active · 30 days" value={database.active_sites_30d ?? 0} />
+          <MetricCard label="Quota risk" value={database.quota_risk_sites ?? 0} tone={database.quota_risk_sites ? 'amber' : 'green'} />
+        </div>
+      </section>
+
+      <section className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div><p className="memory-eyebrow">Per-site inventory</p><h2 className="mt-1 text-xl font-semibold text-ocean-dark">Memory sites</h2></div>
+          <p className="text-xs text-gray-500">Inactive means no meaningful write in the last 30 days.</p>
+        </div>
+        {sites.length ? (
+          <div className="mt-4 overflow-x-auto rounded-xl border border-gray-100">
+            <table className="min-w-[980px] w-full text-left text-sm">
+              <thead className="bg-gray-50 text-xs uppercase tracking-[0.12em] text-gray-500"><tr>
+                <th className="px-4 py-3 font-semibold">Site</th><th className="px-4 py-3 font-semibold">Plan</th><th className="px-4 py-3 font-semibold">Members</th><th className="px-4 py-3 font-semibold">Memories</th><th className="px-4 py-3 font-semibold">Photos</th><th className="px-4 py-3 font-semibold">Physical storage</th><th className="px-4 py-3 font-semibold">Last write</th><th className="px-4 py-3 font-semibold">Action</th>
+              </tr></thead>
+              <tbody className="divide-y divide-gray-100">
+                {sites.map(site => <tr key={site.id} className="align-top">
+                  <td className="px-4 py-4"><p className="font-semibold text-ocean-dark">{site.name}</p><p className="mt-1 font-mono text-xs text-gray-400">ID {site.id}</p>{site.deletion_status && <p className="mt-1 text-xs font-semibold text-amber-700">Deletion {site.deletion_status}</p>}</td>
+                  <td className="px-4 py-4"><span className="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-semibold capitalize text-gray-700">{site.plan}</span></td>
+                  <td className="px-4 py-4 text-gray-700">{site.member_count}</td>
+                  <td className="px-4 py-4 text-gray-700">{site.trip_count}<span className="block text-xs text-gray-400">{site.journey_count} journey{site.journey_count === 1 ? '' : 's'}</span></td>
+                  <td className="px-4 py-4 text-gray-700">{site.photo_count}</td>
+                  <td className="px-4 py-4"><p className={`font-semibold ${site.quota_risk ? 'text-amber-800' : 'text-gray-700'}`}>{formatBytes(site.storage_bytes)}</p><p className="mt-1 text-xs text-gray-400">{site.storage_usage_percent}% of {formatBytes(site.storage_limit_bytes)}</p></td>
+                  <td className="px-4 py-4"><p className={site.active_30d ? 'text-green-700' : 'text-gray-500'}>{site.active_30d ? 'Active' : 'Inactive'}</p><p className="mt-1 text-xs text-gray-400">{formatStatusDate(site.last_write_at)}</p></td>
+                  <td className="px-4 py-4"><button type="button" onClick={() => onDelete(site)} disabled={Boolean(site.deletion_status === 'pending' || site.deletion_status === 'running')} className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 px-2.5 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"><Trash2 size={14} aria-hidden="true" />{site.deletion_status ? 'Deletion queued' : 'Delete site'}</button></td>
+                </tr>)}
+              </tbody>
+            </table>
+          </div>
+        ) : <p className="mt-4 rounded-xl bg-gray-50 p-4 text-sm text-gray-500">No memory sites found.</p>}
+      </section>
+
+      {deletionSite && <div className="rounded-2xl border border-red-200 bg-red-50 p-5 text-red-950" role="alertdialog" aria-modal="false" aria-labelledby="delete-site-heading">
+        <div className="flex gap-3"><ShieldAlert className="mt-0.5 shrink-0 text-red-700" aria-hidden="true" /><div className="min-w-0 flex-1"><h2 id="delete-site-heading" className="font-semibold">Permanently delete “{deletionSite.name}”?</h2><p className="mt-2 text-sm">This removes the site’s live database records and all stored media. A final backup is created first and expires under the normal backup retention policy. The deletion cannot be undone from the live system.</p><label className="mt-4 block text-sm font-semibold" htmlFor="delete-site-confirmation">Type the exact site name to confirm</label><input id="delete-site-confirmation" value={confirmation} onChange={event => setConfirmation(event.target.value)} className="mt-1 w-full rounded-lg border border-red-300 bg-white px-3 py-2 text-ocean-dark" autoComplete="off" /><div className="mt-4 flex flex-wrap gap-2"><button type="button" onClick={() => onConfirmDelete(deletionSite)} disabled={confirmation !== deletionSite.name || deletingSite === String(deletionSite.id)} className="rounded-lg bg-red-700 px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50">{deletingSite === String(deletionSite.id) ? 'Starting deletion…' : 'Delete permanently'}</button><button type="button" onClick={onCancelDelete} className="rounded-lg border border-red-300 bg-white px-4 py-2 text-sm font-semibold text-red-800">Cancel</button></div></div></div>
+      </div>}
+    </div>
+  );
+}
+
+function MetricCard({ label, value, tone = 'blue' }) {
+  const tones = { blue: 'border-blue-100 bg-white text-ocean-dark', amber: 'border-amber-200 bg-amber-50 text-amber-950', green: 'border-green-200 bg-green-50 text-green-950' };
+  return <div className={`rounded-xl border px-3 py-3 ${tones[tone]}`}><p className="text-[10px] font-semibold uppercase tracking-[0.12em] opacity-60">{label}</p><p className="mt-1 text-xl font-semibold">{value}</p></div>;
+}
+
 function formatStatusDate(value) {
   if (!value) return 'Not reported';
   const date = new Date(value);
@@ -373,7 +470,8 @@ function formatStatusDate(value) {
 
 function formatBytes(value) {
   const bytes = Number(value);
-  if (!Number.isFinite(bytes) || bytes <= 0) return 'Not reported';
+  if (!Number.isFinite(bytes) || bytes < 0) return 'Not reported';
+  if (bytes === 0) return '0 B';
   const units = ['B', 'KB', 'MB', 'GB', 'TB'];
   const index = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
   return `${(bytes / (1024 ** index)).toFixed(index ? 1 : 0)} ${units[index]}`;

@@ -1030,6 +1030,25 @@ export async function householdDeletionLock(env, householdId) {
     WHERE target_household_id = ? AND status IN ('pending', 'running') ORDER BY created_at DESC LIMIT 1`).bind(Number(householdId)).first();
 }
 
+async function physicalStorageForHousehold(env, householdId) {
+  if (!env.MEDIA) return { bytes: 0, objects: 0 };
+  let bytes = 0;
+  let objects = 0;
+  const prefixes = [`households/${householdId}/`, `${householdId}/`];
+  for (const prefix of prefixes) {
+    let cursor;
+    do {
+      const page = await env.MEDIA.list({ prefix, cursor });
+      for (const object of page.objects || []) {
+        bytes += Number(object.size || 0);
+        objects += 1;
+      }
+      cursor = page.truncated ? page.cursor : undefined;
+    } while (cursor);
+  }
+  return { bytes, objects };
+}
+
 async function runHouseholdDeletion(env, deletionId) {
   let deletion = await env.DB.prepare('SELECT * FROM data_deletions WHERE id = ? LIMIT 1').bind(deletionId).first();
   if (!deletion) throw new Error('Household deletion record not found');
@@ -2596,6 +2615,29 @@ async function handleFetch(request, env, ctx) {
         }
       }
 
+      const adminDeletionMatch = url.pathname.match(/^\/api\/admin\/households\/(\d+)\/deletion$/);
+      if (adminDeletionMatch && (request.method === 'POST' || request.method === 'GET')) {
+        const denied = siteAdminRequired(user);
+        if (denied) return denied;
+        const targetHouseholdId = Number(adminDeletionMatch[1]);
+        const target = await env.DB.prepare('SELECT id, name FROM households WHERE id = ? LIMIT 1').bind(targetHouseholdId).first();
+        if (!target) return json({ error: 'Site not found.' }, { status: 404 });
+        if (request.method === 'GET') {
+          const deletion = await env.DB.prepare('SELECT id, status, phase, media_deleted, last_error, created_at, updated_at FROM data_deletions WHERE target_household_id = ? ORDER BY created_at DESC LIMIT 1').bind(targetHouseholdId).first();
+          return deletion ? json({ ...deletion, media_deleted: Number(deletion.media_deleted || 0) }) : json({ deletion: null });
+        }
+        const body = await parseJson(request);
+        if (String(body?.confirmation || '') !== String(target.name)) return json({ error: 'Type the exact site name to confirm deletion.' }, { status: 400 });
+        const active = await env.DB.prepare("SELECT id, status, phase, media_deleted FROM data_deletions WHERE target_household_id = ? AND status IN ('pending', 'running') ORDER BY created_at DESC LIMIT 1").bind(targetHouseholdId).first();
+        if (active) return json({ deletion_id: active.id, status: active.status, phase: active.phase, media_deleted: Number(active.media_deleted || 0) }, { status: 202, headers: { 'retry-after': '30' } });
+        const deletionId = crypto.randomUUID();
+        await env.DB.prepare(`INSERT INTO data_deletions (id, household_id, target_household_id, requested_by, status, phase)
+          VALUES (?, ?, ?, ?, 'pending', 'preparing')`).bind(deletionId, user.household_id, targetHouseholdId, user.id).run();
+        const queued = await enqueueJob(env, { type: 'household_delete', householdId: targetHouseholdId, payload: { deletionId }, idempotencyKey: `household-delete:${deletionId}:0` });
+        ctx.waitUntil(recordAudit(env, { userId: user.id, householdId: targetHouseholdId, action: 'household.admin_deletion_requested', resourceType: 'data_deletion', resourceId: deletionId, metadata: { siteName: target.name } }));
+        return json({ deletion_id: deletionId, job_id: queued.id, status: 'pending', phase: 'preparing', media_deleted: 0 }, { status: 202, headers: { 'retry-after': '30' } });
+      }
+
       if (url.pathname === '/api/admin/operations' && request.method === 'GET') {
         const denied = siteAdminRequired(user);
         if (denied) return denied;
@@ -2634,6 +2676,46 @@ async function handleFetch(request, env, ctx) {
           count: Number(row.count || 0),
           latest_at: row.latest_at,
         }]));
+        const siteRows = (await env.DB.prepare(`
+          SELECT h.id, h.name, h.plan, h.created_at,
+            (SELECT COUNT(*) FROM household_members m WHERE m.household_id = h.id) AS member_count,
+            (SELECT COUNT(*) FROM journeys j WHERE j.household_id = h.id) AS journey_count,
+            (SELECT COUNT(*) FROM trips t WHERE t.household_id = h.id) AS trip_count,
+            (SELECT COUNT(*) FROM photos p WHERE p.household_id = h.id) AS photo_count,
+            MAX(
+              h.updated_at,
+              COALESCE((SELECT MAX(updated_at) FROM journeys j WHERE j.household_id = h.id), ''),
+              COALESCE((SELECT MAX(updated_at) FROM trips t WHERE t.household_id = h.id), ''),
+              COALESCE((SELECT MAX(uploaded_at) FROM photos p WHERE p.household_id = h.id), ''),
+              COALESCE((SELECT MAX(created_at) FROM audit_events a WHERE a.household_id = h.id AND a.action NOT LIKE 'ops.%'), '')
+            ) AS last_write_at,
+            (SELECT status FROM data_deletions d WHERE d.target_household_id = h.id ORDER BY d.created_at DESC LIMIT 1) AS deletion_status
+          FROM households h ORDER BY h.created_at, h.id
+        `).all()).results || [];
+        const sites = await Promise.all(siteRows.map(async site => {
+          const storage = await physicalStorageForHousehold(env, site.id);
+          const limits = planLimits(env, site.plan);
+          const storageLimit = Number(limits.storageBytes || 0);
+          const storageBytes = Number(storage.bytes || 0);
+          return {
+            id: Number(site.id),
+            name: site.name,
+            plan: site.plan,
+            member_count: Number(site.member_count || 0),
+            journey_count: Number(site.journey_count || 0),
+            trip_count: Number(site.trip_count || 0),
+            photo_count: Number(site.photo_count || 0),
+            storage_bytes: storageBytes,
+            storage_objects: Number(storage.objects || 0),
+            storage_limit_bytes: storageLimit,
+            storage_usage_percent: storageLimit ? Number((storageBytes / storageLimit * 100).toFixed(1)) : 0,
+            quota_risk: Boolean(storageLimit && storageBytes / storageLimit >= 0.7),
+            last_write_at: site.last_write_at || null,
+            active_30d: Boolean(site.last_write_at && Date.parse(site.last_write_at) >= Date.now() - 30 * 86400 * 1000),
+            deletion_status: site.deletion_status || null,
+          };
+        }));
+        const totalStorageBytes = sites.reduce((sum, site) => sum + site.storage_bytes, 0);
         return json({
           checkedAt: new Date().toISOString(),
           database: {
@@ -2642,7 +2724,12 @@ async function handleFetch(request, env, ctx) {
             households: Number(countResults[1].results?.[0]?.count || 0),
             trips: Number(countResults[2].results?.[0]?.count || 0),
             photos: Number(countResults[3].results?.[0]?.count || 0),
+            storage_bytes: totalStorageBytes,
+            active_sites_30d: sites.filter(site => site.active_30d).length,
+            inactive_sites_30d: sites.filter(site => !site.active_30d).length,
+            quota_risk_sites: sites.filter(site => site.quota_risk).length,
           },
+          sites,
           backup: backupStatus(latest),
           jobs: Object.fromEntries(jobCounts.map(row => [row.status, Number(row.count || 0)])),
           observability: {

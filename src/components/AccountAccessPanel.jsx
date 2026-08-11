@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
 
 export default function AccountAccessPanel() {
-  const { user, households, activeHouseholdId } = useAuth();
+  const { user, households, activeHouseholdId, switchHousehold } = useAuth();
   const active = useMemo(() => households.find(site => Number(site.id) === Number(activeHouseholdId)), [households, activeHouseholdId]);
   const [access, setAccess] = useState({ members: [], invitations: [], role: active?.role || 'member' });
   const [inviteEmail, setInviteEmail] = useState('');
@@ -33,6 +33,26 @@ export default function AccountAccessPanel() {
   }
 
   return <div className="settings-section-stack settings-access space-y-6">
+    <section className="rounded-2xl border border-ocean-blue/20 bg-sky-50/60 p-5 shadow-sm">
+      <p className="memory-eyebrow">Memory sites</p>
+      <h2 className="mt-1 text-xl font-semibold text-ocean-dark">Choose the story you’re working on</h2>
+      <p className="mt-2 text-sm text-gray-600">Site switching lives here so the main navigation stays focused. Each site keeps its people, memories, and photos separate.</p>
+      <div className="mt-4 grid gap-2 sm:grid-cols-2">
+        {households.map(site => (
+          <button
+            key={site.id}
+            type="button"
+            onClick={() => switchHousehold(site.id)}
+            className={`rounded-xl border p-3 text-left transition ${Number(site.id) === Number(activeHouseholdId) ? 'border-ocean-blue bg-white text-ocean-dark shadow-sm' : 'border-gray-200 bg-white/70 text-gray-700 hover:border-ocean-blue/50'}`}
+            aria-pressed={Number(site.id) === Number(activeHouseholdId)}
+          >
+            <span className="block font-semibold">{site.name}</span>
+            <span className="mt-1 block text-xs text-gray-500">{Number(site.id) === Number(activeHouseholdId) ? 'Currently selected' : 'Switch to this site'} · {site.member_count || 0} member{Number(site.member_count) === 1 ? '' : 's'}</span>
+          </button>
+        ))}
+      </div>
+    </section>
+
     <section className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
       <p className="memory-eyebrow">Your account</p>
       <h2 className="mt-1 text-xl font-semibold text-ocean-dark">Secure email identity</h2>
