@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { ArrowRight, Lock, MapPin, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
+import { nominatimSearch } from '../utils/geocoding';
 
 const DISMISSED_KEY = 'postcards-home-onboarding-dismissed';
 
@@ -44,7 +45,12 @@ export default function HomeBaseOnboarding() {
     }
     searchTimer.current = setTimeout(async () => {
       try {
-        const found = await api.searchPlaces(value);
+        let found;
+        try {
+          found = await api.searchPlaces(value);
+        } catch {
+          found = await nominatimSearch(value);
+        }
         if (requestId === searchRequest.current) setResults(found);
       } catch (err) {
         if (requestId === searchRequest.current) {

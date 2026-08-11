@@ -8,6 +8,7 @@ import AccountAccessPanel from '../components/AccountAccessPanel';
 import { useAuth } from '../context/AuthContext';
 import { HOME_ICONS, HOME_ICON_IDS, homeBadgeHtml } from '../utils/homeIcons';
 import api from '../utils/api';
+import { nominatimSearch } from '../utils/geocoding';
 
 const SECTIONS = [
   { id: 'overview', label: 'Settings', description: 'Your data and app details', icon: '⚙' },
@@ -200,7 +201,12 @@ function HomeBaseCard() {
       return;
     }
     try {
-      const found = await api.searchPlaces(q);
+      let found;
+      try {
+        found = await api.searchPlaces(q);
+      } catch {
+        found = await nominatimSearch(q);
+      }
       if (requestId === searchRequest.current) setResults(found);
     } catch (err) {
       if (requestId === searchRequest.current) {
