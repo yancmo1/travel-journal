@@ -7,7 +7,7 @@ import { APP_VERSION } from '../config/app';
 import AccountAccessPanel from '../components/AccountAccessPanel';
 import { useAuth } from '../context/AuthContext';
 import { HOME_ICONS, HOME_ICON_IDS, homeBadgeHtml } from '../utils/homeIcons';
-import { nominatimSearch } from '../utils/geocoding';
+import api from '../utils/api';
 
 const SECTIONS = [
   { id: 'overview', label: 'Settings', description: 'Your data and app details', icon: '⚙' },
@@ -173,6 +173,7 @@ function HomeBaseCard() {
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState('');
   const searchTimer = useRef(null);
+  const searchRequest = useRef(0);
 
   const hasHome = user?.home_latitude != null;
 
@@ -192,20 +193,25 @@ function HomeBaseCard() {
   }, [user?.home_label, user?.home_latitude, user?.home_longitude, user?.home_icon]);
 
   async function searchPlaces(value) {
+    const requestId = searchRequest.current;
     const q = value.trim();
     if (q.length < 3) {
       setResults([]);
       return;
     }
     try {
-      const found = await nominatimSearch(q);
-      setResults(found);
-    } catch {
-      setResults([]);
+      const found = await api.searchPlaces(q);
+      if (requestId === searchRequest.current) setResults(found);
+    } catch (err) {
+      if (requestId === searchRequest.current) {
+        setResults([]);
+        setError(err.message || 'Address search is temporarily unavailable. Please try again.');
+      }
     }
   }
 
   function handleQueryChange(value) {
+    searchRequest.current += 1;
     setQuery(value);
     setSelected(null);
     setSaved(false);

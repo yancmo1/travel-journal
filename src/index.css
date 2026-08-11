@@ -2732,6 +2732,8 @@ button:focus {
   gap: 12px;
 }
 
+.journey-form-row .date-range-picker { grid-column: span 2; }
+
 .journey-memory-picker {
   overflow: hidden;
   border: 1px solid #dfe2df;
@@ -3039,6 +3041,8 @@ button:focus {
   .journey-form-row {
     grid-template-columns: 1fr;
   }
+
+  .journey-form-row .date-range-picker { grid-column: auto; }
 
   .journey-cover {
     height: 190px;
@@ -5790,4 +5794,136 @@ body {
   .landing-plans-heading p { font-size: 16px; }
   .landing-plans-grid { grid-template-columns: 1fr; gap: 18px; margin-top: 38px; }
   .landing-plan-card { min-height: 0; padding: 27px 24px 25px; }
+}
+
+/* Shared single-calendar date range picker */
+.date-range-picker {
+  position: relative;
+  width: 100%;
+}
+
+.date-range-label {
+  display: block;
+  margin-bottom: 7px;
+  color: var(--brand-forest-800);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.date-range-trigger {
+  display: flex;
+  width: 100%;
+  min-height: 54px;
+  align-items: center;
+  gap: 11px;
+  padding: 9px 12px;
+  color: var(--brand-forest-800);
+  background: var(--brand-paper-50);
+  border: 1px solid var(--brand-paper-300);
+  border-radius: 8px;
+  text-align: left;
+}
+
+.date-range-trigger:hover,
+.date-range-trigger:focus-visible {
+  border-color: var(--brand-forest-700);
+  background: #fff;
+}
+
+.date-range-trigger > svg:first-child { color: var(--brand-terracotta-600); }
+.date-range-trigger > svg:last-child { margin-left: auto; color: var(--brand-forest-500); }
+.date-range-trigger span { display: grid; gap: 2px; }
+.date-range-trigger strong { color: var(--brand-forest-900); font-size: 14px; }
+.date-range-trigger small { color: var(--brand-forest-500); font-size: 12px; }
+
+.date-range-popover {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  z-index: 50;
+  width: min(100%, 350px);
+  padding: 16px;
+  color: var(--brand-forest-800);
+  background: var(--brand-paper-50);
+  border: 1px solid var(--brand-paper-300);
+  border-radius: 12px;
+  box-shadow: 0 18px 42px rgba(25, 48, 40, .2);
+}
+
+.date-range-header {
+  display: grid;
+  grid-template-columns: 32px 1fr 32px;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.date-range-header > button {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  color: var(--brand-forest-700);
+  background: var(--brand-paper-50);
+  border: 1px solid var(--brand-paper-300);
+  border-radius: 7px;
+}
+
+.date-range-header > button:hover { border-color: var(--brand-brass-500); background: var(--brand-paper-100); }
+.date-range-header > div { min-width: 0; text-align: center; }
+.date-range-header > div > button { padding: 0; color: var(--brand-forest-900); background: transparent; border: 0; font-size: 17px; font-weight: 800; }
+.date-range-header > div > button:hover { color: var(--brand-terracotta-700); text-decoration: underline; text-underline-offset: 3px; }
+.date-range-header small { display: block; margin-top: 3px; color: var(--brand-forest-500); font-size: 11px; }
+.date-range-year-button { margin-left: 4px; }
+
+.date-range-weekdays,
+.date-range-days,
+.date-range-months,
+.date-range-years { display: grid; gap: 4px; }
+.date-range-weekdays, .date-range-days { grid-template-columns: repeat(7, minmax(0, 1fr)); }
+.date-range-weekdays { margin-bottom: 4px; }
+.date-range-weekdays span { color: var(--brand-forest-500); font-size: 11px; font-weight: 800; text-align: center; }
+.date-range-days { grid-template-rows: repeat(6, 34px); }
+.date-range-day,
+.date-range-months button,
+.date-range-years button { min-width: 0; color: var(--brand-forest-800); background: transparent; border: 1px solid transparent; border-radius: 6px; font-size: 12px; font-weight: 700; }
+.date-range-day { min-height: 34px; padding: 4px; }
+.date-range-day:hover,
+.date-range-months button:hover,
+.date-range-years button:hover { background: var(--brand-paper-100); border-color: var(--brand-brass-500); }
+.date-range-day.is-muted { color: var(--brand-paper-400); }
+.date-range-day.is-today { color: var(--brand-terracotta-700); box-shadow: inset 0 -2px 0 var(--brand-terracotta-500); }
+.date-range-day.is-start { color: var(--brand-terracotta-700); background: var(--brand-terracotta-200); border-color: var(--brand-terracotta-500); }
+.date-range-day.is-in-range { color: var(--brand-terracotta-700); background: var(--brand-terracotta-200); }
+.date-range-day.is-end,
+.date-range-day.is-preview-end,
+.date-range-months button.is-selected,
+.date-range-years button.is-selected { color: var(--brand-paper-50); background: var(--brand-terracotta-500); border-color: var(--brand-terracotta-700); }
+.date-range-day.is-invalid { color: var(--brand-paper-400); opacity: .55; }
+.date-range-months, .date-range-years { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 7px; }
+.date-range-months button, .date-range-years button { min-height: 44px; }
+.date-range-mode-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+.date-range-mode-row strong { color: var(--brand-forest-900); font-family: var(--brand-font-display); font-size: 17px; }
+.date-range-mode-row button { padding: 0; color: var(--brand-terracotta-700); background: transparent; border: 0; font-size: 11px; font-weight: 800; }
+.date-range-mode-row button:hover { text-decoration: underline; text-underline-offset: 3px; }
+
+.date-range-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 14px;
+  padding-top: 11px;
+  border-top: 1px solid var(--brand-border);
+}
+
+.date-range-summary > div { display: grid; gap: 1px; }
+.date-range-summary span { color: var(--brand-forest-500); font-size: 10px; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; }
+.date-range-summary div button { padding: 0; color: var(--brand-forest-900); background: transparent; border: 0; font-size: 12px; font-weight: 800; }
+.date-range-summary div button:hover { color: var(--brand-terracotta-700); text-decoration: underline; text-underline-offset: 3px; }
+.date-range-summary > b { color: var(--brand-brass-700); }
+.date-range-summary > small { flex-basis: 100%; color: var(--brand-forest-500); font-size: 11px; }
+
+@media (max-width: 560px) {
+  .date-range-popover { position: fixed; top: 50%; left: 50%; width: min(calc(100vw - 24px), 350px); max-height: calc(100vh - 24px); overflow-y: auto; transform: translate(-50%, -50%); }
 }

@@ -4,6 +4,7 @@ import { nominatimSearch, placeAutocomplete } from '../utils/geocoding';
 import api from '../utils/api';
 import { sortTravelers } from '../utils/travelers';
 import MemoryPlaceDetails from './MemoryPlaceDetails';
+import DateRangePicker from './DateRangePicker';
 
 const TRIP_TYPES = ['Road Trip', 'Flight', 'Cruise', 'Day Trip', 'Other'];
 const RELATIONSHIPS = [
@@ -629,32 +630,12 @@ export default function TripForm({ trip, onClose }) {
           </div>
 
           {form.datePrecision === 'exact' && (
-            <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Date *
-              </label>
-              <input
-                type="date"
-                name="startDate"
-                value={form.startDate}
-                onChange={handleChange}
-                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-ocean-teal"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                End Date
-              </label>
-              <input
-                type="date"
-                name="endDate"
-                value={form.endDate}
-                onChange={handleChange}
-                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-ocean-teal"
-              />
-            </div>
-            </div>
+            <DateRangePicker
+              label="Date *"
+              startDate={form.startDate}
+              endDate={form.endDate}
+              onChange={({ startDate, endDate }) => setForm(prev => ({ ...prev, startDate, endDate }))}
+            />
           )}
 
           {form.datePrecision !== 'exact' && (

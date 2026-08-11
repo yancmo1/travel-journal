@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Upload, Sparkles, MapPin, Calendar, Image, CheckCircle, AlertTriangle } from 'lucide-react';
 import PhotoUploader from '../components/PhotoUploader';
+import DateRangePicker from '../components/DateRangePicker';
 import api from '../utils/api';
 import { inspectPhotoMetadata } from '../utils/photoMetadata';
 import { reverseGeocode } from '../utils/geocoding';
@@ -273,10 +274,15 @@ export default function PhotoAnalyzerPage({ setPage }) {
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm text-gray-600 mb-3">
                               <div className="flex flex-col">
                                 <label className="text-xs text-gray-500 mb-1 flex items-center gap-2"><Calendar className="h-4 w-4" /> Dates</label>
-                                <div className="flex gap-2">
-                                  <input type="date" value={editedSuggestions[index]?.startDate ?? suggestion.startDate} onChange={(e) => setEditField(index, 'startDate', e.target.value)} className="text-sm p-1 border rounded" />
-                                  <input type="date" value={editedSuggestions[index]?.endDate ?? suggestion.endDate} onChange={(e) => setEditField(index, 'endDate', e.target.value)} className="text-sm p-1 border rounded" />
-                                </div>
+                                <DateRangePicker
+                                  label=""
+                                  startDate={editedSuggestions[index]?.startDate ?? suggestion.startDate}
+                                  endDate={editedSuggestions[index]?.endDate ?? suggestion.endDate}
+                                  onChange={({ startDate, endDate }) => {
+                                    setEditField(index, 'startDate', startDate);
+                                    setEditField(index, 'endDate', endDate);
+                                  }}
+                                />
                               </div>
 
                               <div className="flex items-center gap-2">

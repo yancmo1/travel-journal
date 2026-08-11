@@ -1,6 +1,7 @@
-import { useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useData } from '../context/DataContext';
 import { formatDateOnly } from '../utils/format';
+import DateRangePicker from './DateRangePicker';
 
 const JOURNEY_TYPES = ['Road Trip', 'Cruise', 'Flight', 'Weekend', 'Vacation', 'Other'];
 
@@ -19,7 +20,6 @@ export default function JourneyForm({ journey, onClose }) {
   const [search, setSearch] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
-  const endDateAutoFilled = useRef(false);
 
   const visibleMemories = useMemo(() => {
     const queryTokens = search.trim().toLowerCase().split(/\s+/).filter(Boolean);
@@ -50,24 +50,6 @@ export default function JourneyForm({ journey, onClose }) {
         ? current.memoryIds.filter(memoryId => memoryId !== id)
         : [...current.memoryIds, id],
     }));
-  }
-
-  function handleDateChange(field, value) {
-    if (field === 'endDate') {
-      endDateAutoFilled.current = false;
-      setForm(current => ({ ...current, endDate: value }));
-      return;
-    }
-
-    setForm(current => {
-      const mirrorEndDate = endDateAutoFilled.current || (!journey && !current.endDate);
-      endDateAutoFilled.current = mirrorEndDate && Boolean(value);
-      return {
-        ...current,
-        startDate: value,
-        ...(mirrorEndDate ? { endDate: value } : {}),
-      };
-    });
   }
 
   async function handleSubmit(event) {
@@ -117,14 +99,12 @@ export default function JourneyForm({ journey, onClose }) {
           </label>
 
           <div className="journey-form-row">
-            <label>
-              <span>Start date</span>
-              <input type="date" value={form.startDate} onChange={event => handleDateChange('startDate', event.target.value)} />
-            </label>
-            <label>
-              <span>End date</span>
-              <input type="date" value={form.endDate} onChange={event => handleDateChange('endDate', event.target.value)} />
-            </label>
+            <DateRangePicker
+              label="Dates"
+              startDate={form.startDate}
+              endDate={form.endDate}
+              onChange={({ startDate, endDate }) => setForm(current => ({ ...current, startDate, endDate }))}
+            />
             <label>
               <span>Type</span>
               <select value={form.journeyType} onChange={event => setForm({ ...form, journeyType: event.target.value })}>

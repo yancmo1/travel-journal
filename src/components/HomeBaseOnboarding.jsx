@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ArrowRight, Lock, MapPin, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { nominatimSearch } from '../utils/geocoding';
+import api from '../utils/api';
 
 const DISMISSED_KEY = 'postcards-home-onboarding-dismissed';
 
@@ -14,6 +14,7 @@ export default function HomeBaseOnboarding() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const searchTimer = useRef(null);
+  const searchRequest = useRef(0);
 
   useEffect(() => {
     if (!user || user.home_latitude != null) return;
@@ -32,6 +33,7 @@ export default function HomeBaseOnboarding() {
   }
 
   function handleQueryChange(value) {
+    const requestId = ++searchRequest.current;
     setQuery(value);
     setSelected(null);
     setError('');
@@ -42,9 +44,13 @@ export default function HomeBaseOnboarding() {
     }
     searchTimer.current = setTimeout(async () => {
       try {
-        setResults(await nominatimSearch(value));
-      } catch {
-        setResults([]);
+        const found = await api.searchPlaces(value);
+        if (requestId === searchRequest.current) setResults(found);
+      } catch (err) {
+        if (requestId === searchRequest.current) {
+          setResults([]);
+          setError(err.message || 'Address search is temporarily unavailable. Please try again.');
+        }
       }
     }, 350);
   }
