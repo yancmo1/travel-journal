@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { X } from 'lucide-react';
 import api from '../utils/api';
 import { useData } from '../context/DataContext';
 import PhotoUploader from './PhotoUploader';
@@ -91,7 +92,7 @@ export default function MemoryPhotosModal({ memory, onClose, onEdit }) {
                 Edit
               </button>
             )}
-            <button type="button" onClick={onClose} aria-label="Close photos">✕</button>
+            <button type="button" onClick={onClose} aria-label="Close photos"><X aria-hidden="true" /></button>
           </div>
         </div>
 

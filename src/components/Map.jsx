@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { Maximize2, Minimize2 } from 'lucide-react';
 import { formatDateOnly } from '../utils/format';
 import { useAuth } from '../context/AuthContext';
 import { HOME_ICONS, homeBadgeHtml } from '../utils/homeIcons';
@@ -240,9 +241,9 @@ export default function MapView({ trips = [], onSelectTrip, showRoutes = false, 
         onClick={toggleFullscreen}
         aria-pressed={isFullscreen}
         title={isFullscreen ? 'Exit full screen map (Esc)' : 'Open full screen map'}
-        className="absolute right-3 top-3 z-[1010] bg-white/90 hover:bg-white shadow-md rounded-md px-3 py-2 text-sm font-medium text-gray-800 transition-colors"
+        className="leaflet-control-fullscreen absolute right-3 top-3 z-[1010] bg-white/90 hover:bg-white shadow-md rounded-md px-3 py-2 text-sm font-medium text-gray-800 transition-colors"
       >
-        {isFullscreen ? '✕ Exit Fullscreen' : '⛶ Fullscreen'}
+        {isFullscreen ? <><Minimize2 aria-hidden="true" /> Exit Fullscreen</> : <><Maximize2 aria-hidden="true" /> Fullscreen</>}
       </button>
 
       <div

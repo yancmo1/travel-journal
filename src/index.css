@@ -34,6 +34,14 @@ body {
   font-weight: 700;
 }
 
+.bug-reporter-trigger,
+.memory-nav-mobile button,
+.dashboard-map-frame .leaflet-control-zoom a,
+.dashboard-map-frame .leaflet-control-fullscreen {
+  min-width: 44px;
+  min-height: 44px;
+}
+
 .bug-reporter-trigger:hover,
 .bug-reporter-trigger:focus-visible {
   background: var(--brand-paper-100);
@@ -3870,6 +3878,21 @@ button:focus {
 .dashboard-map-frame .leaflet-control-zoom a,
 .dashboard-map-frame .leaflet-control-attribution {
   color: #173c31;
+}
+
+.dashboard-map-frame .leaflet-control-zoom a {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  line-height: 1;
+}
+
+.dashboard-map-frame .leaflet-control-fullscreen {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 44px;
 }
 
 .dashboard-add-memory {

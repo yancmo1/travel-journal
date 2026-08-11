@@ -69,7 +69,7 @@ function TimelineCard({ memory, timeline = false, onEdit }) {
     >
       {timeline && <span className="absolute -left-[2.05rem] top-5 h-4 w-4 rounded-full border-4 border-[#f5f0e8] bg-ocean-teal sm:-left-[2.55rem]" aria-hidden="true" />}
       <div className="flex gap-4">
-        {photo && <img src={`/photos/${photo.thumbnail_path || photo.file_path}`} alt={photo.caption || memory.location_name} style={getPhotoImageStyle(photo)} className="h-20 w-20 shrink-0 rounded-xl object-cover sm:h-24 sm:w-24" />}
+        {photo && <img src={`/photos/${photo.thumbnail_path || photo.file_path}`} alt={photo.caption || memory.location_name} width={photo.width || 96} height={photo.height || 96} style={getPhotoImageStyle(photo)} className="h-20 w-20 shrink-0 rounded-xl object-cover sm:h-24 sm:w-24" />}
         <div className="min-w-0">
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-sunset-orange">{formatMemoryDate(memory)}</p>
           <h3 className="mt-1 text-xl font-semibold text-ocean-dark">{memory.location_name}</h3>

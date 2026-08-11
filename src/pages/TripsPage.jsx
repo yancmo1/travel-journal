@@ -124,7 +124,7 @@ export default function TripsPage({ initialTravelerFilter = 'all' }) {
           onClick={() => { setEditTrip(null); setShowForm(true); }}
           className="memory-art-action memories-add-memory"
         >
-          <img className="memory-art-action-image" src={addMemoryButton} alt="" aria-hidden="true" />
+          <img className="memory-art-action-image" src={addMemoryButton} alt="" aria-hidden="true" width="2172" height="724" />
           <span className="memory-art-action-label"><Camera size={18} aria-hidden="true" /> Add a memory</span>
         </button>
       </div>
@@ -223,7 +223,7 @@ export default function TripsPage({ initialTravelerFilter = 'all' }) {
             onClick={() => setShowForm(true)}
             className="memory-art-action memory-art-action-empty"
           >
-            <img className="memory-art-action-image" src={addMemoryButton} alt="" aria-hidden="true" />
+            <img className="memory-art-action-image" src={addMemoryButton} alt="" aria-hidden="true" width="2172" height="724" />
             <span className="memory-art-action-label">Add Your First Memory</span>
           </button>
         </div>

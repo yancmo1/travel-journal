@@ -49,7 +49,7 @@ export default function LoginPage() {
     <main className="memory-login" style={{ '--login-paper-art': `url(${travelPaperBackground})` }}>
       <section className="memory-login-story">
         <a className="memory-login-brand" href="/" aria-label="Postcards of Us home">
-          <span className="memory-login-stamp" aria-hidden="true"><img src={stampLogo} alt="" /></span>
+          <span className="memory-login-stamp" aria-hidden="true"><img src={stampLogo} alt="" width="1122" height="1402" /></span>
           <span className="memory-login-tagline">Our story, one memory at a time</span>
         </a>
         <div>

@@ -117,6 +117,8 @@ export default function PhotoLightbox({
           <img
             src={`/photos/${imagePath}`}
             alt={currentPhoto.filename || 'Memory photo'}
+            width={currentPhoto.width || 1600}
+            height={currentPhoto.height || 1600}
             onClick={() => setZoom(current => current === 1 ? 2 : 1)}
             className={`rounded-lg select-none ${zoom === 1 ? 'max-h-[78vh] max-w-full cursor-zoom-in object-contain' : 'max-w-none cursor-zoom-out'}`}
             style={{

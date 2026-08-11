@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { CheckCircle2, ChevronLeft, ChevronRight, Settings as SettingsIcon, User, Users, Wrench } from 'lucide-react';
 import DataBackupPanel from '../components/DataBackupPanel';
 import CleanupPage from './CleanupPage';
 import PeoplePage from './PeoplePage';
@@ -11,16 +11,20 @@ import api from '../utils/api';
 import { nominatimSearch } from '../utils/geocoding';
 
 const SECTIONS = [
-  { id: 'overview', label: 'Settings', description: 'Your data and app details', icon: '⚙' },
-  { id: 'people', label: 'People', description: 'Manage family members and relationships', icon: '♧' },
-  { id: 'access', label: 'Family access', description: 'Accounts, invitations, and memory sites', icon: '◇' },
-  { id: 'cleanup', label: 'Clean up', description: 'Review incomplete or duplicate memories', icon: '✓' },
+  { id: 'overview', label: 'Settings', description: 'Your data and app details', icon: SettingsIcon },
+  { id: 'people', label: 'People', description: 'Manage family members and relationships', icon: Users },
+  { id: 'access', label: 'Family access', description: 'Accounts, invitations, and memory sites', icon: User },
+  { id: 'cleanup', label: 'Clean up', description: 'Review incomplete or duplicate memories', icon: CheckCircle2 },
 ];
 
 export default function SettingsPage({ setPage, setTravelerFilter }) {
+  const { user } = useAuth();
   const [section, setSection] = useState('overview');
   const settingsNavRef = useRef(null);
   const [settingsScroll, setSettingsScroll] = useState({ canScroll: false, atEnd: false });
+  const sections = user?.site_admin
+    ? [...SECTIONS, { id: 'operations', label: 'Operations', description: 'Review system health and reports', icon: Wrench }]
+    : SECTIONS;
 
   useEffect(() => {
     const nav = settingsNavRef.current;
@@ -66,22 +70,25 @@ export default function SettingsPage({ setPage, setTravelerFilter }) {
       <div className="settings-grid">
         <div className="settings-sidebar-wrap">
           <aside ref={settingsNavRef} className="settings-sidebar" aria-label="Settings sections">
-            {SECTIONS.map(item => (
+            {sections.map(item => {
+              const Icon = item.icon;
+              return (
               <button
                 key={item.id}
                 type="button"
-                onClick={() => setSection(item.id)}
+                onClick={() => item.id === 'operations' ? setPage('operations') : setSection(item.id)}
                 title={item.description}
                 className={section === item.id ? 'is-active' : ''}
                 aria-current={section === item.id ? 'page' : undefined}
               >
-                <span className="settings-sidebar-icon" aria-hidden="true">{item.icon}</span>
+                <span className="settings-sidebar-icon" aria-hidden="true"><Icon size={18} /></span>
                 <span>
                   <strong>{item.label}</strong>
                   <small>{item.description}</small>
                 </span>
               </button>
-            ))}
+              );
+            })}
           </aside>
           <button
             type="button"

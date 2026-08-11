@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { X } from 'lucide-react';
 import { useData } from '../context/DataContext';
 import { formatDateOnly } from '../utils/format';
 import DateRangePicker from './DateRangePicker';
@@ -83,7 +84,7 @@ export default function JourneyForm({ journey, onClose }) {
             <p className="memory-eyebrow">{journey ? 'Update the story' : 'Bring memories together'}</p>
             <h2>{journey ? 'Edit journey' : 'Create a journey'}</h2>
           </div>
-          <button type="button" onClick={onClose} aria-label="Close journey form">✕</button>
+          <button type="button" onClick={onClose} aria-label="Close journey form"><X aria-hidden="true" /></button>
         </div>
 
         <form onSubmit={handleSubmit} className="journey-form">

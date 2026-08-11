@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { ArrowDown, ArrowUp } from 'lucide-react';
+import { ArrowDown, ArrowUp, Sparkles, X } from 'lucide-react';
 import { useData } from '../context/DataContext';
 import JourneyForm from '../components/JourneyForm';
 import TripForm from '../components/TripForm';
@@ -85,9 +85,9 @@ export default function JourneysPage() {
                   <button type="button" className="journey-card-open" onClick={() => setSelected(journey)}>
                     <div className={`journey-cover ${cover ? 'has-photo' : ''}`}>
                       {getPhotoPreviewPath(cover) ? (
-                        <img src={`/photos/${getPhotoPreviewPath(cover)}`} alt="" style={getPhotoImageStyle(cover)} />
+                        <img src={`/photos/${getPhotoPreviewPath(cover)}`} alt="" width={cover.width || 320} height={cover.height || 320} style={getPhotoImageStyle(cover)} />
                       ) : (
-                        <div className="journey-cover-art" aria-hidden="true"><span>✦</span></div>
+                        <div className="journey-cover-art" aria-hidden="true"><Sparkles size={28} /></div>
                       )}
                       <span className="journey-type">{journey.journey_type || 'Journey'}</span>
                     </div>
@@ -195,7 +195,7 @@ function JourneyDetail({ journey, onClose, onEdit, onDelete, onPhotos, onPrint }
             <h2>{journey.title}</h2>
             <p>{journey.summary || 'A collection of places that belong to one adventure.'}</p>
           </div>
-          <button type="button" onClick={onClose} aria-label="Close journey">✕</button>
+          <button type="button" onClick={onClose} aria-label="Close journey"><X aria-hidden="true" /></button>
         </header>
 
         {journey.memories.some(memory => memory.latitude && memory.longitude) && (
@@ -217,7 +217,7 @@ function JourneyDetail({ journey, onClose, onEdit, onDelete, onPhotos, onPrint }
                 {memory.photos?.length > 0 && (
                   <div className="journey-photo-strip">
                     {memory.photos.slice(0, 4).map(photo => (
-                      getPhotoPreviewPath(photo) ? <img key={photo.id} src={`/photos/${getPhotoPreviewPath(photo)}`} alt={photo.caption || photo.filename} style={getPhotoImageStyle(photo)} /> : <div key={photo.id} className="flex aspect-square items-center justify-center rounded-lg bg-slate-100 text-xs text-slate-500">Processing</div>
+                      getPhotoPreviewPath(photo) ? <img key={photo.id} src={`/photos/${getPhotoPreviewPath(photo)}`} alt={photo.caption || photo.filename} width={photo.width || 320} height={photo.height || 320} style={getPhotoImageStyle(photo)} /> : <div key={photo.id} className="flex aspect-square items-center justify-center rounded-lg bg-slate-100 text-xs text-slate-500">Processing</div>
                     ))}
                   </div>
                 )}
@@ -278,7 +278,7 @@ function TravelBookPrint({ journey, onClose }) {
         <button type="button" onClick={onClose}>Close</button>
       </div>
       <header>
-        {cover && <img src={`/photos/${cover.file_path || cover.thumbnail_path}`} alt="" style={getPhotoImageStyle(cover)} />}
+        {cover && <img src={`/photos/${cover.file_path || cover.thumbnail_path}`} alt="" width={cover.width || 320} height={cover.height || 320} style={getPhotoImageStyle(cover)} />}
         <div>
           <p>{formatJourneyDate(journey)}</p>
           <h1>{journey.title}</h1>
@@ -301,7 +301,7 @@ function TravelBookPrint({ journey, onClose }) {
             <div className="travel-book-photos">
               {memory.photos.map(photo => (
                 <figure key={photo.id}>
-                  <img src={`/photos/${photo.file_path || photo.thumbnail_path}`} alt={photo.caption || photo.filename || ''} style={getPhotoImageStyle(photo)} />
+                  <img src={`/photos/${photo.file_path || photo.thumbnail_path}`} alt={photo.caption || photo.filename || ''} width={photo.width || 320} height={photo.height || 320} style={getPhotoImageStyle(photo)} />
                   {photo.caption && <figcaption>{photo.caption}</figcaption>}
                 </figure>
               ))}

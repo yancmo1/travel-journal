@@ -301,6 +301,8 @@ export default function OperationsPage() {
                           <img
                             src={api.getBugReportScreenshotUrl(getBugReportId(report))}
                             alt={`Screenshot attached to ${report.title}`}
+                            width="800"
+                            height="600"
                             loading="lazy"
                             className="max-h-72 w-full object-contain object-left-top"
                           />
@@ -336,7 +338,7 @@ export default function OperationsPage() {
                 </button>
               </div>
             </div>
-            <img src={api.getBugReportScreenshotUrl(getBugReportId(screenshotToView))} alt={`Screenshot attached to ${screenshotToView.title}`} className="max-h-[78vh] max-w-full rounded-lg object-contain" />
+            <img src={api.getBugReportScreenshotUrl(getBugReportId(screenshotToView))} alt={`Screenshot attached to ${screenshotToView.title}`} width="1600" height="1200" className="max-h-[78vh] max-w-full rounded-lg object-contain" />
           </div>
         </div>
       )}

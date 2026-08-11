@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { CheckCircle2 } from 'lucide-react';
 import { useData } from '../context/DataContext';
 import TripForm from '../components/TripForm';
 import MemoryPhotosModal from '../components/MemoryPhotosModal';
@@ -267,7 +268,7 @@ export default function CleanupPage() {
           <p className="p-10 text-center text-gray-500">Loading memories…</p>
         ) : visibleTrips.length === 0 ? (
           <div className="p-10 text-center">
-            <p className="text-3xl mb-2">✓</p>
+            <CheckCircle2 className="mb-2 text-ocean-teal" size={30} aria-hidden="true" />
             <h2 className="font-semibold text-ocean-dark">Nothing to clean up here</h2>
             <p className="text-sm text-gray-500 mt-1">Try another filter or search.</p>
           </div>

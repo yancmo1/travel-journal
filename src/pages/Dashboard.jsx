@@ -4,7 +4,7 @@ import MapView from '../components/Map';
 import TripForm from '../components/TripForm';
 import StatCard from '../components/StatCard';
 import MemoryPlaceDetails from '../components/MemoryPlaceDetails';
-import { ArrowUpRight, Camera, Image, MapPin, Navigation } from 'lucide-react';
+import { ArrowUpRight, Camera, Image, MapPin, Navigation, X } from 'lucide-react';
 import postmark from '../../assets/postmark.webp';
 import addMemoryButton from '../../assets/add-memory-button.webp';
 import { getPhotoPreviewPath } from '../utils/photos';
@@ -24,12 +24,12 @@ export default function Dashboard() {
           <h1 id="dashboard-title">Where we’ve been,<br /><em>together.</em></h1>
         </div>
         <div className="dashboard-intro-actions">
-          <img className="dashboard-postmark" src={postmark} alt="" aria-hidden="true" />
+          <img className="dashboard-postmark" src={postmark} alt="" aria-hidden="true" width="1693" height="929" />
           <button
             onClick={() => { setEditTrip(null); setShowForm(true); }}
             className="dashboard-add-memory dashboard-add-memory-top"
           >
-            <img className="dashboard-add-memory-art" src={addMemoryButton} alt="" aria-hidden="true" />
+            <img className="dashboard-add-memory-art" src={addMemoryButton} alt="" aria-hidden="true" width="2172" height="724" />
             <span className="dashboard-add-memory-label"><Camera aria-hidden="true" /> Add a memory</span>
           </button>
         </div>
@@ -90,7 +90,7 @@ export default function Dashboard() {
                     onClick={() => setSelectedTrip(trip)}
                   >
                     {photo ? (
-                      <img src={`/photos/${getPhotoPreviewPath(photo)}`} alt="" />
+                      <img src={`/photos/${getPhotoPreviewPath(photo)}`} alt="" width={photo.width || 320} height={photo.height || 320} />
                     ) : (
                       <span className="dashboard-recent-placeholder" aria-hidden="true"><MapPin /></span>
                     )}
@@ -166,7 +166,7 @@ function TripDetailModal({ trip, onClose, onEdit }) {
                 className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
                 aria-label="Close"
               >
-                ✕
+                <X aria-hidden="true" />
               </button>
             </div>
           </div>

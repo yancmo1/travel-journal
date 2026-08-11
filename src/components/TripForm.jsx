@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { X } from 'lucide-react';
 import { useData } from '../context/DataContext';
 import { nominatimSearch, placeAutocomplete } from '../utils/geocoding';
 import api from '../utils/api';
@@ -519,7 +520,7 @@ export default function TripForm({ trip, onClose }) {
               onClick={onClose}
               className="p-2 hover:bg-white/20 rounded-lg transition-colors text-white"
             >
-              ✕
+              <X aria-hidden="true" />
             </button>
           </div>
         </div>

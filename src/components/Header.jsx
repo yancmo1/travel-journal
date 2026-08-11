@@ -16,6 +16,7 @@ export default function Header({ currentPage, setPage }) {
   const { user, logout } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const visibleNavItems = navItems.filter(item => !item.adminOnly || user?.site_admin);
+  const mobileNavItems = visibleNavItems.filter(item => !item.adminOnly);
 
   function navigate(id) {
     setPage(id);
@@ -33,7 +34,7 @@ export default function Header({ currentPage, setPage }) {
             aria-label="Go to memories"
           >
             <span className="memory-brand-stamp" aria-hidden="true">
-              <img src={stampLogo} alt="" />
+              <img src={stampLogo} alt="" width="1122" height="1402" />
             </span>
             <span className="memory-brand-subtitle">our story, one memory at a time</span>
           </button>
@@ -67,7 +68,7 @@ export default function Header({ currentPage, setPage }) {
           className={`memory-nav memory-nav-mobile md:hidden ${mobileMenuOpen ? 'is-open' : ''}`}
           aria-label="Mobile navigation"
         >
-          {visibleNavItems.map(item => (
+          {mobileNavItems.map(item => (
             <NavButton key={item.id} item={item} active={currentPage === item.id} onNavigate={navigate} />
           ))}
         </nav>

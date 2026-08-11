@@ -139,6 +139,8 @@ export default function PhotoGallery({ photos = [], onDelete, onUpdate, onReorde
                 <img
                   src={`/photos/${getPhotoPreviewPath(photo)}`}
                   alt={photo.caption || photo.filename || ''}
+                  width={photo.width || 320}
+                  height={photo.height || 320}
                   style={getPhotoImageStyle(photo)}
                   className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                 />

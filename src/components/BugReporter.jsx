@@ -183,7 +183,7 @@ export default function BugReporter() {
                 {preparingScreenshot && <p className="bug-reporter-reference">Preparing screenshot…</p>}
                 {screenshotPreview && !preparingScreenshot && (
                   <div className="bug-reporter-screenshot-preview">
-                    <img src={screenshotPreview} alt="Screenshot preview" />
+                    <img src={screenshotPreview} alt="Screenshot preview" width="320" height="240" />
                     <div>
                       <p>{screenshot.name}</p>
                       <button type="button" onClick={removeScreenshot}>Remove screenshot</button>

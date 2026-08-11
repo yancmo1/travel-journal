@@ -36,7 +36,7 @@ export default function LandingPage() {
     <main className="landing-page" style={{ '--landing-paper-art': `url(${travelPaperBackground})` }}>
       <nav className="landing-nav" aria-label="Public navigation">
         <a className="landing-brand" href="/" aria-label="Postcards of Us home">
-          <span className="landing-brand-stamp" aria-hidden="true"><img src={stampLogo} alt="" /></span>
+          <span className="landing-brand-stamp" aria-hidden="true"><img src={stampLogo} alt="" width="1122" height="1402" /></span>
           <span className="landing-brand-tagline">Our story, one memory at a time</span>
         </a>
         <div className="landing-nav-actions">
@@ -67,14 +67,14 @@ export default function LandingPage() {
             <div className="landing-postcard-lines" />
           </div>
           <article className="landing-postcard landing-postcard-front">
-            <img className="landing-postcard-photo" src={featuredPostcard.image} alt={featuredPostcard.alt} />
+            <img className="landing-postcard-photo" src={featuredPostcard.image} alt={featuredPostcard.alt} width="1600" height="1200" />
             <div className="landing-postcard-body">
               <div>
                 <p className="landing-postcard-label">{featuredPostcard.label}</p>
                 <h2>{featuredPostcard.title}</h2>
                 <p>{featuredPostcard.copy}</p>
               </div>
-              <img className="landing-postmark" src={postmark} alt="" aria-hidden="true" />
+              <img className="landing-postmark" src={postmark} alt="" aria-hidden="true" width="1693" height="929" />
             </div>
           </article>
           <div className="landing-route-card" aria-hidden="true">
@@ -102,6 +102,8 @@ export default function LandingPage() {
               <p>Live family journal</p>
             </div>
             <img
+              width="651"
+              height="807"
               src="/marketing/live-family-atlas.webp"
               alt="The Postcards of Us family atlas showing a map of visited places and a row of recent memories"
             />
@@ -144,6 +146,8 @@ export default function LandingPage() {
               <p>A complete journey</p>
             </div>
             <img
+              width="651"
+              height="807"
               src="/marketing/live-journey-story.webp"
               alt="An Alaskan cruise journey in Postcards of Us with its route map, dated stops, places, and photos"
             />

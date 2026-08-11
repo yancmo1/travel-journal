@@ -273,6 +273,8 @@ export default function PhotoUploader({ tripId, onUploadComplete, showAnalyzer =
                   <img
                     src={preview.url}
                     alt={preview.name}
+                    width="320"
+                    height="96"
                     className="w-full h-24 object-cover rounded-lg border border-gray-200"
                   />
                 ) : (
