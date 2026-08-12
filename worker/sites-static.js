@@ -719,7 +719,7 @@ async function sendInvitationEmail(env, request, invitation, rawToken) {
     subject: `${inviter} invited you to ${household} on Postcards of Us`,
     text: `${inviter} invited you to join ${household} on Postcards of Us. Create or connect your account: ${link}\n\nThis invitation expires in 7 days.`,
     html: `<p>${escapeHtml(inviter)} invited you to join <strong>${escapeHtml(household)}</strong> on Postcards of Us.</p><p><a href="${escapeHtml(link)}">Accept the invitation</a></p><p>This invitation expires in 7 days.</p>`,
-    idempotencyKey: `postcards-invite-${invitation.id}`,
+    idempotencyKey: invitation.email_idempotency_key || `postcards-invite-${invitation.id}`,
   });
 }
 
@@ -2837,6 +2837,17 @@ async function handleFetch(request, env, ctx) {
         return json({ success: true, active_household_id: householdId }, { headers: { 'set-cookie': sessionCookie(session.token) } });
       }
 
+      if (url.pathname === '/api/households/current' && request.method === 'PATCH') {
+        if (!['owner', 'admin'].includes(user.role)) return json({ error: 'Only site owners and admins can rename this memory site.' }, { status: 403 });
+        const body = await parseJson(request);
+        const name = String(body?.name || '').trim();
+        if (name.length < 2 || name.length > 80) return json({ error: 'Enter a site name between 2 and 80 characters.' }, { status: 400 });
+        const updated = await env.DB.prepare('UPDATE households SET name = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? RETURNING id, slug, name, plan').bind(name, user.household_id).first();
+        if (!updated) return json({ error: 'Memory site not found.' }, { status: 404 });
+        ctx.waitUntil(recordAudit(env, { userId: user.id, householdId: user.household_id, action: 'household.renamed', resourceType: 'household', resourceId: user.household_id }));
+        return json({ household: { ...updated, role: user.role }, households: await userHouseholds(env, user.id) });
+      }
+
       if (url.pathname === '/api/households/current/members' && request.method === 'GET') {
         const [members, pending] = await Promise.all([
           env.DB.prepare(`
@@ -2850,7 +2861,33 @@ async function handleFetch(request, env, ctx) {
             ORDER BY created_at DESC
           `).bind(user.household_id).all(),
         ]);
-        return json({ members: members.results || [], invitations: pending.results || [], role: user.role });
+        return json({ members: members.results || [], invitations: pending.results || [], role: user.role, max_members: planLimits(user.household_plan).maxMembers });
+      }
+
+      const memberMatch = url.pathname.match(/^\/api\/households\/current\/members\/(\d+)$/);
+      if (memberMatch && request.method === 'PATCH') {
+        if (user.role !== 'owner') return json({ error: 'Only the site owner can change member roles.' }, { status: 403 });
+        const memberId = Number(memberMatch[1]);
+        const body = await parseJson(request);
+        const role = String(body?.role || '').trim();
+        if (!['member', 'admin'].includes(role)) return json({ error: 'Choose member or admin.' }, { status: 400 });
+        const target = await env.DB.prepare('SELECT user_id, role FROM household_members WHERE household_id = ? AND user_id = ?').bind(user.household_id, memberId).first();
+        if (!target) return json({ error: 'That person does not belong to this memory site.' }, { status: 404 });
+        if (target.role === 'owner') return json({ error: 'The site owner role cannot be changed.' }, { status: 400 });
+        await env.DB.prepare('UPDATE household_members SET role = ? WHERE household_id = ? AND user_id = ?').bind(role, user.household_id, memberId).run();
+        ctx.waitUntil(recordAudit(env, { userId: user.id, householdId: user.household_id, action: 'household.member_role_updated', resourceType: 'user', resourceId: memberId, metadata: { role } }));
+        return json({ success: true, role });
+      }
+
+      if (memberMatch && request.method === 'DELETE') {
+        if (!['owner', 'admin'].includes(user.role)) return json({ error: 'Only site owners and admins can remove people.' }, { status: 403 });
+        const memberId = Number(memberMatch[1]);
+        const target = await env.DB.prepare('SELECT user_id, role FROM household_members WHERE household_id = ? AND user_id = ?').bind(user.household_id, memberId).first();
+        if (!target) return json({ error: 'That person does not belong to this memory site.' }, { status: 404 });
+        if (target.role === 'owner') return json({ error: 'The site owner cannot be removed.' }, { status: 400 });
+        await env.DB.prepare('DELETE FROM household_members WHERE household_id = ? AND user_id = ?').bind(user.household_id, memberId).run();
+        ctx.waitUntil(recordAudit(env, { userId: user.id, householdId: user.household_id, action: 'household.member_removed', resourceType: 'user', resourceId: memberId }));
+        return json({ success: true, user_id: memberId });
       }
 
       if (url.pathname === '/api/beta/invitations' && request.method === 'POST') {
@@ -2960,6 +2997,47 @@ async function handleFetch(request, env, ctx) {
           await releaseIdempotency(env, idempotency);
           throw error;
         }
+      }
+
+      const invitationResendMatch = url.pathname.match(/^\/api\/households\/invitations\/([^/]+)\/resend$/);
+      if (invitationResendMatch && request.method === 'POST') {
+        if (!['owner', 'admin'].includes(user.role)) return json({ error: 'Only site owners and admins can resend invitations.' }, { status: 403 });
+        const invitationId = decodeURIComponent(invitationResendMatch[1]);
+        const idempotency = await claimIdempotency(env, request, user, 'invitation.resend', { invitationId });
+        if (idempotency?.response) return idempotency.response;
+        const invitation = await env.DB.prepare(`
+          SELECT i.id, i.email, i.role, h.name AS household_name
+          FROM invitations i JOIN households h ON h.id = i.household_id
+          WHERE i.id = ? AND i.household_id = ? AND i.accepted_at IS NULL
+          LIMIT 1
+        `).bind(invitationId, user.household_id).first();
+        if (!invitation) {
+          await releaseIdempotency(env, idempotency);
+          return json({ error: 'That invitation is no longer pending.' }, { status: 404 });
+        }
+        const rawToken = randomToken();
+        const expiresAt = new Date(Date.now() + 7 * 86400 * 1000).toISOString();
+        try {
+          await env.DB.prepare('UPDATE invitations SET token_hash = ?, expires_at = ?, created_at = CURRENT_TIMESTAMP WHERE id = ?').bind(await sha256(rawToken), expiresAt, invitationId).run();
+          await sendInvitationEmail(env, request, { ...invitation, inviter_name: user.display_name || user.email, email_idempotency_key: `postcards-invite-${invitation.id}-${rawToken}` }, rawToken);
+          const responseBody = { success: true, expires_at: expiresAt, message: `Invitation resent to ${invitation.email}.` };
+          await completeIdempotency(env, idempotency, responseBody, 200);
+          ctx.waitUntil(recordAudit(env, { userId: user.id, householdId: user.household_id, action: 'invitation.resent', resourceType: 'invitation', resourceId: invitationId }));
+          return json(responseBody);
+        } catch (error) {
+          await releaseIdempotency(env, idempotency);
+          return json({ error: 'The invitation email could not be sent. Please try again.' }, { status: 503 });
+        }
+      }
+
+      const invitationMatch = url.pathname.match(/^\/api\/households\/invitations\/([^/]+)$/);
+      if (invitationMatch && request.method === 'DELETE') {
+        if (!['owner', 'admin'].includes(user.role)) return json({ error: 'Only site owners and admins can cancel invitations.' }, { status: 403 });
+        const invitationId = decodeURIComponent(invitationMatch[1]);
+        const result = await env.DB.prepare('UPDATE invitations SET accepted_at = CURRENT_TIMESTAMP WHERE id = ? AND household_id = ? AND accepted_at IS NULL RETURNING id').bind(invitationId, user.household_id).first();
+        if (!result) return json({ error: 'That invitation is no longer pending.' }, { status: 404 });
+        ctx.waitUntil(recordAudit(env, { userId: user.id, householdId: user.household_id, action: 'invitation.cancelled', resourceType: 'invitation', resourceId: invitationId }));
+        return json({ success: true, id: invitationId });
       }
 
       if (url.pathname === '/api/households/invitations/accept' && request.method === 'POST') {

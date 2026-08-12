@@ -5,9 +5,11 @@ import api from '../utils/api';
 export default function AccountAccessPanel() {
   const { user, households, activeHouseholdId, switchHousehold } = useAuth();
   const active = useMemo(() => households.find(site => Number(site.id) === Number(activeHouseholdId)), [households, activeHouseholdId]);
-  const [access, setAccess] = useState({ members: [], invitations: [], role: active?.role || 'member' });
+  const ownedSites = useMemo(() => households.filter(site => ['owner', 'admin'].includes(site.role)), [households]);
+  const [access, setAccess] = useState({ members: [], invitations: [], role: active?.role || 'member', max_members: 2 });
   const [inviteEmail, setInviteEmail] = useState('');
   const [siteName, setSiteName] = useState('');
+  const [rename, setRename] = useState(active?.name || '');
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [passwordConfirmation, setPasswordConfirmation] = useState('');
@@ -20,10 +22,10 @@ export default function AccountAccessPanel() {
     catch (err) { setError(err.message || 'Family access could not be loaded.'); }
   }
 
-  useEffect(() => { loadAccess(); }, [activeHouseholdId]);
+  useEffect(() => { loadAccess(); setRename(active?.name || ''); }, [activeHouseholdId, active?.name]);
 
   const accessSlotsUsed = access.members.length + access.invitations.length;
-  const canInviteMember = ['owner', 'admin'].includes(access.role) && accessSlotsUsed < 2;
+  const canInviteMember = ['owner', 'admin'].includes(access.role) && accessSlotsUsed < Number(access.max_members || 2);
 
   async function run(kind, action) {
     setWorking(kind); setMessage(''); setError('');
@@ -32,13 +34,41 @@ export default function AccountAccessPanel() {
     finally { setWorking(''); }
   }
 
+  async function renameSite(event) {
+    event.preventDefault();
+    await run('rename', async () => {
+      const result = await api.renameCurrentHousehold(rename);
+      setMessage('Memory site renamed.');
+      window.location.reload();
+      return result;
+    });
+  }
+
+  async function changeRole(member, role) {
+    await run(`role-${member.id}`, async () => { await api.updateHouseholdMember(member.id, role); setMessage('Access role updated.'); await loadAccess(); });
+  }
+
+  async function removeMember(member) {
+    if (!window.confirm(`Remove ${member.display_name || member.email} from this memory site?`)) return;
+    await run(`remove-${member.id}`, async () => { await api.removeHouseholdMember(member.id); setMessage('Person removed from this memory site.'); await loadAccess(); });
+  }
+
+  async function cancelInvite(invite) {
+    if (!window.confirm(`Cancel the invitation for ${invite.email}?`)) return;
+    await run(`cancel-${invite.id}`, async () => { await api.cancelHouseholdInvitation(invite.id); setMessage('Invitation cancelled.'); await loadAccess(); });
+  }
+
+  async function resendInvite(invite) {
+    await run(`resend-${invite.id}`, async () => { const result = await api.resendHouseholdInvitation(invite.id); setMessage(result.message); await loadAccess(); });
+  }
+
   return <div className="settings-section-stack settings-access space-y-6">
     <section className="rounded-2xl border border-ocean-blue/20 bg-sky-50/60 p-5 shadow-sm">
       <p className="memory-eyebrow">Memory sites</p>
       <h2 className="mt-1 text-xl font-semibold text-ocean-dark">Choose the story you’re working on</h2>
       <p className="mt-2 text-sm text-gray-600">Site switching lives here so the main navigation stays focused. Each site keeps its people, memories, and photos separate.</p>
       <div className="mt-4 grid gap-2 sm:grid-cols-2">
-        {households.map(site => (
+        {ownedSites.map(site => (
           <button
             key={site.id}
             type="button"
@@ -50,7 +80,12 @@ export default function AccountAccessPanel() {
             <span className="mt-1 block text-xs text-gray-500">{Number(site.id) === Number(activeHouseholdId) ? 'Currently selected' : 'Switch to this site'} · {site.member_count || 0} member{Number(site.member_count) === 1 ? '' : 's'}</span>
           </button>
         ))}
+        {!ownedSites.length && <p className="rounded-xl bg-white/70 p-4 text-sm text-gray-600">You do not own or administer any memory sites yet.</p>}
       </div>
+      {active && ['owner', 'admin'].includes(active.role) && <form className="mt-5 border-t border-ocean-blue/10 pt-4" onSubmit={renameSite}>
+        <label className="block text-sm font-semibold text-gray-700" htmlFor="memory-site-name">Site name</label>
+        <div className="mt-2 flex flex-col gap-2 sm:flex-row"><input id="memory-site-name" value={rename} onChange={event => setRename(event.target.value)} minLength={2} maxLength={80} required className="min-w-0 flex-1 rounded-lg border border-gray-200 px-3 py-2" /><button className="rounded-lg bg-ocean-blue px-4 py-2 text-sm font-semibold text-white disabled:opacity-60" disabled={working === 'rename'}>{working === 'rename' ? 'Saving…' : 'Rename site'}</button></div>
+      </form>}
     </section>
 
     <section className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
@@ -69,16 +104,17 @@ export default function AccountAccessPanel() {
       <p className="memory-eyebrow">People with access</p>
       <h2 className="mt-1 text-xl font-semibold text-ocean-dark">{active?.name || 'This memory site'}</h2>
       <div className="mt-4 divide-y divide-gray-100">
-        {access.members.map(member => <div key={member.id} className="flex items-center justify-between gap-3 py-3"><div><p className="font-semibold text-gray-900">{member.display_name || member.email || 'Family member'}</p><p className="text-sm text-gray-500">{member.email}</p></div><span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold capitalize text-gray-600">{member.role}</span></div>)}
-        {access.invitations.map(invite => <div key={invite.id} className="flex items-center justify-between gap-3 py-3"><div><p className="font-semibold text-gray-900">{invite.email}</p><p className="text-sm text-amber-700">Invitation pending</p></div><span className="text-xs text-gray-500">Expires {new Date(invite.expires_at).toLocaleDateString()}</span></div>)}
+        {access.members.map(member => <div key={member.id} className="flex flex-wrap items-center justify-between gap-3 py-3"><div><p className="font-semibold text-gray-900">{member.display_name || member.email || 'Family member'}</p><p className="text-sm text-gray-500">{member.email}</p></div><div className="flex flex-wrap items-center gap-2">{member.role === 'owner' ? <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold capitalize text-gray-600">Owner</span> : ['owner'].includes(access.role) ? <select value={member.role} onChange={event => changeRole(member, event.target.value)} disabled={working === `role-${member.id}`} className="rounded-lg border border-gray-200 px-2 py-1 text-sm"><option value="member">Member</option><option value="admin">Admin</option></select> : <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold capitalize text-gray-600">{member.role}</span>}{member.role !== 'owner' && ['owner', 'admin'].includes(access.role) && <button type="button" onClick={() => removeMember(member)} disabled={working === `remove-${member.id}`} className="text-sm font-semibold text-red-700">Remove</button>}</div></div>)}
+        {access.invitations.map(invite => <div key={invite.id} className="flex flex-wrap items-center justify-between gap-3 py-3"><div><p className="font-semibold text-gray-900">{invite.email}</p><p className="text-sm text-amber-700">Invitation pending · expires {new Date(invite.expires_at).toLocaleDateString()}</p></div>{['owner', 'admin'].includes(access.role) && <div className="flex gap-3"><button type="button" onClick={() => resendInvite(invite)} disabled={working === `resend-${invite.id}`} className="text-sm font-semibold text-ocean-blue">Resend</button><button type="button" onClick={() => cancelInvite(invite)} disabled={working === `cancel-${invite.id}`} className="text-sm font-semibold text-red-700">Cancel</button></div>}</div>)}
       </div>
-      {['owner', 'admin'].includes(access.role) && (canInviteMember ? <form className="mt-4 border-t border-gray-100 pt-4" onSubmit={event => { event.preventDefault(); run('invite', async () => { const result = await api.inviteHouseholdMember(inviteEmail); setInviteEmail(''); setMessage(result.message); await loadAccess(); }); }}>
-        <label className="text-sm font-semibold text-gray-700">Add a family member <span className="font-normal text-gray-500">Invite one additional person to help work on this memory site.</span></label>
+      {['owner', 'admin'].includes(access.role) && <form className="mt-4 border-t border-gray-100 pt-4" onSubmit={event => { event.preventDefault(); run('invite', async () => { const result = await api.inviteHouseholdMember(inviteEmail); setInviteEmail(''); setMessage(result.message); await loadAccess(); }); }}>
+        <label className="text-sm font-semibold text-gray-700" htmlFor="invite-family-member">Invite someone to this memory site <span className="font-normal text-gray-500">{canInviteMember ? `${access.max_members - accessSlotsUsed} spot${access.max_members - accessSlotsUsed === 1 ? '' : 's'} remaining.` : `This site has reached its ${access.max_members}-person access limit.`}</span></label>
         <div className="mt-2 flex flex-col gap-2 sm:flex-row">
-          <input type="email" value={inviteEmail} onChange={event => setInviteEmail(event.target.value)} placeholder="family@example.com" className="min-w-0 flex-1 rounded-lg border border-gray-200 px-3 py-2" required />
-          <button className="rounded-lg border border-ocean-blue px-4 py-2 text-sm font-semibold text-ocean-blue disabled:opacity-60" disabled={working === 'invite'}>{working === 'invite' ? 'Sending…' : 'Send invitation'}</button>
+          <input id="invite-family-member" type="email" value={inviteEmail} onChange={event => setInviteEmail(event.target.value)} placeholder="family@example.com" className="min-w-0 flex-1 rounded-lg border border-gray-200 px-3 py-2 disabled:bg-gray-50" required disabled={!canInviteMember} />
+          <button className="rounded-lg border border-ocean-blue px-4 py-2 text-sm font-semibold text-ocean-blue disabled:cursor-not-allowed disabled:opacity-50" disabled={!canInviteMember || working === 'invite'}>{working === 'invite' ? 'Sending…' : 'Send invitation'}</button>
         </div>
-      </form> : <p className="mt-4 border-t border-gray-100 pt-4 text-sm text-gray-500">This memory site currently supports you and one additional person.</p>)}
+        {!canInviteMember && <p className="mt-2 text-xs text-gray-500">Remove a person or upgrade this memory site to invite someone new.</p>}
+      </form>}
     </section>
 
     <section className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">

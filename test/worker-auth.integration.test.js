@@ -641,3 +641,42 @@ test('cookie session rotation invalidates the prior household context', async ()
   assert.equal(crossHouseholdMedia.status, 404);
   DB.close();
 });
+
+test('owners can rename and manage non-owner household members', async () => {
+  const DB = createD1Database();
+  const MEDIA = new MemoryR2();
+  const passwordHash = bcrypt.hashSync('correct horse battery staple', 4);
+  await DB.batch([
+    DB.prepare('INSERT INTO users (username, email, email_verified_at, password_hash, display_name) VALUES (?, ?, CURRENT_TIMESTAMP, ?, ?)').bind('owner', 'owner@example.com', passwordHash, 'Owner'),
+    DB.prepare('INSERT INTO users (username, email, email_verified_at, password_hash, display_name) VALUES (?, ?, CURRENT_TIMESTAMP, ?, ?)').bind('member', 'member@example.com', passwordHash, 'Member'),
+    DB.prepare('INSERT INTO households (slug, name) VALUES (?, ?)').bind('family', 'Old Name'),
+    DB.prepare("INSERT INTO household_members (household_id, user_id, role) VALUES (1, 1, 'owner')"),
+    DB.prepare("INSERT INTO household_members (household_id, user_id, role) VALUES (1, 2, 'member')"),
+  ]);
+  const env = { DB, MEDIA };
+  const login = await worker.fetch(request('/api/auth/login', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email: 'owner@example.com', password: 'correct horse battery staple' }) }), env, context());
+  const cookie = cookieFrom(login);
+  const rename = await worker.fetch(request('/api/households/current', { method: 'PATCH', headers: { cookie, 'content-type': 'application/json' }, body: JSON.stringify({ name: 'New Name' }) }), env, context());
+  assert.equal(rename.status, 200);
+  assert.equal((await rename.json()).household.name, 'New Name');
+  const promote = await worker.fetch(request('/api/households/current/members/2', { method: 'PATCH', headers: { cookie, 'content-type': 'application/json' }, body: JSON.stringify({ role: 'admin' }) }), env, context());
+  assert.equal(promote.status, 200);
+  assert.equal((await DB.prepare('SELECT role FROM household_members WHERE household_id = 1 AND user_id = 2').first()).role, 'admin');
+  const remove = await worker.fetch(request('/api/households/current/members/2', { method: 'DELETE', headers: { cookie } }), env, context());
+  assert.equal(remove.status, 200);
+  assert.equal(await DB.prepare('SELECT user_id FROM household_members WHERE household_id = 1 AND user_id = 2').first(), null);
+  DB.close();
+});
+
+test('shared journey API remains available through a token without authentication', async () => {
+  const DB = createD1Database();
+  const MEDIA = new MemoryR2();
+  await DB.batch([
+    DB.prepare('INSERT INTO households (slug, name) VALUES (?, ?)').bind('family', 'Family'),
+    DB.prepare('INSERT INTO journeys (household_id, title, share_token) VALUES (1, ?, ?)').bind('Shared story', 'legacy-share-token'),
+  ]);
+  const response = await worker.fetch(request('/api/shared/journeys/legacy-share-token'), { DB, MEDIA }, context());
+  assert.equal(response.status, 200);
+  assert.equal((await response.json()).title, 'Shared story');
+  DB.close();
+});

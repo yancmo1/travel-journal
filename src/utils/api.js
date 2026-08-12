@@ -191,8 +191,31 @@ class ApiClient {
     return this.request('/households/switch', { method: 'POST', body: JSON.stringify({ householdId }) });
   }
 
+  async renameCurrentHousehold(name) {
+    return this.request('/households/current', { method: 'PATCH', body: JSON.stringify({ name }) });
+  }
+
   async getHouseholdMembers() {
     return this.request('/households/current/members');
+  }
+
+  async updateHouseholdMember(userId, role) {
+    return this.request(`/households/current/members/${encodeURIComponent(userId)}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ role }),
+    });
+  }
+
+  async removeHouseholdMember(userId) {
+    return this.request(`/households/current/members/${encodeURIComponent(userId)}`, { method: 'DELETE' });
+  }
+
+  async cancelHouseholdInvitation(invitationId) {
+    return this.request(`/households/invitations/${encodeURIComponent(invitationId)}`, { method: 'DELETE' });
+  }
+
+  async resendHouseholdInvitation(invitationId) {
+    return this.request(`/households/invitations/${encodeURIComponent(invitationId)}/resend`, { method: 'POST', headers: idempotencyHeaders() });
   }
 
   async requestHouseholdExport(idempotencyKey = null) {
