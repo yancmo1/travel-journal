@@ -6,9 +6,9 @@ import api from '../utils/api';
 
 const navItems = [
   { id: 'dashboard', label: 'Home', icon: Home },
+  { id: 'trips', label: 'Memories', icon: Image },
   { id: 'journeys', label: 'Journeys', icon: Briefcase },
   { id: 'timeline', label: 'Timeline', icon: CalendarDays },
-  { id: 'trips', label: 'Memories', icon: Image },
   { id: 'getting-started', label: 'Getting Started', icon: Compass },
   { id: 'settings', label: 'Settings', icon: Settings },
   { id: 'operations', label: 'Operations', icon: ShieldCheck, adminOnly: true },
