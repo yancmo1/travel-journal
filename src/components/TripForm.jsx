@@ -697,7 +697,7 @@ export default function TripForm({ trip, onClose, onboardingMode = false, onSave
           </div>
 
           {/* Travelers */}
-          <div className={onboardingMode ? 'onboarding-advanced' : ''}>
+          <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Who went on this trip?
             </label>
