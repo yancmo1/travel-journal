@@ -1,5 +1,6 @@
 name = "postcardsofus"
 main = "dist/server/index.js"
+account_id = "ed7a3a18b893e8de24e7e0ab063c1c72"
 compatibility_date = "2026-08-03"
 workers_dev = true
 
