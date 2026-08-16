@@ -482,10 +482,16 @@ export default function TripForm({ trip, onClose, onboardingMode = false, onSave
   }
 
   function reportSaveError() {
+    const savedError = error || 'The memory could not be saved.';
     window.dispatchEvent(new CustomEvent('postcards-open-bug-reporter', {
       detail: {
         title: 'Could not save a memory',
-        details: 'I tried to save a new memory and the request could not be completed.',
+        details: [
+          'I tried to save a new memory, but it could not be completed.',
+          '',
+          `Error: ${savedError}`,
+          errorRequestId ? `Request reference: ${errorRequestId}` : '',
+        ].filter(Boolean).join('\n'),
         requestId: errorRequestId,
       },
     }));
