@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Briefcase, CalendarDays, Compass, Home, Image, Settings, ShieldCheck } from 'lucide-react';
 import stampLogo from '../../assets/postcards-of-us-stamp.webp';
+import api from '../utils/api';
 
 const navItems = [
   { id: 'dashboard', label: 'Home', icon: Home },
@@ -16,7 +17,16 @@ const navItems = [
 export default function Header({ currentPage, setPage }) {
   const { user, logout } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const visibleNavItems = navItems.filter(item => !item.adminOnly || user?.site_admin);
+  const [onboardingComplete, setOnboardingComplete] = useState(false);
+  useEffect(() => {
+    let mounted = true;
+    if (!user) return undefined;
+    api.getOnboarding().then(progress => { if (mounted) setOnboardingComplete(progress.completed); }).catch(() => {});
+    function completed() { setOnboardingComplete(true); }
+    window.addEventListener('postcards-onboarding-completed', completed);
+    return () => { mounted = false; window.removeEventListener('postcards-onboarding-completed', completed); };
+  }, [user?.id]);
+  const visibleNavItems = navItems.filter(item => (item.id !== 'getting-started' || !onboardingComplete) && (!item.adminOnly || user?.site_admin));
   const mobileNavItems = visibleNavItems.filter(item => !item.adminOnly);
 
   function navigate(id) {

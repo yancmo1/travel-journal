@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowRight, Check, Compass, HelpCircle, Image, MapPin, X } from 'lucide-react';
+import { ArrowRight, Check, Compass, HelpCircle, Image, MapPin, UserPlus, Users, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
 import api from '../utils/api';
@@ -9,13 +9,14 @@ import JourneyForm from './JourneyForm';
 
 const STEPS = [
   ['home', 'Set your home base', 'Tell us where home is so we can show distance traveled. A city or ZIP code is fine.'],
+  ['people', 'Add your people', 'Add the people who belong in your travel stories.'],
   ['memory', 'Add a memory', 'Save one place or moment from your travels.'],
   ['journey', 'Create a journey', 'Bring related memories together into one travel story.'],
 ];
 
 export default function GettingStarted({ page = false, onNavigate }) {
   const { user, updateHome } = useAuth();
-  const { trips, journeys } = useData();
+  const { trips, journeys, travelers, addTraveler } = useData();
   const [progress, setProgress] = useState(null);
   const [open, setOpen] = useState(page);
   const [stage, setStage] = useState('welcome');
@@ -26,15 +27,19 @@ export default function GettingStarted({ page = false, onNavigate }) {
   const [results, setResults] = useState([]);
   const [selected, setSelected] = useState(null);
   const [error, setError] = useState('');
+  const [person, setPerson] = useState({ name: '', relationship: 'other' });
+  const [peopleError, setPeopleError] = useState('');
+  const [savingPerson, setSavingPerson] = useState(false);
   const timer = useRef(null);
 
   async function loadProgress() {
     try {
       const next = await api.getOnboarding();
       setProgress(next);
-      if (next.home.complete && next.memory.complete && next.journey.complete) setStage(page ? 'welcome' : 'complete');
-      else if (next.home.complete && next.memory.complete) setStage('journey');
-      else if (next.home.complete) setStage('memory');
+      if (next.completed) setStage('complete');
+      else if (next.home.complete && next.people?.complete && next.memory.complete) setStage('journey');
+      else if (next.home.complete && next.people?.complete) setStage('memory');
+      else if (next.home.complete) setStage('people');
       else setStage(next.welcomeSeen ? 'home' : 'welcome');
     } catch { /* The app remains usable if onboarding status is temporarily unavailable. */ }
   }
@@ -42,7 +47,7 @@ export default function GettingStarted({ page = false, onNavigate }) {
   useEffect(() => { if (user) loadProgress(); }, [user?.id, user?.home_latitude, user?.home_longitude]);
   useEffect(() => () => clearTimeout(timer.current), []);
   useEffect(() => {
-    function reopen() { setOpen(true); setStage(progress?.completed ? 'welcome' : (progress?.home?.complete ? (progress?.memory?.complete ? 'journey' : 'memory') : 'home')); }
+    function reopen() { setOpen(true); setStage(progress?.completed ? 'complete' : (progress?.home?.complete ? (progress?.people?.complete ? (progress?.memory?.complete ? 'journey' : 'memory') : 'people') : 'home')); }
     window.addEventListener('postcards-open-getting-started', reopen);
     return () => window.removeEventListener('postcards-open-getting-started', reopen);
   }, [progress]);
@@ -61,10 +66,17 @@ export default function GettingStarted({ page = false, onNavigate }) {
     finally { setWorking(false); }
   }
 
-  function dismissWelcome() { mark('welcome').catch(() => {}); setOpen(false); }
+  function closeGuide() {
+    if (page) onNavigate?.('dashboard');
+    else setOpen(false);
+  }
+
+  function dismissWelcome() { mark('welcome').catch(() => {}); closeGuide(); }
+
   function skipStep() {
     if (stage === 'home') mark('home', { status: 'skipped' }).catch(() => {});
-    setOpen(false);
+    if (stage === 'people') mark('people', { status: 'skipped' }).catch(() => {});
+    closeGuide();
   }
 
   function handleQuery(value) {
@@ -92,7 +104,24 @@ export default function GettingStarted({ page = false, onNavigate }) {
 
   function onJourneySaved(saved) {
     setShowJourney(false);
-    mark('journey', { journeyId: saved?.id }).catch(() => {});
+    mark('journey', { journeyId: saved?.id }).then(() => {
+      setStage('complete');
+      window.dispatchEvent(new Event('postcards-onboarding-completed'));
+      if (!page) closeGuide();
+    }).catch(() => {});
+  }
+
+  async function savePerson(event) {
+    event.preventDefault();
+    if (!person.name.trim()) { setPeopleError('Enter a name to add a person.'); return; }
+    setSavingPerson(true); setPeopleError('');
+    try {
+      await addTraveler({ name: person.name.trim(), relationship: person.relationship });
+      setPerson({ name: '', relationship: 'other' });
+      await mark('people');
+    } catch (requestError) {
+      setPeopleError(requestError.message || 'That person could not be added.');
+    } finally { setSavingPerson(false); }
   }
 
   if (!page && !open) return null;
@@ -120,7 +149,7 @@ export default function GettingStarted({ page = false, onNavigate }) {
         <div className="getting-started-step">
           <h2>Three simple steps</h2>
           <p>A <strong>memory</strong> is one place or moment from your travels. A <strong>journey</strong> brings related memories together into one travel story.</p>
-          <div className="getting-started-actions"><button type="button" className="getting-started-primary" onClick={() => { mark('welcome'); setStage(progress?.home?.complete ? 'memory' : 'home'); }}>Start here <ArrowRight aria-hidden="true" /></button><button type="button" className="getting-started-secondary" onClick={() => { mark('welcome'); setStage('sample'); }}>Try a sample</button><button type="button" className="getting-started-secondary" onClick={dismissWelcome}>I’ll explore on my own</button></div>
+          <div className="getting-started-actions"><button type="button" className="getting-started-primary" onClick={() => { mark('welcome'); setStage(progress?.home?.complete ? 'people' : 'home'); }}>Start here <ArrowRight aria-hidden="true" /></button><button type="button" className="getting-started-secondary" onClick={() => { mark('welcome'); setStage('sample'); }}>Try a sample</button><button type="button" className="getting-started-secondary" onClick={dismissWelcome}>I’ll explore on my own</button></div>
         </div>
       )}
 
@@ -133,7 +162,7 @@ export default function GettingStarted({ page = false, onNavigate }) {
             <ArrowRight aria-hidden="true" />
             <div><span>Journey</span><strong>California road trip</strong><small>Several memories from one trip</small></div>
           </div>
-          <div className="getting-started-actions"><button type="button" className="getting-started-primary" onClick={() => { setStage(progress?.home?.complete ? 'memory' : 'home'); }}>Use my own memory <ArrowRight aria-hidden="true" /></button><button type="button" className="getting-started-secondary" onClick={() => setStage('welcome')}>Back</button></div>
+          <div className="getting-started-actions"><button type="button" className="getting-started-primary" onClick={() => { setStage(progress?.home?.complete ? 'people' : 'home'); }}>Use my own memory <ArrowRight aria-hidden="true" /></button><button type="button" className="getting-started-secondary" onClick={() => setStage('welcome')}>Back</button></div>
         </div>
       )}
 
@@ -148,9 +177,23 @@ export default function GettingStarted({ page = false, onNavigate }) {
         </div>
       )}
 
+      {stage === 'people' && (
+        <div className="getting-started-step">
+          <h2>Who belongs in your story?</h2>
+          <p>Add the people you travel with. They will appear in your memory form so you can connect each memory to the right people.</p>
+          {travelers.length > 0 && <div className="getting-started-people-list" aria-label="People already added">{travelers.map(item => <span key={item.id}><Users aria-hidden="true" />{item.name}</span>)}</div>}
+          <form className="getting-started-person-form" onSubmit={savePerson}>
+            <label className="getting-started-label" htmlFor="getting-started-person">Person’s name</label>
+            <div className="getting-started-person-fields"><input id="getting-started-person" value={person.name} onChange={event => setPerson(current => ({ ...current, name: event.target.value }))} placeholder="Example: Amber" autoFocus /><select value={person.relationship} onChange={event => setPerson(current => ({ ...current, relationship: event.target.value }))}><option value="husband">Partner</option><option value="wife">Partner</option><option value="child">Child</option><option value="grandchild">Grandchild</option><option value="other">Other</option></select><button type="submit" className="getting-started-primary" disabled={savingPerson}><UserPlus aria-hidden="true" />{savingPerson ? 'Adding…' : 'Add person'}</button></div>
+          </form>
+          {peopleError && <p className="getting-started-error" role="alert">{peopleError}</p>}
+          <div className="getting-started-actions"><button type="button" className="getting-started-primary" onClick={() => setStage('memory')} disabled={!travelers.length}>Continue to memory <ArrowRight aria-hidden="true" /></button><button type="button" className="getting-started-secondary" onClick={skipStep}>I’ll do this later</button></div>
+        </div>
+      )}
+
       {stage === 'memory' && <div className="getting-started-step"><h2>Add your first memory</h2><p>A memory is one place or moment. Add a location, an approximate date, and one photo if you have it. We’ll look at the photo for date and location details first, and you can choose whether to apply them.</p><div className="getting-started-actions"><button type="button" className="getting-started-primary" onClick={() => setShowMemory(true)}>Add a memory <Image aria-hidden="true" /></button><button type="button" className="getting-started-secondary" onClick={skipStep}>I’ll do this later</button></div></div>}
       {stage === 'journey' && <div className="getting-started-step"><h2>Bring your memory into a journey</h2><p>A journey is the story of one trip. We’ll start with your new memory already selected.</p><div className="getting-started-actions"><button type="button" className="getting-started-primary" onClick={() => setShowJourney(true)}>Create a journey <ArrowRight aria-hidden="true" /></button><button type="button" className="getting-started-secondary" onClick={skipStep}>I’ll do this later</button></div></div>}
-      {stage === 'complete' && <div className="getting-started-step"><h2>Your first travel story is ready</h2><p>You now have a memory and a journey. Keep building your atlas whenever you’re ready.</p><div className="getting-started-actions getting-started-actions-wrap"><button type="button" className="getting-started-primary" onClick={() => { setOpen(false); onNavigate?.('trips'); }}>Edit your memory</button><button type="button" className="getting-started-secondary" onClick={() => { setOpen(false); onNavigate?.('trips'); }}>Add another memory</button><button type="button" className="getting-started-secondary" onClick={() => { setOpen(false); onNavigate?.('dashboard'); }}>Explore the map</button></div></div>}
+      {stage === 'complete' && <div className="getting-started-step"><h2>Your first travel story is ready</h2><p>You now have a person, a memory, and a journey. Getting Started is complete. You can reopen this page anytime from Settings.</p><div className="getting-started-actions getting-started-actions-wrap"><button type="button" className="getting-started-primary" onClick={() => { closeGuide(); onNavigate?.('trips'); }}>Edit your memory</button><button type="button" className="getting-started-secondary" onClick={() => { closeGuide(); onNavigate?.('trips'); }}>Add another memory</button><button type="button" className="getting-started-secondary" onClick={() => { closeGuide(); onNavigate?.('dashboard'); }}>Explore the map</button></div></div>}
 
       {currentStep && stage !== 'welcome' && stage !== 'complete' && <p className="getting-started-footnote"><HelpCircle aria-hidden="true" /> You can reopen this guide from the Getting Started link anytime.</p>}
     </section>

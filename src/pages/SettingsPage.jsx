@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { CheckCircle2, ChevronLeft, ChevronRight, Settings as SettingsIcon, User, Users, Wrench } from 'lucide-react';
+import { CheckCircle2, ChevronLeft, ChevronRight, Compass, Settings as SettingsIcon, User, Users, Wrench } from 'lucide-react';
 import DataBackupPanel from '../components/DataBackupPanel';
 import CleanupPage from './CleanupPage';
 import PeoplePage from './PeoplePage';
@@ -12,6 +12,7 @@ import { nominatimSearch } from '../utils/geocoding';
 
 const SECTIONS = [
   { id: 'overview', label: 'Settings', description: 'Your data and app details', icon: SettingsIcon },
+  { id: 'getting-started', label: 'Getting Started', description: 'Reopen the travel story guide', icon: Compass },
   { id: 'people', label: 'People', description: 'Manage family members and relationships', icon: Users },
   { id: 'access', label: 'Family access', description: 'Accounts, invitations, and memory sites', icon: User },
   { id: 'cleanup', label: 'Clean up', description: 'Review incomplete or duplicate memories', icon: CheckCircle2 },
@@ -76,7 +77,7 @@ export default function SettingsPage({ setPage, setTravelerFilter }) {
               <button
                 key={item.id}
                 type="button"
-                onClick={() => item.id === 'operations' ? setPage('operations') : setSection(item.id)}
+                onClick={() => ['operations', 'getting-started'].includes(item.id) ? setPage(item.id) : setSection(item.id)}
                 title={item.description}
                 className={section === item.id ? 'is-active' : ''}
                 aria-current={section === item.id ? 'page' : undefined}

@@ -120,6 +120,7 @@ CREATE TABLE IF NOT EXISTS onboarding_progress (
   household_id INT NOT NULL REFERENCES households(id) ON DELETE CASCADE,
   user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   home_skipped BOOLEAN NOT NULL DEFAULT FALSE,
+  people_skipped BOOLEAN NOT NULL DEFAULT FALSE,
   memory_id INT,
   journey_id INT,
   welcome_seen BOOLEAN NOT NULL DEFAULT FALSE,

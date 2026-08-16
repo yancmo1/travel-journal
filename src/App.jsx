@@ -18,6 +18,7 @@ import PwaStatus from './components/PwaStatus';
 import PullToRefresh from './components/PullToRefresh';
 import BugReporter from './components/BugReporter';
 import GettingStarted from './components/GettingStarted';
+import api from './utils/api';
 import paperBackground from '../assets/travel-paper-background.webp';
 
 function AppContent() {
@@ -34,6 +35,13 @@ function AppContent() {
     url.searchParams.delete('login');
     window.history.replaceState({}, document.title, `${url.pathname}${url.search}${url.hash}`);
   }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+    api.getOnboarding().then(progress => {
+      if (!progress.completed && !progress.welcomeSeen) setPage('getting-started');
+    }).catch(() => {});
+  }, [user?.id]);
 
   if (loading) {
     return (
@@ -55,7 +63,6 @@ function AppContent() {
         style={{ '--paper-background-art': `url(${paperBackground})` }}
       >
         <Header currentPage={page} setPage={setPage} />
-        {page !== 'getting-started' && <GettingStarted onNavigate={setPage} />}
         <PwaStatus />
         <PullToRefresh />
         <BugReporter />

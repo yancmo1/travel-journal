@@ -87,6 +87,7 @@ export async function initDatabase() {
       household_id INT NOT NULL REFERENCES households(id) ON DELETE CASCADE,
       user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
       home_skipped BOOLEAN NOT NULL DEFAULT FALSE,
+      people_skipped BOOLEAN NOT NULL DEFAULT FALSE,
       memory_id INT,
       journey_id INT,
       welcome_seen BOOLEAN NOT NULL DEFAULT FALSE,
@@ -95,6 +96,7 @@ export async function initDatabase() {
       PRIMARY KEY (household_id, user_id)
     )
   `);
+  await query('ALTER TABLE onboarding_progress ADD COLUMN IF NOT EXISTS people_skipped BOOLEAN NOT NULL DEFAULT FALSE');
   await query(`
     INSERT INTO households (slug, name, plan)
     SELECT 'dev-user-' || u.id, COALESCE(NULLIF(u.display_name, ''), 'My') || ' memories', 'beta'
