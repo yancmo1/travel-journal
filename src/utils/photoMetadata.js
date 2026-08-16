@@ -53,8 +53,19 @@ export async function inspectPhotoMetadata(files) {
   if (primaryGps) {
     try {
       const result = await reverseGeocode(primaryGps.latitude, primaryGps.longitude);
+      const address = result.address || {};
+      const landmarkName = [
+        address.amenity,
+        address.attraction,
+        address.tourism,
+        address.shop,
+        address.historic,
+        address.leisure,
+        address.house_name,
+      ].find(value => value && String(value).trim());
       location = {
         displayName: result.display_name,
+        landmarkName: landmarkName ? String(landmarkName).trim() : '',
         locationName: result.city || result.state || result.country || 'Photo location',
         city: result.city || '',
         state: result.state || '',

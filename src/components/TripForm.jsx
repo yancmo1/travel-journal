@@ -357,7 +357,7 @@ export default function TripForm({ trip, onClose, onboardingMode = false, onSave
     const location = photoMetadata.location;
     setForm(prev => ({
       ...prev,
-      locationName: location?.locationName || prev.locationName || 'Photo location',
+      locationName: location?.landmarkName || location?.locationName || prev.locationName || 'Photo location',
       city: location?.city || location?.locationName || prev.city,
       // Do not preserve a stale form value when the photo has no region.
       // The blank form uses a placeholder, so clearing this is safer than
@@ -366,7 +366,7 @@ export default function TripForm({ trip, onClose, onboardingMode = false, onSave
       country: location?.country || prev.country,
       latitude: photoMetadata.latitude,
       longitude: photoMetadata.longitude,
-      placeName: location?.displayName || '',
+      placeName: location?.landmarkName || '',
       formattedAddress: location?.displayName || '',
     }));
     setActiveSearchField(null);
