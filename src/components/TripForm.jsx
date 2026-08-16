@@ -758,14 +758,14 @@ export default function TripForm({ trip, onClose, onboardingMode = false, onSave
                 <button
                   type="button"
                   onClick={handleAddTraveler}
-                  className="px-3 py-2 bg-ocean-teal text-white rounded text-sm"
+                  className="min-h-[44px] px-4 py-2 bg-ocean-teal text-white rounded-lg text-sm font-semibold hover:brightness-95 focus:outline-none focus:ring-2 focus:ring-ocean-teal/30"
                 >
                   Add
                 </button>
                 <button
                   type="button"
                   onClick={() => setShowNewTraveler(false)}
-                  className="px-3 py-2 border rounded text-sm"
+                  className="min-h-[44px] px-4 py-2 rounded-lg border border-gray-300 bg-white text-sm font-semibold text-gray-700 hover:bg-gray-50 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-ocean-teal/30"
                 >
                   Cancel
                 </button>
