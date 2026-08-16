@@ -14,6 +14,8 @@ export default function BetaTesterInvitePanel() {
   const [working, setWorking] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const [fallbackLink, setFallbackLink] = useState('');
+  const [copied, setCopied] = useState(false);
 
   const canInvite = ['owner', 'admin'].includes(active?.role);
 
@@ -28,6 +30,8 @@ export default function BetaTesterInvitePanel() {
       setEmail('');
       setSiteName('');
       setMessage(result.message || 'Invitation sent.');
+      setFallbackLink(result.fallback_link || '');
+      setCopied(false);
     } catch (err) {
       setError(err.message || 'The invitation could not be sent.');
     } finally {
@@ -108,6 +112,16 @@ export default function BetaTesterInvitePanel() {
         {(message || error) && (
           <div className={`mt-4 rounded-xl p-4 text-sm ${error ? 'bg-red-50 text-red-800' : 'bg-green-50 text-green-800'}`} role={error ? 'alert' : 'status'}>
             {error || message}
+          </div>
+        )}
+        {message && fallbackLink && (
+          <div className="mt-4 rounded-xl border border-ocean-blue/20 bg-ocean-blue/5 p-4 text-sm text-ocean-dark">
+            <p className="font-semibold">Email service accepted the invitation.</p>
+            <p className="mt-1 text-xs leading-5">The email may still take a moment to arrive. This private link expires in 7 days. Only send it to the invited person.</p>
+            <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+              <input value={fallbackLink} readOnly aria-label="Fallback invitation link" className="min-w-0 flex-1 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs" />
+              <button type="button" className="rounded-lg border border-ocean-blue px-3 py-2 text-xs font-semibold text-ocean-blue" onClick={async () => { await navigator.clipboard?.writeText(fallbackLink); setCopied(true); }}>{copied ? 'Copied' : 'Copy private link'}</button>
+            </div>
           </div>
         )}
       </section>

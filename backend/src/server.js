@@ -14,7 +14,9 @@ import placesRoutes from './routes/places.js';
 import maintenanceRoutes from './routes/maintenance.js';
 import adminRoutes from './routes/admin.js';
 import feedbackRoutes from './routes/feedback.js';
+import householdsRoutes from './routes/households.js';
 import sharedRoutes from './routes/shared.js';
+import onboardingRoutes from './routes/onboarding.js';
 import { authMiddleware } from './middleware/auth.js';
 import { initDatabase } from './utils/db.js';
 import { ensureDevelopmentUser } from './utils/dev-user.js';
@@ -50,6 +52,8 @@ app.use('/api/places', authMiddleware, placesRoutes);
 app.use('/api/maintenance', authMiddleware, maintenanceRoutes);
 app.use('/api/admin', authMiddleware, adminRoutes);
 app.use('/api/feedback', authMiddleware, feedbackRoutes);
+app.use('/api/households', authMiddleware, householdsRoutes);
+app.use('/api/onboarding', authMiddleware, onboardingRoutes);
 
 // Error handler
 app.use((err, req, res, next) => {

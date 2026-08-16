@@ -14,6 +14,19 @@ export async function query(text, params) {
   }
 }
 
+export async function ensureUserHousehold(userId, displayName = 'My') {
+  await query(`
+    INSERT INTO households (slug, name, plan)
+    VALUES ($1, $2, 'beta')
+    ON CONFLICT (slug) DO NOTHING
+  `, [`dev-user-${userId}`, `${String(displayName || 'My').trim() || 'My'} memories`]);
+  await query(`
+    INSERT INTO household_members (household_id, user_id, role)
+    SELECT h.id, $1, 'owner' FROM households h WHERE h.slug = $2
+    ON CONFLICT DO NOTHING
+  `, [userId, `dev-user-${userId}`]);
+}
+
 export async function initDatabase() {
   const result = await query('SELECT NOW()');
   console.log('Database connected at:', result.rows[0].now);
@@ -36,6 +49,66 @@ export async function initDatabase() {
   `);
   await query('CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id)');
   await query('CREATE INDEX IF NOT EXISTS idx_sessions_expires_at ON sessions(expires_at)');
+  await query(`
+    CREATE TABLE IF NOT EXISTS households (
+      id SERIAL PRIMARY KEY,
+      slug VARCHAR(120) UNIQUE NOT NULL,
+      name VARCHAR(255) NOT NULL,
+      plan VARCHAR(40) NOT NULL DEFAULT 'beta',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+  await query(`
+    CREATE TABLE IF NOT EXISTS household_members (
+      household_id INT NOT NULL REFERENCES households(id) ON DELETE CASCADE,
+      user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      role VARCHAR(20) NOT NULL DEFAULT 'member',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (household_id, user_id)
+    )
+  `);
+  await query(`
+    CREATE TABLE IF NOT EXISTS invitations (
+      id UUID PRIMARY KEY,
+      household_id INT NOT NULL REFERENCES households(id) ON DELETE CASCADE,
+      email VARCHAR(254) NOT NULL,
+      role VARCHAR(20) NOT NULL DEFAULT 'member',
+      invited_by INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      expires_at TIMESTAMP NOT NULL,
+      accepted_at TIMESTAMP,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+  await query('CREATE INDEX IF NOT EXISTS idx_household_members_user_id ON household_members(user_id)');
+  await query('CREATE INDEX IF NOT EXISTS idx_invitations_household_created_at ON invitations(household_id, created_at DESC)');
+  await query(`
+    CREATE TABLE IF NOT EXISTS onboarding_progress (
+      household_id INT NOT NULL REFERENCES households(id) ON DELETE CASCADE,
+      user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      home_skipped BOOLEAN NOT NULL DEFAULT FALSE,
+      memory_id INT,
+      journey_id INT,
+      welcome_seen BOOLEAN NOT NULL DEFAULT FALSE,
+      completed_at TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (household_id, user_id)
+    )
+  `);
+  await query(`
+    INSERT INTO households (slug, name, plan)
+    SELECT 'dev-user-' || u.id, COALESCE(NULLIF(u.display_name, ''), 'My') || ' memories', 'beta'
+    FROM users u
+    WHERE NOT EXISTS (SELECT 1 FROM household_members hm WHERE hm.user_id = u.id)
+    ON CONFLICT (slug) DO NOTHING
+  `);
+  await query(`
+    INSERT INTO household_members (household_id, user_id, role)
+    SELECT h.id, u.id, 'owner'
+    FROM users u JOIN households h ON h.slug = 'dev-user-' || u.id
+    WHERE NOT EXISTS (SELECT 1 FROM household_members hm WHERE hm.user_id = u.id)
+    ON CONFLICT DO NOTHING
+  `);
   await query(`
     CREATE TABLE IF NOT EXISTS bug_reports (
       id UUID PRIMARY KEY,
@@ -63,6 +136,22 @@ export async function initDatabase() {
   await query("ALTER TABLE trips ADD COLUMN IF NOT EXISTS date_precision VARCHAR(20) DEFAULT 'exact'");
   await query('ALTER TABLE trips ALTER COLUMN start_date DROP NOT NULL');
   await query('ALTER TABLE travelers ADD COLUMN IF NOT EXISTS created_by INT REFERENCES users(id)');
+  await query('ALTER TABLE travelers ADD COLUMN IF NOT EXISTS family_branch VARCHAR(120)');
+  await query('ALTER TABLE travelers ADD COLUMN IF NOT EXISTS display_order INTEGER');
+  await query(`
+    WITH ranked AS (
+      SELECT id, ROW_NUMBER() OVER (
+        PARTITION BY relationship, family_branch
+        ORDER BY created_at NULLS LAST, id
+      ) - 1 AS position
+      FROM travelers
+      WHERE display_order IS NULL
+    )
+    UPDATE travelers
+    SET display_order = ranked.position
+    FROM ranked
+    WHERE travelers.id = ranked.id
+  `);
   await query(`
     CREATE TABLE IF NOT EXISTS journeys (
       id SERIAL PRIMARY KEY,

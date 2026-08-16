@@ -9,7 +9,7 @@ import postmark from '../../assets/postmark.webp';
 import addMemoryButton from '../../assets/add-memory-button.webp';
 import { getPhotoPreviewPath } from '../utils/photos';
 
-export default function Dashboard() {
+export default function Dashboard({ setPage }) {
   const { trips, analytics, loading } = useData();
   const [showForm, setShowForm] = useState(false);
   const [editTrip, setEditTrip] = useState(null);
@@ -108,6 +108,7 @@ export default function Dashboard() {
                 <div className="dashboard-empty-state">
                   <Image aria-hidden="true" />
                   <p>No memories yet. Add your first adventure.</p>
+                  <button type="button" className="dashboard-empty-help" onClick={() => setPage?.('getting-started')}>Need help getting started?</button>
                 </div>
               )}
             </div>

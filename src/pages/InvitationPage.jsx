@@ -8,6 +8,7 @@ export default function InvitationPage({ token }) {
   const [displayName, setDisplayName] = useState('');
   const [password, setPassword] = useState('');
   const [confirmation, setConfirmation] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
 
@@ -53,7 +54,11 @@ export default function InvitationPage({ token }) {
             : invitation.account_exists ? <button type="button" className="memory-login-submit" onClick={signInToAccept}>Sign in to accept</button>
               : <form onSubmit={createAccount}>
                 <label>Your name<input value={displayName} onChange={event => setDisplayName(event.target.value)} autoComplete="name" required /></label>
-                <label>Create a password<input type="password" value={password} onChange={event => setPassword(event.target.value)} autoComplete="new-password" minLength={12} maxLength={128} required /><small>Use at least 12 characters.</small></label>
+                <label>Create a password
+                  <div className="password-input-with-action"><input type={showPassword ? 'text' : 'password'} value={password} onChange={event => setPassword(event.target.value)} autoComplete="new-password" minLength={12} maxLength={128} required /><button type="button" onClick={() => setShowPassword(value => !value)} aria-label={showPassword ? 'Hide password' : 'Show password'}>{showPassword ? 'Hide' : 'Show'}</button></div>
+                  <small>Use 12–128 characters. Avoid common words like “password” or “postcards.”</small>
+                  {password && <span className={`password-strength password-strength-${passwordStrength(password)}`}>Password strength: {passwordStrength(password)}</span>}
+                </label>
                 <label>Confirm password<input type="password" value={confirmation} onChange={event => setConfirmation(event.target.value)} autoComplete="new-password" minLength={12} maxLength={128} required /></label>
                 {error && <div className="memory-login-error">{error}</div>}
                 <button className="memory-login-submit" disabled={loading}>{loading ? 'Creating account…' : 'Create account and join'}</button>
@@ -63,4 +68,15 @@ export default function InvitationPage({ token }) {
       </div></section>
     </main>
   );
+}
+
+function passwordStrength(value) {
+  if (value.length < 12) return 'too-short';
+  let score = 0;
+  if (/[a-z]/.test(value)) score += 1;
+  if (/[A-Z]/.test(value)) score += 1;
+  if (/\d/.test(value)) score += 1;
+  if (/[^A-Za-z0-9]/.test(value)) score += 1;
+  if (value.length >= 16) score += 1;
+  return score >= 4 ? 'strong' : score >= 2 ? 'good' : 'basic';
 }

@@ -119,6 +119,12 @@ export default function SettingsPage({ setPage, setTravelerFilter }) {
 function SettingsOverview() {
   return (
     <div className="settings-overview space-y-6">
+      <header className="flex flex-col gap-2">
+        <p className="memory-eyebrow">Your settings</p>
+        <h1 className="text-3xl font-semibold text-ocean-dark sm:text-4xl">Keep your family story organized</h1>
+        <p className="text-gray-600">Manage your home base, plan, backups, and app details in one place.</p>
+      </header>
+
       <HomeBaseCard />
 
       <PlanCard />

@@ -13,6 +13,10 @@ export const users = sqliteTable('users', {
   passwordHash: text('password_hash').notNull(),
   passwordUpdatedAt: text('password_updated_at'),
   displayName: text('display_name'),
+  homeLatitude: real('home_latitude'),
+  homeLongitude: real('home_longitude'),
+  homeLabel: text('home_label'),
+  homeIcon: text('home_icon').notNull().default('h'),
   createdAt,
 });
 
@@ -87,6 +91,20 @@ export const emailVerificationTokens = sqliteTable('email_verification_tokens', 
   index('idx_email_verification_expires_at').on(table.expiresAt),
 ]);
 
+export const onboardingProgress = sqliteTable('onboarding_progress', {
+  householdId: integer('household_id').notNull().references(() => households.id, { onDelete: 'cascade' }),
+  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  homeSkipped: integer('home_skipped', { mode: 'boolean' }).notNull().default(false),
+  memoryId: integer('memory_id'),
+  journeyId: integer('journey_id'),
+  welcomeSeen: integer('welcome_seen', { mode: 'boolean' }).notNull().default(false),
+  completedAt: text('completed_at'),
+  updatedAt: text('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+}, table => [
+  uniqueIndex('idx_onboarding_progress_household_user').on(table.householdId, table.userId),
+  index('idx_onboarding_progress_user_id').on(table.userId),
+]);
+
 export const authRateLimits = sqliteTable('auth_rate_limits', {
   key: text('key').primaryKey(),
   action: text('action').notNull(),
@@ -101,6 +119,8 @@ export const travelers = sqliteTable('travelers', {
   householdId: integer('household_id').notNull().references(() => households.id, { onDelete: 'cascade' }),
   name: text('name').notNull(),
   relationship: text('relationship').notNull().default('other'),
+  familyBranch: text('family_branch'),
+  displayOrder: integer('display_order'),
   isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
   createdAt,
 }, table => [

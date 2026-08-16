@@ -1,9 +1,10 @@
 import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { query } from '../utils/db.js';
+import { ensureUserHousehold, query } from '../utils/db.js';
 import { createSession, destroySession, getSessionUser } from '../utils/sessions.js';
 import { isOperationsAdmin } from '../utils/admin.js';
+import { distanceFromHome } from '../utils/calculations.js';
 
 const router = Router();
 function normalizeEmail(value) {
@@ -28,8 +29,8 @@ router.post('/register', async (req, res, next) => {
       return res.status(400).json({ error: 'Email and password required' });
     }
 
-    if (password.length < 10) {
-      return res.status(400).json({ error: 'Password must be at least 10 characters.' });
+    if (password.length < 12) {
+      return res.status(400).json({ error: 'Password must be at least 12 characters.' });
     }
 
     // Check if user exists
@@ -48,8 +49,10 @@ router.post('/register', async (req, res, next) => {
     );
 
     const user = result.rows[0];
+    await ensureUserHousehold(user.id, user.display_name);
     await createSession(user.id, res);
-    res.json({ user: { ...user, site_admin: isOperationsAdmin(user) } });
+    const households = await query('SELECT h.id, h.slug, h.name, h.plan, hm.role, (SELECT COUNT(*) FROM household_members members WHERE members.household_id = h.id) AS member_count FROM household_members hm JOIN households h ON h.id = hm.household_id WHERE hm.user_id = $1 ORDER BY h.id', [user.id]);
+    res.json({ user: { ...user, site_admin: isOperationsAdmin(user) }, households: households.rows, active_household_id: households.rows[0]?.id || null });
   } catch (err) {
     next(err);
   }
@@ -83,9 +86,13 @@ router.post('/login', async (req, res, next) => {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
+    await ensureUserHousehold(user.id, user.display_name);
     await createSession(user.id, res);
+    const households = await query('SELECT h.id, h.slug, h.name, h.plan, hm.role, (SELECT COUNT(*) FROM household_members members WHERE members.household_id = h.id) AS member_count FROM household_members hm JOIN households h ON h.id = hm.household_id WHERE hm.user_id = $1 ORDER BY h.id', [user.id]);
     res.json({
       user: { id: user.id, email: user.email, display_name: user.display_name, site_admin: isOperationsAdmin(user) },
+      households: households.rows,
+      active_household_id: households.rows[0]?.id || null,
     });
   } catch (err) {
     next(err);
@@ -119,7 +126,11 @@ const HOME_ICONS = ['h', 'house', 'cabin', 'cottage'];
 router.get('/me', async (req, res, next) => {
   try {
     const sessionUser = await resolveCurrentUser(req);
-    if (sessionUser) return res.json({ user: sessionUser });
+    if (sessionUser) {
+      await ensureUserHousehold(sessionUser.id, sessionUser.display_name);
+      const households = await query(`SELECT h.id, h.slug, h.name, h.plan, hm.role, (SELECT COUNT(*) FROM household_members members WHERE members.household_id = h.id) AS member_count FROM household_members hm JOIN households h ON h.id = hm.household_id WHERE hm.user_id = $1 ORDER BY h.id`, [sessionUser.id]);
+      return res.json({ user: sessionUser, households: households.rows, active_household_id: households.rows[0]?.id || null });
+    }
     return res.status(401).json({ error: 'No token' });
   } catch (err) {
     if (err.name === 'JsonWebTokenError') {
@@ -164,6 +175,14 @@ router.patch('/me', async (req, res, next) => {
        RETURNING id, email, display_name, site_admin, home_latitude, home_longitude, home_label, home_icon`,
       [latitude, longitude, label, icon, user.id]
     );
+
+    const trips = await query('SELECT id, latitude, longitude FROM trips WHERE created_by = $1', [user.id]);
+    await Promise.all(trips.rows.map(trip => query(
+      'UPDATE trips SET home_distance_miles = $1, updated_at = NOW() WHERE id = $2 AND created_by = $3',
+      [trip.latitude != null && trip.longitude != null && latitude != null && longitude != null
+        ? distanceFromHome(trip.latitude, trip.longitude, { home_latitude: latitude, home_longitude: longitude })
+        : null, trip.id, user.id],
+    )));
 
     res.json({ user: { ...result.rows[0], site_admin: isOperationsAdmin(result.rows[0]) } });
   } catch (err) {

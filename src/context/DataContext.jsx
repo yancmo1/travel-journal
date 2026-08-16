@@ -36,7 +36,11 @@ function localTrip(data) {
 }
 
 function localTraveler(data) {
-  return { id: tempId('traveler'), name: data.name, relationship: data.relationship || 'other', is_active: true, _offline: true };
+  return {
+    id: tempId('traveler'), name: data.name, relationship: data.relationship || 'other',
+    family_branch: data.familyBranch || null, display_order: data.displayOrder ?? null,
+    is_active: true, _offline: true,
+  };
 }
 
 function localJourney(data) {

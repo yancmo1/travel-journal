@@ -23,7 +23,7 @@ function hasCoordinates(latitude, longitude) {
     && Number.isFinite(Number(longitude));
 }
 
-export default function TripForm({ trip, onClose }) {
+export default function TripForm({ trip, onClose, onboardingMode = false, onSaved }) {
   const { travelers, addTrip, updateTrip, deleteTrip, addTraveler, loadTrips, offline, queuePhotoUpload } = useData();
   
   const [form, setForm] = useState({
@@ -462,7 +462,7 @@ export default function TripForm({ trip, onClose }) {
         }
         await loadTrips();
       }
-      
+      onSaved?.(savedTrip);
       onClose();
     } catch (err) {
       const prefix = memorySaved || savedTripId ? 'The memory was saved. ' : '';
@@ -509,12 +509,12 @@ export default function TripForm({ trip, onClose }) {
       aria-modal="true"
       aria-labelledby="memory-form-title"
     >
-      <div className="memory-form-shell bg-white rounded-xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-auto">
+      <div className={`memory-form-shell bg-white rounded-xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-auto ${onboardingMode ? 'memory-form-onboarding' : ''}`}>
         {/* Header */}
         <div className="p-6 bg-gradient-to-r from-ocean-blue to-ocean-dark rounded-t-xl">
           <div className="flex items-center justify-between">
             <h2 id="memory-form-title" className="text-xl font-bold text-white">
-              {trip ? 'Edit Memory' : 'Add a Memory'}
+              {trip ? 'Edit Memory' : onboardingMode ? 'Add your first memory' : 'Add a Memory'}
             </h2>
             <button
               onClick={onClose}
@@ -530,7 +530,7 @@ export default function TripForm({ trip, onClose }) {
           {/* Location Search */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Find a city or place *
+              {onboardingMode ? 'Where was this memory? *' : 'Find a city or place *'}
             </label>
             <div className="flex gap-2">
               <input
@@ -572,7 +572,7 @@ export default function TripForm({ trip, onClose }) {
             )}
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className={`grid grid-cols-1 sm:grid-cols-3 gap-3 ${onboardingMode ? 'onboarding-advanced' : ''}`}>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
               <input
@@ -656,7 +656,7 @@ export default function TripForm({ trip, onClose }) {
           )}
 
           {/* Memory Type */}
-          <div>
+          <div className={onboardingMode ? 'onboarding-advanced' : ''}>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Memory Type
             </label>
@@ -673,7 +673,7 @@ export default function TripForm({ trip, onClose }) {
           </div>
 
           {/* Travelers */}
-          <div>
+          <div className={onboardingMode ? 'onboarding-advanced' : ''}>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Who went on this trip?
             </label>
@@ -742,7 +742,7 @@ export default function TripForm({ trip, onClose }) {
           {/* Photos */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Photos
+              {onboardingMode ? 'Photo (optional)' : 'Photos'}
             </label>
             <input
               type="file"
@@ -754,7 +754,7 @@ export default function TripForm({ trip, onClose }) {
             <p className="mt-1 text-xs text-gray-500">
               {photoFiles.length > 0
                 ? `${photoFiles.length} photo${photoFiles.length === 1 ? '' : 's'} will upload when you save this memory.`
-                : 'You can select several photos now or add more later.'}
+                : onboardingMode ? 'We’ll look for the date and location in the photo. You can add one later.' : 'You can select several photos now or add more later.'}
             </p>
 
             {checkingPhotoMetadata && (
@@ -840,7 +840,7 @@ export default function TripForm({ trip, onClose }) {
           </div>
 
           {/* Notes */}
-          <div>
+          <div className={onboardingMode ? 'onboarding-advanced' : ''}>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Notes / Memories
             </label>

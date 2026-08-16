@@ -183,7 +183,7 @@ router.post('/', async (req, res, next) => {
       startDate, endDate, dateLabel, datePrecision, tripType, notes, travelerIds
     } = req.body;
 
-    const homeDist = latitude && longitude ? distanceFromHome(latitude, longitude, req.user) : null;
+    const homeDist = latitude != null && longitude != null ? distanceFromHome(latitude, longitude, req.user) : null;
 
     const result = await query(`
       INSERT INTO trips (
@@ -248,7 +248,7 @@ router.put('/:id', async (req, res, next) => {
       startDate, endDate, dateLabel, datePrecision, tripType, notes, travelerIds
     } = req.body;
 
-    const homeDist = latitude && longitude ? distanceFromHome(latitude, longitude, req.user) : null;
+    const homeDist = latitude != null && longitude != null ? distanceFromHome(latitude, longitude, req.user) : null;
 
     const result = await query(`
       UPDATE trips SET

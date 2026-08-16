@@ -7,6 +7,30 @@ const passwordIterations = 100000;
 const placesCache = new Map();
 const locationCache = new Map();
 const GITHUB_LABEL = 'Bug Report';
+const onboardingTableReady = new WeakMap();
+
+async function ensureOnboardingTable(env) {
+  if (!env?.DB) return;
+  if (!onboardingTableReady.has(env.DB)) {
+    onboardingTableReady.set(env.DB, env.DB.prepare(`
+      CREATE TABLE IF NOT EXISTS onboarding_progress (
+        household_id INTEGER NOT NULL,
+        user_id INTEGER NOT NULL,
+        home_skipped INTEGER NOT NULL DEFAULT 0,
+        memory_id INTEGER,
+        journey_id INTEGER,
+        welcome_seen INTEGER NOT NULL DEFAULT 0,
+        completed_at TEXT,
+        updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (household_id, user_id)
+      )
+    `).run().catch(error => {
+      onboardingTableReady.delete(env.DB);
+      throw error;
+    }));
+  }
+  await onboardingTableReady.get(env.DB);
+}
 
 async function recordAudit(env, { userId = null, householdId = null, action, resourceType = null, resourceId = null, metadata = null }) {
   if (!action || !env?.DB) return;
@@ -468,6 +492,10 @@ function toPublicUser(user) {
     display_name: user.display_name,
     site_admin: isOperationsAdmin(user),
     household_plan: user.household_plan || 'free',
+    home_latitude: user.home_latitude ?? null,
+    home_longitude: user.home_longitude ?? null,
+    home_label: user.home_label ?? null,
+    home_icon: user.home_icon || 'h',
   };
 }
 
@@ -491,6 +519,7 @@ async function authenticate(request, env) {
     const tokenHash = await sha256(sessionToken);
     const user = await env.DB.prepare(`
       SELECT u.id, u.email, u.email_verified_at, u.password_updated_at, u.display_name, u.site_admin,
+        u.home_latitude, u.home_longitude, u.home_label, u.home_icon,
         s.token_hash AS session_token_hash, s.household_id,
         hm.role, h.name AS household_name, h.plan AS household_plan
       FROM sessions s
@@ -508,6 +537,7 @@ async function authenticate(request, env) {
     const claims = await verifyToken(authorization.slice(7), env.JWT_SECRET);
     const user = await env.DB.prepare(`
       SELECT u.id, u.email, u.email_verified_at, u.password_updated_at, u.display_name, u.site_admin,
+        u.home_latitude, u.home_longitude, u.home_label, u.home_icon,
         hm.household_id, hm.role, h.name AS household_name, h.plan AS household_plan
       FROM users u JOIN household_members hm ON hm.user_id = u.id
       JOIN households h ON h.id = hm.household_id
@@ -717,8 +747,8 @@ async function sendInvitationEmail(env, request, invitation, rawToken) {
   return sendEmail(env, {
     to: invitation.email,
     subject: `${inviter} invited you to ${household} on Postcards of Us`,
-    text: `${inviter} invited you to join ${household} on Postcards of Us. Create or connect your account: ${link}\n\nThis invitation expires in 7 days.`,
-    html: `<p>${escapeHtml(inviter)} invited you to join <strong>${escapeHtml(household)}</strong> on Postcards of Us.</p><p><a href="${escapeHtml(link)}">Accept the invitation</a></p><p>This invitation expires in 7 days.</p>`,
+    text: `${inviter} invited you to create your ${household} memory site on Postcards of Us.\n\nCreate your Postcards of Us account: ${link}\n\nWhat happens next:\n1. Create your account and password.\n2. Set a private home base (a city or ZIP code is fine).\n3. Add your first memory and create a journey.\n\nThis invitation expires in 7 days. If you were not expecting this invitation, you can ignore this email.`,
+    html: `<p><strong>You’re invited to create the ${escapeHtml(household)} memory site.</strong></p><p>${escapeHtml(inviter)} invited you to get started with Postcards of Us.</p><p><a href="${escapeHtml(link)}" style="display:inline-block;padding:12px 18px;background:#24418f;color:#fff;border-radius:8px;text-decoration:none;font-weight:700">Create my Postcards of Us account</a></p><p><strong>What happens next</strong></p><ol><li>Create your account and password.</li><li>Set a private home base — a city or ZIP code is fine.</li><li>Add your first memory and create a journey.</li></ol><p>This invitation expires in 7 days. If you were not expecting this invitation, you can ignore this email.</p>`,
     idempotencyKey: invitation.email_idempotency_key || `postcards-invite-${invitation.id}`,
   });
 }
@@ -753,7 +783,7 @@ const backupPrefix = BACKUP_PREFIX;
 const backupTables = [
   'users', 'households', 'household_members', 'invitations',
   'travelers', 'journeys', 'trips', 'trip_travelers', 'photos',
-  'data_exports', 'data_deletions', 'jobs', 'audit_events',
+  'data_exports', 'data_deletions', 'jobs', 'audit_events', 'onboarding_progress',
   'provider_cache', 'idempotency_keys',
 ];
 
@@ -791,6 +821,7 @@ function cleanEtag(etag) {
 }
 
 export async function createBackup(env, { force = false } = {}) {
+  await ensureOnboardingTable(env);
   const existing = await readLatestBackup(env);
   const existingAge = existing?.lastSuccessfulBackupAt ? Date.now() - Date.parse(existing.lastSuccessfulBackupAt) : Infinity;
   if (!force && existingAge < 23 * 60 * 60 * 1000) return existing;
@@ -1747,6 +1778,13 @@ function haversine(aLat, aLon, bLat, bLon) {
   return 2 * radius * Math.asin(Math.sqrt(value));
 }
 
+function homeDistanceMiles(user, latitude, longitude) {
+  if (user?.home_latitude == null || user?.home_longitude == null || latitude == null || longitude == null) return null;
+  const values = [user.home_latitude, user.home_longitude, latitude, longitude].map(Number);
+  if (values.some(value => !Number.isFinite(value))) return null;
+  return haversine(values[0], values[1], values[2], values[3]);
+}
+
 function analytics(trips, travelers) {
   const now = new Date();
   const currentYear = now.getUTCFullYear();
@@ -2284,6 +2322,79 @@ async function handleFetch(request, env, ctx) {
           households: await userHouseholds(env, user.id),
           active_household_id: user.household_id,
         });
+      }
+
+      if (url.pathname === '/api/onboarding' && request.method === 'GET') {
+        await ensureOnboardingTable(env);
+        const row = await env.DB.prepare(`
+          SELECT home_skipped, memory_id, journey_id, welcome_seen, completed_at
+          FROM onboarding_progress WHERE household_id = ? AND user_id = ? LIMIT 1
+        `).bind(user.household_id, user.id).first();
+        const memory = row?.memory_id
+          ? await env.DB.prepare('SELECT id, location_name FROM trips WHERE id = ? AND household_id = ? LIMIT 1').bind(row.memory_id, user.household_id).first()
+          : null;
+        const journey = row?.journey_id
+          ? await env.DB.prepare('SELECT id, title FROM journeys WHERE id = ? AND household_id = ? LIMIT 1').bind(row.journey_id, user.household_id).first()
+          : null;
+        const homeComplete = user.home_latitude != null && user.home_longitude != null;
+        const memoryCount = await env.DB.prepare('SELECT COUNT(*) AS count FROM trips WHERE household_id = ?').bind(user.household_id).first();
+        const journeyCount = await env.DB.prepare('SELECT COUNT(*) AS count FROM journeys WHERE household_id = ?').bind(user.household_id).first();
+        const memoryComplete = Boolean(memory) || Number(memoryCount?.count || 0) > 0;
+        const journeyComplete = Boolean(journey) || Number(journeyCount?.count || 0) > 0;
+        return json({
+          home: { complete: homeComplete, skipped: Boolean(row?.home_skipped) && !homeComplete },
+          memory: { complete: memoryComplete, id: memory?.id || row?.memory_id || null, location: memory?.location_name || null },
+          journey: { complete: journeyComplete, id: journey?.id || row?.journey_id || null, title: journey?.title || null },
+          welcomeSeen: Boolean(row?.welcome_seen),
+          completed: Boolean(row?.completed_at) || (homeComplete && memoryComplete && journeyComplete),
+        });
+      }
+
+      if (url.pathname === '/api/onboarding' && request.method === 'PATCH') {
+        await ensureOnboardingTable(env);
+        const body = await parseJson(request);
+        const step = String(body?.step || '').trim();
+        const allowedSteps = new Set(['welcome', 'home', 'memory', 'journey']);
+        if (!allowedSteps.has(step)) return json({ error: 'Choose a valid onboarding step.' }, { status: 400 });
+        const homeSkipped = step === 'home' && body?.status === 'skipped' ? 1 : 0;
+        const memoryId = step === 'memory' && Number.isInteger(Number(body?.memoryId)) ? Number(body.memoryId) : null;
+        const journeyId = step === 'journey' && Number.isInteger(Number(body?.journeyId)) ? Number(body.journeyId) : null;
+        await env.DB.prepare(`
+          INSERT INTO onboarding_progress (household_id, user_id, home_skipped, memory_id, journey_id, welcome_seen, updated_at)
+          VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+          ON CONFLICT(household_id, user_id) DO UPDATE SET
+            home_skipped = CASE WHEN excluded.home_skipped = 1 THEN 1 WHEN ? = 'home' THEN 0 ELSE onboarding_progress.home_skipped END,
+            memory_id = COALESCE(excluded.memory_id, onboarding_progress.memory_id),
+            journey_id = COALESCE(excluded.journey_id, onboarding_progress.journey_id),
+            welcome_seen = CASE WHEN excluded.welcome_seen = 1 THEN 1 ELSE onboarding_progress.welcome_seen END,
+            completed_at = CASE WHEN ? = 'journey' AND ? IS NOT NULL THEN CURRENT_TIMESTAMP ELSE onboarding_progress.completed_at END,
+            updated_at = CURRENT_TIMESTAMP
+        `).bind(user.household_id, user.id, homeSkipped, memoryId, journeyId, step === 'welcome' ? 1 : 0, step, step, journeyId).run();
+        return json({ success: true });
+      }
+
+      if (url.pathname === '/api/auth/me' && request.method === 'PATCH') {
+        const body = await parseJson(request);
+        const rawLatitude = body?.homeLatitude;
+        const rawLongitude = body?.homeLongitude;
+        const latitude = rawLatitude == null || String(rawLatitude).trim() === '' ? null : Number(rawLatitude);
+        const longitude = rawLongitude == null || String(rawLongitude).trim() === '' ? null : Number(rawLongitude);
+        if (latitude !== null && (!Number.isFinite(latitude) || latitude < -90 || latitude > 90)) return json({ error: 'Home latitude is invalid.' }, { status: 400 });
+        if (longitude !== null && (!Number.isFinite(longitude) || longitude < -180 || longitude > 180)) return json({ error: 'Home longitude is invalid.' }, { status: 400 });
+        if ((latitude === null) !== (longitude === null)) return json({ error: 'Home needs both a latitude and a longitude.' }, { status: 400 });
+        const allowedIcons = new Set(['h', 'house', 'cabin', 'cottage']);
+        const label = body?.homeLabel == null ? null : String(body.homeLabel).trim().slice(0, 255) || null;
+        const icon = allowedIcons.has(body?.homeIcon) ? body.homeIcon : 'h';
+        await env.DB.prepare(`
+          UPDATE users SET home_latitude = ?, home_longitude = ?, home_label = ?, home_icon = ?
+          WHERE id = ?
+        `).bind(latitude, longitude, label, icon, user.id).run();
+        const trips = (await env.DB.prepare('SELECT id, latitude, longitude FROM trips WHERE household_id = ?').bind(user.household_id).all()).results || [];
+        if (trips.length) {
+          await env.DB.batch(trips.map(trip => env.DB.prepare('UPDATE trips SET home_distance_miles = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND household_id = ?').bind(homeDistanceMiles({ home_latitude: latitude, home_longitude: longitude }, trip.latitude, trip.longitude), trip.id, user.household_id)));
+        }
+        const updatedUser = { ...user, home_latitude: latitude, home_longitude: longitude, home_label: label, home_icon: icon };
+        return json({ user: toPublicUser(updatedUser) });
       }
 
       if (url.pathname === '/api/feedback/bugs' && request.method === 'POST') {
@@ -2919,8 +3030,9 @@ async function handleFetch(request, env, ctx) {
             INSERT INTO invitations (id, household_id, email, token_hash, role, invited_by, expires_at)
             VALUES (?, ?, ?, ?, 'owner', ?, ?)
           `).bind(invitationId, householdId, email, await sha256(rawToken), user.id, expiresAt).run();
+          let emailResult;
           try {
-            await sendInvitationEmail(env, request, { id: invitationId, email, household_name: siteName, inviter_name: user.display_name || user.email }, rawToken);
+            emailResult = await sendInvitationEmail(env, request, { id: invitationId, email, household_name: siteName, inviter_name: user.display_name || user.email }, rawToken);
           } catch (error) {
             console.error('Beta invitation email failed', error);
             await env.DB.prepare('DELETE FROM invitations WHERE id = ?').bind(invitationId).run();
@@ -2932,6 +3044,8 @@ async function handleFetch(request, env, ctx) {
           const responseBody = {
             household: { id: householdId, slug, name: siteName, plan: 'beta', role: 'owner', member_count: 1 },
             invitation: { id: invitationId, email, role: 'owner', expires_at: expiresAt },
+            email: { status: 'accepted', provider: 'resend', id: emailResult?.id || null },
+            fallback_link: `${new URL(request.url).origin}/?invite=${encodeURIComponent(rawToken)}`,
             message: `Beta invitation sent to ${email}.`,
           };
           await completeIdempotency(env, idempotency, responseBody, 201);
@@ -3107,9 +3221,9 @@ async function handleFetch(request, env, ctx) {
         if (idempotency?.response) return idempotency.response;
         try {
           const created = await env.DB.prepare(`
-            INSERT INTO trips (household_id, location_name, place_name, formatted_address, city, latitude, longitude, country, state, start_date, end_date, date_label, date_precision, trip_type, notes, created_by)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-          `).bind(user.household_id, input.locationName, input.placeName, input.formattedAddress, input.city, input.latitude, input.longitude, input.country, input.state, input.startDate, input.endDate, input.dateLabel, input.datePrecision, input.tripType, input.notes, user.id).run();
+            INSERT INTO trips (household_id, location_name, place_name, formatted_address, city, latitude, longitude, country, state, start_date, end_date, date_label, date_precision, trip_type, notes, home_distance_miles, created_by)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          `).bind(user.household_id, input.locationName, input.placeName, input.formattedAddress, input.city, input.latitude, input.longitude, input.country, input.state, input.startDate, input.endDate, input.dateLabel, input.datePrecision, input.tripType, input.notes, homeDistanceMiles(user, input.latitude, input.longitude), user.id).run();
           const tripId = Number(created.meta.last_row_id);
           await autoAssignJourneyForTrip(env, user.household_id, tripId);
           const travelerIds = await householdTravelerIds(env, user.household_id, input.travelerIds);
@@ -3237,9 +3351,9 @@ async function handleFetch(request, env, ctx) {
         const travelerIds = await householdTravelerIds(env, user.household_id, input.travelerIds);
         await env.DB.batch([
           env.DB.prepare(`
-            UPDATE trips SET location_name = ?, place_name = ?, formatted_address = ?, city = ?, latitude = ?, longitude = ?, country = ?, state = ?, start_date = ?, end_date = ?, date_label = ?, date_precision = ?, trip_type = ?, notes = ?, updated_at = CURRENT_TIMESTAMP
+            UPDATE trips SET location_name = ?, place_name = ?, formatted_address = ?, city = ?, latitude = ?, longitude = ?, country = ?, state = ?, start_date = ?, end_date = ?, date_label = ?, date_precision = ?, trip_type = ?, notes = ?, home_distance_miles = ?, updated_at = CURRENT_TIMESTAMP
             WHERE id = ? AND household_id = ?
-          `).bind(input.locationName, input.placeName, input.formattedAddress, input.city, input.latitude, input.longitude, input.country, input.state, input.startDate, input.endDate, input.dateLabel, input.datePrecision, input.tripType, input.notes, tripId, user.household_id),
+          `).bind(input.locationName, input.placeName, input.formattedAddress, input.city, input.latitude, input.longitude, input.country, input.state, input.startDate, input.endDate, input.dateLabel, input.datePrecision, input.tripType, input.notes, homeDistanceMiles(user, input.latitude, input.longitude), tripId, user.household_id),
           env.DB.prepare('DELETE FROM trip_travelers WHERE trip_id = ?').bind(tripId),
             ...travelerIds.map(travelerId => env.DB.prepare('INSERT OR IGNORE INTO trip_travelers (trip_id, traveler_id) VALUES (?, ?)').bind(tripId, travelerId)),
           ]);

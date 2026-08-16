@@ -116,6 +116,7 @@ export default function JourneysPage() {
           <h2>Turn separate stops into one story.</h2>
           <p>Your 2018 cruise is a perfect first journey: Los Angeles, Hollywood, and every port in order.</p>
           <button type="button" onClick={() => setShowForm(true)}>Create the first journey</button>
+          <button type="button" className="journeys-empty-help" onClick={() => window.dispatchEvent(new Event('postcards-open-getting-started'))}>Need help understanding journeys?</button>
         </section>
       )}
 

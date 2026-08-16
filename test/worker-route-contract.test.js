@@ -110,6 +110,33 @@ test('authenticated route contract returns bounded shapes and security headers',
   DB.close();
 });
 
+test('onboarding progress is persisted per user and home completion is server-derived', async () => {
+  const { DB, env, cookie } = await fixture();
+  const initial = await worker.fetch(request('/api/onboarding', { headers: { cookie } }), env, context());
+  assert.equal(initial.status, 200);
+  const initialBody = await initial.json();
+  assert.equal(initialBody.home.complete, false);
+  assert.equal(initialBody.welcomeSeen, false);
+
+  const skipped = await worker.fetch(request('/api/onboarding', {
+    method: 'PATCH', headers: { cookie, 'content-type': 'application/json' },
+    body: JSON.stringify({ step: 'home', status: 'skipped' }),
+  }), env, context());
+  assert.equal(skipped.status, 200);
+
+  const saved = await worker.fetch(request('/api/auth/me', {
+    method: 'PATCH', headers: { cookie, 'content-type': 'application/json' },
+    body: JSON.stringify({ homeLatitude: 35.4676, homeLongitude: -97.5164, homeLabel: 'Oklahoma City', homeIcon: 'h' }),
+  }), env, context());
+  assert.equal(saved.status, 200);
+
+  const resumed = await worker.fetch(request('/api/onboarding', { headers: { cookie } }), env, context());
+  const resumedBody = await resumed.json();
+  assert.equal(resumedBody.home.complete, true);
+  assert.equal(resumedBody.home.skipped, false);
+  DB.close();
+});
+
 test('admin site deletion requires the exact name and queues a retryable deletion job', async () => {
   const { DB, env, cookie } = await fixture();
 

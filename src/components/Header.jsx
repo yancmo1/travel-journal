@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Briefcase, CalendarDays, Home, Image, Settings, ShieldCheck } from 'lucide-react';
+import { Briefcase, CalendarDays, Compass, Home, Image, Settings, ShieldCheck } from 'lucide-react';
 import stampLogo from '../../assets/postcards-of-us-stamp.webp';
 
 const navItems = [
@@ -8,6 +8,7 @@ const navItems = [
   { id: 'journeys', label: 'Journeys', icon: Briefcase },
   { id: 'timeline', label: 'Timeline', icon: CalendarDays },
   { id: 'trips', label: 'Memories', icon: Image },
+  { id: 'getting-started', label: 'Getting Started', icon: Compass },
   { id: 'settings', label: 'Settings', icon: Settings },
   { id: 'operations', label: 'Operations', icon: ShieldCheck, adminOnly: true },
 ];

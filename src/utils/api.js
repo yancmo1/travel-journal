@@ -127,6 +127,17 @@ class ApiClient {
     });
   }
 
+  async getOnboarding() {
+    return this.request('/onboarding');
+  }
+
+  async updateOnboarding(step, data = {}) {
+    return this.request('/onboarding', {
+      method: 'PATCH',
+      body: JSON.stringify({ step, ...data }),
+    });
+  }
+
   logout() {
     this.clearToken();
     return this.request('/auth/logout', { method: 'POST', skipUnauthorizedRedirect: true }).catch(() => null);

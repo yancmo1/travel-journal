@@ -29,6 +29,17 @@ function createHomeMarker(latitude, longitude, label, iconId) {
     .bindPopup(`<strong>Home</strong><br/>${escapeHtml(label)}`);
 }
 
+function distanceFromHome(homeLat, homeLon, latitude, longitude) {
+  const values = [homeLat, homeLon, latitude, longitude].map(Number);
+  if (values.some(value => !Number.isFinite(value))) return null;
+  const [aLat, aLon, bLat, bLon] = values;
+  const radians = value => value * Math.PI / 180;
+  const dLat = radians(bLat - aLat);
+  const dLon = radians(bLon - aLon);
+  const value = Math.sin(dLat / 2) ** 2 + Math.cos(radians(aLat)) * Math.cos(radians(bLat)) * Math.sin(dLon / 2) ** 2;
+  return 2 * 3958.8 * Math.asin(Math.sqrt(value));
+}
+
 // Color mapping for trip types
 const tripTypeColors = {
   'Road Trip': '#10B981', // green
@@ -187,6 +198,7 @@ export default function MapView({ trips = [], onSelectTrip, showRoutes = false, 
         `
         : '';
 
+      const displayedHomeDistance = distanceFromHome(homeLatitude, homeLongitude, trip.latitude, trip.longitude);
       marker.bindPopup(`
         <div style="min-width: 180px;">
           <strong style="font-size: 14px; color: #1E3A8A;">${trip.location_name}</strong>
@@ -196,7 +208,7 @@ export default function MapView({ trips = [], onSelectTrip, showRoutes = false, 
             <span style="background: ${color}; color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px;">${trip.trip_type}</span>
           </div>
           ${trip.notes ? `<div style="margin-top: 8px; font-size: 12px; color: #555;">${trip.notes.substring(0, 100)}${trip.notes.length > 100 ? '...' : ''}</div>` : ''}
-          ${trip.home_distance_miles ? `<div style="margin-top: 6px; font-size: 11px; color: #888;">📍 ${Math.round(trip.home_distance_miles).toLocaleString()} miles from home</div>` : ''}
+          ${displayedHomeDistance != null ? `<div style="margin-top: 6px; font-size: 11px; color: #888;">📍 ${Math.round(displayedHomeDistance).toLocaleString()} miles from home</div>` : ''}
         </div>
       `);
 
@@ -233,7 +245,7 @@ export default function MapView({ trips = [], onSelectTrip, showRoutes = false, 
       bounds.extend([homeLatitude, homeLongitude]);
       map.fitBounds(bounds, { padding: [50, 50], maxZoom: 8 });
     }
-  }, [trips, showRoutes]);
+  }, [trips, showRoutes, homeLatitude, homeLongitude]);
 
   return (
     <div className={`relative ${isFullscreen ? 'map-fullscreen' : 'z-10'}`}>

@@ -31,6 +31,8 @@ CREATE TABLE IF NOT EXISTS travelers (
   id SERIAL PRIMARY KEY,
   name VARCHAR(100) NOT NULL,
   relationship VARCHAR(50) DEFAULT 'other', -- 'husband', 'wife', 'child', 'grandchild', 'other'
+  family_branch VARCHAR(120),
+  display_order INTEGER,
   is_active BOOLEAN DEFAULT true,
   created_by INT REFERENCES users(id),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -113,6 +115,20 @@ CREATE INDEX IF NOT EXISTS idx_trips_created_by ON trips(created_by);
 CREATE INDEX IF NOT EXISTS idx_journeys_created_by ON journeys(created_by);
 CREATE INDEX IF NOT EXISTS idx_travelers_created_by ON travelers(created_by);
 CREATE INDEX IF NOT EXISTS idx_photos_trip_id ON photos(trip_id);
+
+CREATE TABLE IF NOT EXISTS onboarding_progress (
+  household_id INT NOT NULL REFERENCES households(id) ON DELETE CASCADE,
+  user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  home_skipped BOOLEAN NOT NULL DEFAULT FALSE,
+  memory_id INT,
+  journey_id INT,
+  welcome_seen BOOLEAN NOT NULL DEFAULT FALSE,
+  completed_at TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (household_id, user_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_onboarding_progress_user_id ON onboarding_progress(user_id);
 CREATE INDEX IF NOT EXISTS idx_trip_travelers_trip ON trip_travelers(trip_id);
 CREATE INDEX IF NOT EXISTS idx_trip_travelers_traveler ON trip_travelers(traveler_id);
 

@@ -226,6 +226,7 @@ export default function TripsPage({ initialTravelerFilter = 'all' }) {
             <img className="memory-art-action-image" src={addMemoryButton} alt="" aria-hidden="true" width="2172" height="724" />
             <span className="memory-art-action-label">Add Your First Memory</span>
           </button>
+          <button type="button" className="mt-4 text-sm font-semibold text-ocean-blue underline underline-offset-4" onClick={() => window.dispatchEvent(new Event('postcards-open-getting-started'))}>Need help getting started?</button>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

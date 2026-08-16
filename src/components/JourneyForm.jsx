@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { X } from 'lucide-react';
 import { useData } from '../context/DataContext';
 import { formatDateOnly } from '../utils/format';
@@ -6,7 +6,7 @@ import DateRangePicker from './DateRangePicker';
 
 const JOURNEY_TYPES = ['Road Trip', 'Cruise', 'Flight', 'Weekend', 'Vacation', 'Other'];
 
-export default function JourneyForm({ journey, onClose }) {
+export default function JourneyForm({ journey, onClose, initialMemoryIds = [], onSaved }) {
   const { trips, addJourney, updateJourney } = useData();
   const [form, setForm] = useState({
     title: journey?.title || '',
@@ -15,12 +15,25 @@ export default function JourneyForm({ journey, onClose }) {
     dateLabel: journey?.date_label || '',
     journeyType: journey?.journey_type || 'Other',
     summary: journey?.summary || '',
-    memoryIds: journey?.memories?.map(memory => memory.id) || [],
+    memoryIds: journey?.memories?.map(memory => memory.id) || initialMemoryIds,
     coverPhotoId: journey?.cover_photo_id || '',
   });
   const [search, setSearch] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (journey || !initialMemoryIds.length) return;
+    const memory = trips.find(item => Number(item.id) === Number(initialMemoryIds[0]));
+    if (!memory) return;
+    setForm(current => ({
+      ...current,
+      title: current.title || `${memory.location_name || 'Travel'} journey`,
+      startDate: current.startDate || memory.start_date?.split('T')[0] || '',
+      endDate: current.endDate || memory.end_date?.split('T')[0] || memory.start_date?.split('T')[0] || '',
+      dateLabel: current.dateLabel || memory.date_label || '',
+    }));
+  }, [journey, initialMemoryIds, trips]);
 
   const visibleMemories = useMemo(() => {
     const queryTokens = search.trim().toLowerCase().split(/\s+/).filter(Boolean);
@@ -63,11 +76,8 @@ export default function JourneyForm({ journey, onClose }) {
     setSaving(true);
     setError('');
     try {
-      if (journey) {
-        await updateJourney(journey.id, form);
-      } else {
-        await addJourney(form);
-      }
+      const saved = journey ? await updateJourney(journey.id, form) : await addJourney(form);
+      onSaved?.(saved);
       onClose();
     } catch (err) {
       setError(err.message || 'Could not save this journey');
