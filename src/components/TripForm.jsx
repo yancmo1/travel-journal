@@ -54,6 +54,7 @@ export default function TripForm({ trip, onClose, onboardingMode = false, onSave
   const [errorRequestId, setErrorRequestId] = useState('');
   const [reportableError, setReportableError] = useState(false);
   const [showNewTraveler, setShowNewTraveler] = useState(false);
+  const [showAllTravelers, setShowAllTravelers] = useState(false);
   const [newTraveler, setNewTraveler] = useState({ name: '', relationship: 'child' });
   const [photoFiles, setPhotoFiles] = useState([]);
   const [photoMetadata, setPhotoMetadata] = useState(null);
@@ -70,6 +71,13 @@ export default function TripForm({ trip, onClose, onboardingMode = false, onSave
   const selectableTravelers = sortTravelers(travelers.filter(traveler => (
     traveler.is_active !== false || form.travelerIds.includes(traveler.id)
   )));
+  const travelerPreview = selectableTravelers.slice(0, 6);
+  const selectedOutsidePreview = selectableTravelers.filter(traveler => (
+    form.travelerIds.includes(traveler.id) && !travelerPreview.some(item => item.id === traveler.id)
+  ));
+  const visibleTravelers = showAllTravelers
+    ? selectableTravelers
+    : [...travelerPreview, ...selectedOutsidePreview];
 
   useEffect(() => {
     if (trip) {
@@ -692,7 +700,7 @@ export default function TripForm({ trip, onClose, onboardingMode = false, onSave
               Who went on this trip?
             </label>
             <div className="flex flex-wrap gap-2">
-              {selectableTravelers.map(t => (
+              {visibleTravelers.map(t => (
                 <button
                   key={t.id}
                   type="button"
@@ -707,6 +715,16 @@ export default function TripForm({ trip, onClose, onboardingMode = false, onSave
                   {t.is_active === false && <span className="ml-1 text-[10px]">(inactive)</span>}
                 </button>
               ))}
+              {selectableTravelers.length > 6 && (
+                <button
+                  type="button"
+                  onClick={() => setShowAllTravelers(current => !current)}
+                  className="px-3 py-1.5 rounded-full text-sm font-semibold text-ocean-blue bg-ocean-blue/5 hover:bg-ocean-blue/10 transition-colors"
+                  aria-expanded={showAllTravelers}
+                >
+                  {showAllTravelers ? 'Show fewer' : `Show all ${selectableTravelers.length} people`}
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => setShowNewTraveler(true)}
