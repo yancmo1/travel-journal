@@ -526,7 +526,7 @@ export default function TripForm({ trip, onClose, onboardingMode = false, onSave
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="flex flex-col p-6 space-y-4">
           {/* Location Search */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -740,9 +740,9 @@ export default function TripForm({ trip, onClose, onboardingMode = false, onSave
           </div>
 
           {/* Photos */}
-          <div>
+          <div className="order-first">
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              {onboardingMode ? 'Photo (optional)' : 'Photos'}
+              {onboardingMode ? 'Start with a photo (optional)' : 'Photos'}
             </label>
             <input
               type="file"
@@ -801,7 +801,7 @@ export default function TripForm({ trip, onClose, onboardingMode = false, onSave
                           onClick={applyPhotoDates}
                           className="rounded-md bg-white px-3 py-1.5 font-medium text-ocean-blue shadow-sm ring-1 ring-gray-200 hover:bg-gray-50"
                         >
-                          Apply dates
+                          Apply date
                         </button>
                       )}
                       {photoMetadata.photosWithGPS > 0 && (
@@ -810,7 +810,7 @@ export default function TripForm({ trip, onClose, onboardingMode = false, onSave
                           onClick={applyPhotoPlace}
                           className="rounded-md bg-white px-3 py-1.5 font-medium text-ocean-blue shadow-sm ring-1 ring-gray-200 hover:bg-gray-50"
                         >
-                          Apply place
+                          Apply location
                         </button>
                       )}
                       {photoMetadata.photosWithDate > 0 && photoMetadata.photosWithGPS > 0 && (
