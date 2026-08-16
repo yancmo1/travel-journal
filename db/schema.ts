@@ -95,6 +95,7 @@ export const onboardingProgress = sqliteTable('onboarding_progress', {
   householdId: integer('household_id').notNull().references(() => households.id, { onDelete: 'cascade' }),
   userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   homeSkipped: integer('home_skipped', { mode: 'boolean' }).notNull().default(false),
+  peopleSkipped: integer('people_skipped', { mode: 'boolean' }).notNull().default(false),
   memoryId: integer('memory_id'),
   journeyId: integer('journey_id'),
   welcomeSeen: integer('welcome_seen', { mode: 'boolean' }).notNull().default(false),

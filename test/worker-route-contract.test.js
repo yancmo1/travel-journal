@@ -116,6 +116,7 @@ test('onboarding progress is persisted per user and home completion is server-de
   assert.equal(initial.status, 200);
   const initialBody = await initial.json();
   assert.equal(initialBody.home.complete, false);
+  assert.equal(initialBody.people.complete, true);
   assert.equal(initialBody.welcomeSeen, false);
 
   const skipped = await worker.fetch(request('/api/onboarding', {

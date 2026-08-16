@@ -1,0 +1,1 @@
+ALTER TABLE `onboarding_progress` ADD `people_skipped` integer DEFAULT false NOT NULL;
