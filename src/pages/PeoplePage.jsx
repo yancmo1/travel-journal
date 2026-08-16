@@ -4,23 +4,34 @@ import { useData } from '../context/DataContext';
 import { sortTravelers } from '../utils/travelers';
 
 const RELATIONSHIPS = [
-  ['husband', 'Partners'],
-  ['wife', 'Partners'],
-  ['child', 'Kids'],
-  ['grandchild', 'Grandkids'],
+  ['self', 'Self'],
+  ['partner', 'Spouse / Partner'],
+  ['child', 'Child'],
+  ['parent', 'Parent'],
+  ['sibling', 'Sibling'],
+  ['friend', 'Friend'],
   ['other', 'Other'],
 ];
 
 const GROUP_DEFINITIONS = [
-  { key: 'partners', label: 'Partners', relationships: ['husband', 'wife'] },
-  { key: 'kids', label: 'Kids', relationships: ['child'] },
-  { key: 'grandkids', label: 'Grandkids', relationships: ['grandchild'] },
+  { key: 'self', label: 'Self', relationships: ['self'] },
+  { key: 'partners', label: 'Spouse / Partner', relationships: ['partner', 'husband', 'wife'] },
+  { key: 'children', label: 'Children', relationships: ['child', 'grandchild'] },
+  { key: 'parents', label: 'Parents', relationships: ['parent'] },
+  { key: 'siblings', label: 'Siblings', relationships: ['sibling'] },
+  { key: 'friends', label: 'Friends', relationships: ['friend'] },
   { key: 'other', label: 'Other', relationships: ['other'] },
 ];
 
 function relationshipLabel(value) {
-  const labels = { husband: 'Husband', wife: 'Wife', child: 'Child', grandchild: 'Grandkid', other: 'Other' };
+  const labels = { self: 'Self', partner: 'Spouse / Partner', husband: 'Spouse / Partner', wife: 'Spouse / Partner', child: 'Child', grandchild: 'Child', parent: 'Parent', sibling: 'Sibling', friend: 'Friend', other: 'Other' };
   return labels[value] || 'Other';
+}
+
+function canonicalRelationship(value) {
+  if (value === 'husband' || value === 'wife') return 'partner';
+  if (value === 'grandchild') return 'child';
+  return value || 'other';
 }
 
 function relationshipGroup(value) {
@@ -55,7 +66,7 @@ export default function PeoplePage({ setPage, setTravelerFilter }) {
     setDrafts(current => Object.fromEntries(
       travelers.map(person => [person.id, current[person.id] || {
         name: person.name,
-        relationship: person.relationship || 'other',
+        relationship: canonicalRelationship(person.relationship),
         familyBranch: person.family_branch || '',
       }])
     ));
@@ -146,7 +157,7 @@ export default function PeoplePage({ setPage, setTravelerFilter }) {
   }
 
   function renderPerson(person, groupMembers) {
-    const draft = drafts[person.id] || { name: person.name, relationship: person.relationship || 'other', familyBranch: person.family_branch || '' };
+    const draft = drafts[person.id] || { name: person.name, relationship: canonicalRelationship(person.relationship), familyBranch: person.family_branch || '' };
     const isActive = person.is_active !== false;
     const count = memoryCounts.get(person.id) || 0;
     const position = groupMembers.findIndex(item => item.id === person.id);

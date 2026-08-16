@@ -9,10 +9,12 @@ import DateRangePicker from './DateRangePicker';
 
 const TRIP_TYPES = ['Road Trip', 'Flight', 'Cruise', 'Day Trip', 'Other'];
 const RELATIONSHIPS = [
-  ['husband', 'Husband'],
-  ['wife', 'Wife'],
+  ['self', 'Self'],
+  ['partner', 'Spouse / Partner'],
   ['child', 'Child'],
-  ['grandchild', 'Grandkid'],
+  ['parent', 'Parent'],
+  ['sibling', 'Sibling'],
+  ['friend', 'Friend'],
   ['other', 'Other'],
 ];
 

@@ -18,7 +18,7 @@ router.get('/', async (req, res, next) => {
         WHERE tt.traveler_id = tr.id AND owned_trip.created_by = $1
       )) ${activeCondition}
       ORDER BY tr.is_active DESC,
-        CASE tr.relationship WHEN 'husband' THEN 0 WHEN 'wife' THEN 0 WHEN 'child' THEN 1 WHEN 'grandchild' THEN 2 ELSE 3 END,
+        CASE tr.relationship WHEN 'self' THEN 0 WHEN 'partner' THEN 1 WHEN 'husband' THEN 1 WHEN 'wife' THEN 1 WHEN 'child' THEN 2 WHEN 'parent' THEN 3 WHEN 'sibling' THEN 4 WHEN 'friend' THEN 5 WHEN 'grandchild' THEN 6 ELSE 7 END,
         tr.family_branch NULLS FIRST, tr.display_order NULLS LAST, tr.created_at, tr.id
     `, [req.user.id]);
     res.json(result.rows);
@@ -38,15 +38,16 @@ router.post('/', async (req, res, next) => {
 
     const normalizedRelationship = relationship || 'other';
     const normalizedBranch = familyBranch?.trim() || null;
+    const nextOrder = displayOrder ?? (await query(`
+      SELECT COALESCE(MAX(display_order), -1) + 1 AS next_order
+      FROM travelers
+      WHERE relationship = $1 AND family_branch IS NOT DISTINCT FROM $2
+    `, [normalizedRelationship, normalizedBranch])).rows[0].next_order;
     const result = await query(`
       INSERT INTO travelers (name, relationship, family_branch, display_order, created_by)
-      VALUES ($1, $2, $3, COALESCE($4, (
-        SELECT COALESCE(MAX(display_order), -1) + 1
-        FROM travelers
-        WHERE relationship = $2 AND family_branch IS NOT DISTINCT FROM $3
-      )), $5)
+      VALUES ($1, $2, $3, $4, $5)
       RETURNING *
-    `, [name, normalizedRelationship, normalizedBranch, displayOrder ?? null, req.user.id]);
+    `, [name, normalizedRelationship, normalizedBranch, nextOrder, req.user.id]);
 
     res.status(201).json(result.rows[0]);
   } catch (err) {
