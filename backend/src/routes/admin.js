@@ -105,6 +105,14 @@ router.post('/development/reset', async (req, res, next) => {
 
     await query(`TRUNCATE TABLE ${DEV_DATA_TABLES.map(table => `"${table}"`).join(', ')} RESTART IDENTITY CASCADE`);
     await query('DELETE FROM users WHERE LOWER(COALESCE(email, \'\')) <> $1', [developmentEmail]);
+    await query(`
+      UPDATE users
+      SET home_latitude = NULL,
+          home_longitude = NULL,
+          home_label = NULL,
+          home_icon = 'h'
+      WHERE LOWER(email) = $1
+    `, [developmentEmail]);
     const photoStoragePath = process.env.PHOTO_STORAGE_PATH || '/app/media/travel-photos';
     await clearPhotoStorage(photoStoragePath);
     await ensureDevelopmentUser();
