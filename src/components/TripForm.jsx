@@ -59,6 +59,7 @@ export default function TripForm({ trip, onClose, onboardingMode = false, onSave
   const [photoMetadata, setPhotoMetadata] = useState(null);
   const [checkingPhotoMetadata, setCheckingPhotoMetadata] = useState(false);
   const [photoMetadataError, setPhotoMetadataError] = useState('');
+  const [photoDateApplied, setPhotoDateApplied] = useState(false);
   const [savedTripId, setSavedTripId] = useState(null);
   const skipNextAutocomplete = useRef(false);
   const metadataRequestId = useRef(0);
@@ -135,6 +136,10 @@ export default function TripForm({ trip, onClose, onboardingMode = false, onSave
   function handleChange(e) {
     const { name, value } = e.target;
     const isSearchField = ['locationName', 'city', 'state'].includes(name);
+
+    if (['datePrecision', 'dateLabel', 'startDate', 'endDate'].includes(name)) {
+      setPhotoDateApplied(false);
+    }
 
     if (isSearchField) {
       setActiveSearchField(name);
@@ -319,6 +324,7 @@ export default function TripForm({ trip, onClose, onboardingMode = false, onSave
     setPhotoFiles(files);
     setPhotoMetadata(null);
     setPhotoMetadataError('');
+    setPhotoDateApplied(false);
 
     if (files.length === 0) return;
 
@@ -349,6 +355,7 @@ export default function TripForm({ trip, onClose, onboardingMode = false, onSave
       endDate: photoMetadata.endDate || '',
       dateLabel: '',
     }));
+    setPhotoDateApplied(true);
   }
 
   function applyPhotoPlace() {
@@ -617,17 +624,18 @@ export default function TripForm({ trip, onClose, onboardingMode = false, onSave
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">What do you know about the date?</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">How precise is the date?</label>
             <select
               name="datePrecision"
               value={form.datePrecision}
               onChange={handleChange}
               className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-ocean-teal"
             >
-              <option value="exact">I know the date</option>
-              <option value="year">I know the year or an approximate date</option>
-              <option value="unknown">I don’t know yet</option>
+              <option value="exact">Exact date</option>
+              <option value="year">Year or approximate date</option>
+              <option value="unknown">Unknown for now</option>
             </select>
+            {photoDateApplied && <p className="mt-1 text-xs text-ocean-teal">Date found in the photo and applied. You can change it below.</p>}
           </div>
 
           {form.datePrecision === 'exact' && (
@@ -635,7 +643,7 @@ export default function TripForm({ trip, onClose, onboardingMode = false, onSave
               label="Date *"
               startDate={form.startDate}
               endDate={form.endDate}
-              onChange={({ startDate, endDate }) => setForm(prev => ({ ...prev, startDate, endDate }))}
+              onChange={({ startDate, endDate }) => { setPhotoDateApplied(false); setForm(prev => ({ ...prev, startDate, endDate })); }}
             />
           )}
 
