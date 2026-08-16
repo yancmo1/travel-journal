@@ -6140,6 +6140,13 @@ body {
 .getting-started-sample small { color: #52675d; font-size: 13px; line-height: 1.4; }
 .getting-started-sample > svg { width: 18px; color: #2c8074; }
 .dashboard-empty-help, .journeys-empty-help { display: inline-block; margin-top: 10px; color: #24418f; font-size: 14px; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
+.getting-started-inline { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin: 24px 0; padding: 20px 22px; background: #edf6f1; border: 1px solid #cfe2d9; border-radius: 14px; }
+.getting-started-inline h2 { margin: 2px 0 4px; color: #18352d; font-family: var(--brand-font-display, Georgia, serif); font-size: clamp(21px, 3vw, 28px); }
+.getting-started-inline p:last-child { margin: 0; color: #52675d; font-size: 14px; line-height: 1.5; }
+.getting-started-inline button { display: inline-flex; flex: 0 0 auto; align-items: center; gap: 7px; min-height: 44px; padding: 0 14px; color: #fff; background: #2c8074; border-radius: 8px; font-size: 13px; font-weight: 700; }
+.getting-started-inline button:hover { background: #246c62; }
+.getting-started-inline button svg { width: 16px; }
+@media (max-width: 640px) { .getting-started-inline { align-items: stretch; flex-direction: column; } .getting-started-inline button { justify-content: center; } }
 .memory-form-onboarding .onboarding-advanced { display: none; }
 .password-input-with-action { display: flex; align-items: center; gap: 8px; }
 .password-input-with-action input { flex: 1; }

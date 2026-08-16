@@ -32,7 +32,7 @@ export default function GettingStarted({ page = false, onNavigate }) {
     try {
       const next = await api.getOnboarding();
       setProgress(next);
-      if (next.home.complete && next.memory.complete && next.journey.complete) setStage('complete');
+      if (next.home.complete && next.memory.complete && next.journey.complete) setStage(page ? 'welcome' : 'complete');
       else if (next.home.complete && next.memory.complete) setStage('journey');
       else if (next.home.complete) setStage('memory');
       else setStage(next.welcomeSeen ? 'home' : 'welcome');
@@ -42,7 +42,7 @@ export default function GettingStarted({ page = false, onNavigate }) {
   useEffect(() => { if (user) loadProgress(); }, [user?.id, user?.home_latitude, user?.home_longitude]);
   useEffect(() => () => clearTimeout(timer.current), []);
   useEffect(() => {
-    function reopen() { setOpen(true); setStage(progress?.home?.complete ? (progress?.memory?.complete ? 'journey' : 'memory') : 'home'); }
+    function reopen() { setOpen(true); setStage(progress?.completed ? 'welcome' : (progress?.home?.complete ? (progress?.memory?.complete ? 'journey' : 'memory') : 'home')); }
     window.addEventListener('postcards-open-getting-started', reopen);
     return () => window.removeEventListener('postcards-open-getting-started', reopen);
   }, [progress]);

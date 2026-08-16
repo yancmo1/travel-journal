@@ -35,6 +35,15 @@ export default function Dashboard({ setPage }) {
         </div>
       </section>
 
+      <section className="getting-started-inline" aria-labelledby="refresher-title">
+        <div>
+          <p className="dashboard-kicker">A quick refresher</p>
+          <h2 id="refresher-title">How do memories and journeys fit together?</h2>
+          <p>A memory is one place or moment. A journey brings related memories together into one travel story.</p>
+        </div>
+        <button type="button" onClick={() => setPage?.('getting-started')}>Open Getting Started <ArrowUpRight aria-hidden="true" /></button>
+      </section>
+
       <div className="dashboard-stat-strip" aria-label="Travel summary">
         <StatCard
           icon={<Image aria-hidden="true" />}
