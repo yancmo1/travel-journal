@@ -504,7 +504,7 @@ export default function TripForm({ trip, onClose, onboardingMode = false, onSave
 
   return (
     <div
-      className="memory-form-modal fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[1500]"
+      className={`memory-form-modal fixed inset-0 bg-black/50 flex items-center justify-center p-4 ${onboardingMode ? 'z-[1700]' : 'z-[1500]'}`}
       role="dialog"
       aria-modal="true"
       aria-labelledby="memory-form-title"
