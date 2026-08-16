@@ -593,6 +593,13 @@ class ApiClient {
     return this.request('/admin/operations');
   }
 
+  async resetDevelopmentData(confirmation) {
+    return this.request('/admin/development/reset', {
+      method: 'POST',
+      body: JSON.stringify({ confirmation }),
+    });
+  }
+
   async requestAdminSiteDeletion(siteId, confirmation) {
     return this.request(`/admin/households/${encodeURIComponent(siteId)}/deletion`, {
       method: 'POST',

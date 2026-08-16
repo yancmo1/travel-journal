@@ -2,11 +2,28 @@ import { Router } from 'express';
 import fs from 'fs/promises';
 import { siteAdminMiddleware } from '../middleware/auth.js';
 import { query } from '../utils/db.js';
+import { ensureDevelopmentUser } from '../utils/dev-user.js';
 
 const router = Router();
 const statusPath = process.env.BACKUP_STATUS_PATH || '/app/maintenance/backup-status.json';
 const staleAfterHours = Number(process.env.BACKUP_STALE_AFTER_HOURS || 30);
 const GITHUB_LABEL = 'Bug Report';
+const DEV_RESET_CONFIRMATION = 'WIPE DEV DATA';
+const DEV_DATA_TABLES = [
+  'photos', 'trip_travelers', 'trips', 'journeys', 'travelers',
+  'onboarding_progress', 'invitations', 'household_members', 'households',
+  'bug_reports', 'sessions',
+];
+
+async function clearPhotoStorage(storagePath) {
+  // Keep the mounted volume directory itself. Docker may make its parent root-owned,
+  // while the application user can still remove the contents inside this directory.
+  const entries = await fs.readdir(storagePath, { withFileTypes: true }).catch(error => {
+    if (error.code === 'ENOENT') return [];
+    throw error;
+  });
+  await Promise.all(entries.map(entry => fs.rm(`${storagePath}/${entry.name}`, { recursive: true, force: true })));
+}
 
 function validBugReportId(value) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || ''));
@@ -74,6 +91,29 @@ function githubIssueBody(report, screenshotLink = null) {
 }
 
 router.use(siteAdminMiddleware);
+
+router.post('/development/reset', async (req, res, next) => {
+  try {
+    if (process.env.NODE_ENV !== 'development') return res.status(404).json({ error: 'Not found.' });
+    if (String(req.body?.confirmation || '').trim() !== DEV_RESET_CONFIRMATION) {
+      return res.status(400).json({ error: `Type ${DEV_RESET_CONFIRMATION} to confirm.` });
+    }
+    const developmentEmail = String(process.env.DEV_USER_EMAIL || '').trim().toLowerCase();
+    if (!developmentEmail) {
+      return res.status(503).json({ error: 'The configured development account is missing, so the reset was not performed.' });
+    }
+
+    await query(`TRUNCATE TABLE ${DEV_DATA_TABLES.map(table => `"${table}"`).join(', ')} RESTART IDENTITY CASCADE`);
+    await query('DELETE FROM users WHERE LOWER(COALESCE(email, \'\')) <> $1', [developmentEmail]);
+    const photoStoragePath = process.env.PHOTO_STORAGE_PATH || '/app/media/travel-photos';
+    await clearPhotoStorage(photoStoragePath);
+    await ensureDevelopmentUser();
+
+    return res.json({ reset: true, message: 'Development data wiped. Your configured development account was kept intact.' });
+  } catch (error) {
+    return next(error);
+  }
+});
 
 router.get('/bug-reports/:reportId/screenshot', async (req, res, next) => {
   try {
@@ -201,6 +241,7 @@ router.get('/operations', async (req, res, next) => {
         grafanaUrl: process.env.GRAFANA_URL || null,
         prometheusUrl: process.env.PROMETHEUS_URL || null,
       },
+      development: { resetAvailable: process.env.NODE_ENV === 'development' },
       bugReports: bugReports.rows,
     });
   } catch (error) {

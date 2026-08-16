@@ -1,8 +1,9 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 import { Activity, Database, ExternalLink, Github, HardDrive, MailPlus, Palette, ShieldAlert, Trash2, X } from 'lucide-react';
 import BetaTesterInvitePanel from '../components/BetaTesterInvitePanel';
+import DevelopmentResetPanel from '../components/DevelopmentResetPanel';
 import StyleGuidePage from './StyleGuidePage';
 
 const OPERATIONS_SECTIONS = [
@@ -26,6 +27,10 @@ export default function OperationsPage() {
   const [siteToDelete, setSiteToDelete] = useState(null);
   const [siteConfirmation, setSiteConfirmation] = useState('');
   const [deletingSite, setDeletingSite] = useState('');
+  const resetAvailable = operations?.development?.resetAvailable === true;
+  const visibleSections = useMemo(() => resetAvailable
+    ? [...OPERATIONS_SECTIONS, { id: 'development-reset', label: 'Reset dev data', description: 'Start over locally', icon: ShieldAlert }]
+    : OPERATIONS_SECTIONS, [resetAvailable]);
 
   const loadOperations = useCallback(async ({ quiet = false } = {}) => {
     if (!user?.site_admin) return;
@@ -46,11 +51,11 @@ export default function OperationsPage() {
 
   useEffect(() => {
     function selectRequestedSection(event) {
-      if (OPERATIONS_SECTIONS.some(item => item.id === event.detail)) setSection(event.detail);
+      if (visibleSections.some(item => item.id === event.detail)) setSection(event.detail);
     }
     window.addEventListener('postcards-operations-section', selectRequestedSection);
     return () => window.removeEventListener('postcards-operations-section', selectRequestedSection);
-  }, []);
+  }, [visibleSections]);
 
   if (!user?.site_admin) return null;
 
@@ -151,7 +156,7 @@ export default function OperationsPage() {
       </header>
 
       <nav className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4" aria-label="Operations sections">
-        {OPERATIONS_SECTIONS.map(item => {
+        {visibleSections.map(item => {
           const Icon = item.icon;
           return (
             <button
@@ -172,6 +177,7 @@ export default function OperationsPage() {
       </nav>
 
       {section === 'beta-testers' && <BetaTesterInvitePanel />}
+      {section === 'development-reset' && resetAvailable && <DevelopmentResetPanel />}
       {section === 'style-guide' && <StyleGuidePage />}
       {section === 'sites-usage' && (
         <SiteUsagePanel
