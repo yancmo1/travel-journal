@@ -86,7 +86,7 @@ export default function MemoryPhotosModal({ memory, onClose, onEdit }) {
               <button
                 type="button"
                 onClick={onEdit}
-                className="px-3 py-1.5 text-sm font-medium text-ocean-blue hover:bg-blue-50 rounded-lg transition-colors"
+                className="px-3 py-1.5 text-sm font-medium text-brand-terracotta-500 hover:bg-brand-paper-100 rounded-lg transition-colors"
                 aria-label="Edit this memory"
               >
                 Edit

@@ -23,8 +23,30 @@
 
   --brand-border: rgba(34, 69, 57, .28);
   --brand-border-strong: rgba(34, 69, 57, .38);
+  --brand-border-subtle: rgba(34, 69, 57, .14);
   --brand-shadow: 0 8px 22px rgba(42, 69, 57, .10);
   --brand-shadow-paper: 0 7px 0 rgba(175, 141, 83, .12), 0 14px 26px rgba(55, 74, 59, .08);
+  --brand-shadow-marker: 0 2px 6px rgba(18, 57, 47, .28);
+  --brand-swatch-highlight: rgba(255, 255, 255, .16);
+
+  /* Semantic aliases keep screen code expressive while the palette remains
+     centralized above. */
+  --brand-canvas: var(--brand-paper-200);
+  --brand-surface: var(--brand-paper-50);
+  --brand-surface-soft: var(--brand-paper-100);
+  --brand-ink: var(--brand-forest-800);
+  --brand-ink-strong: var(--brand-forest-900);
+  --brand-ink-muted: var(--brand-forest-500);
+  --brand-action: var(--brand-terracotta-500);
+  --brand-action-strong: var(--brand-terracotta-700);
+  --brand-success: var(--brand-forest-700);
+  --brand-warning: var(--brand-brass-700);
+  --brand-danger: var(--brand-terracotta-700);
+  --brand-on-dark: var(--brand-paper-50);
+  --brand-on-dark-muted: rgba(255, 253, 245, .76);
+  --brand-surface-overlay: rgba(255, 253, 245, .78);
+  --brand-success-surface: rgba(35, 73, 59, .12);
+  --brand-danger-surface: rgba(185, 88, 53, .13);
 
   --brand-font-display: 'Playfair Display', Georgia, serif;
   --brand-font-body: 'DM Sans', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -39,4 +61,14 @@
   --brand-space-5: 24px;
   --brand-space-6: 32px;
   --brand-space-7: 48px;
+
+  /* Shared authenticated-shell geometry. Page roots should inherit this
+     lane instead of choosing their own centered desktop canvas. */
+  --brand-shell-sidebar-width: 224px;
+  --brand-shell-sidebar-width-compact: 188px;
+  --brand-shell-gutter: clamp(24px, 4vw, 64px);
+  --brand-shell-top: 24px;
+  --brand-shell-bottom: 84px;
+  --brand-control-height: 44px;
+  --brand-control-height-compact: 40px;
 }

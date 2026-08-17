@@ -190,11 +190,11 @@ export default function DataBackupPanel() {
       <div className="flex flex-col gap-3">
         <div className="min-w-0 flex-1">
           <p className="memory-eyebrow">Safety net</p>
-          <h2 className="mt-1 text-xl font-semibold text-ocean-dark">Export or import family data</h2>
+          <h2 className="mt-1 text-xl font-semibold text-brand-forest-800">Export or import family data</h2>
           <p className="mt-1 max-w-none text-sm text-gray-600">Export a portable JSON copy of memories, people, journeys, and photo metadata. Import adds new records and never overwrites existing ones; original photo files are not embedded.</p>
         </div>
         <div className="flex shrink-0 flex-wrap gap-2">
-          <button type="button" onClick={exportBackup} className="rounded-lg bg-ocean-blue px-4 py-2 text-sm font-semibold text-white">Download backup</button>
+          <button type="button" onClick={exportBackup} className="rounded-lg bg-brand-terracotta-500 px-4 py-2 text-sm font-semibold text-white">Download backup</button>
           <button type="button" onClick={() => fileRef.current?.click()} className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700">Choose backup</button>
           <input ref={fileRef} type="file" accept="application/json,.json" onChange={readImport} className="hidden" />
         </div>

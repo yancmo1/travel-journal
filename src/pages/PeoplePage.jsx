@@ -230,10 +230,10 @@ export default function PeoplePage({ setPage, setTravelerFilter }) {
       <div className="flex flex-col gap-3">
         <div className="min-w-0 flex-1">
           <p className="memory-eyebrow">Family manager</p>
-          <h1 className="mt-2 text-3xl font-semibold text-ocean-dark sm:text-4xl">The people in our stories</h1>
+          <h1 className="mt-2 text-3xl font-semibold text-brand-forest-800 sm:text-4xl">The people in our stories</h1>
           <p className="mt-2 max-w-none text-gray-600">Keep names and relationships tidy in one place. Add the basics now; organize family branches later when it helps your memories read in the right order.</p>
         </div>
-        <div className="people-page-actions"><button type="button" onClick={() => setOrganizeOpen(current => !current)} className={`people-organize-toggle ${organizeOpen ? 'is-active' : ''}`}>{organizeOpen ? 'Done organizing' : 'Organize branches and order'}</button><button type="button" onClick={() => loadTravelers({ includeInactive: true })} className="self-start rounded-full border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-600 hover:border-ocean-teal hover:text-ocean-dark">Refresh people</button></div>
+        <div className="people-page-actions"><button type="button" onClick={() => setOrganizeOpen(current => !current)} className={`people-organize-toggle ${organizeOpen ? 'is-active' : ''}`}>{organizeOpen ? 'Done organizing' : 'Organize branches and order'}</button><button type="button" onClick={() => loadTravelers({ includeInactive: true })} className="self-start rounded-full border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-600 hover:border-brand-forest-700 hover:text-brand-forest-800">Refresh people</button></div>
       </div>
 
       {(message || error) && <div className={`rounded-xl border px-4 py-3 text-sm ${error ? 'border-red-200 bg-red-50 text-red-700' : 'border-green-200 bg-green-50 text-green-700'}`} role="status">{error || message}</div>}
@@ -249,11 +249,11 @@ export default function PeoplePage({ setPage, setTravelerFilter }) {
       </form>
 
       <section>
-        <div className="mb-3 flex items-baseline justify-between gap-3"><div><h2 className="text-xl font-semibold text-ocean-dark">Active people</h2><p className="text-sm text-gray-500">{activePeople.length} available for new memories.</p></div></div>
+        <div className="mb-3 flex items-baseline justify-between gap-3"><div><h2 className="text-xl font-semibold text-brand-forest-800">Active people</h2><p className="text-sm text-gray-500">{activePeople.length} available for new memories.</p></div></div>
         {activePeople.length > 0 ? <div className="people-groups">{renderGroups(activeGroups)}</div> : <div className="rounded-2xl bg-white p-8 text-center text-gray-500 shadow-sm">Add your first person above.</div>}
       </section>
 
-      {inactivePeople.length > 0 && <section><div className="mb-3"><h2 className="text-xl font-semibold text-ocean-dark">Inactive people</h2><p className="text-sm text-gray-500">Older memories stay connected. Reactivate someone whenever you need them for a new memory.</p></div><div className="people-groups">{renderGroups(inactiveGroups)}</div></section>}
+      {inactivePeople.length > 0 && <section><div className="mb-3"><h2 className="text-xl font-semibold text-brand-forest-800">Inactive people</h2><p className="text-sm text-gray-500">Older memories stay connected. Reactivate someone whenever you need them for a new memory.</p></div><div className="people-groups">{renderGroups(inactiveGroups)}</div></section>}
     </div>
   );
 }

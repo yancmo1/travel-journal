@@ -327,7 +327,7 @@ curl -X POST http://localhost:3080/api/photos/analyze \
 ## 🎨 UI/UX Highlights
 
 ### Photo Intelligence Page
-- **Gradient background**: Ocean sunset theme
+- **Gradient background**: Forest, paper, and terracotta theme
 - **Drag-drop zone**: Large, intuitive target
 - **Live previews**: See photos before upload
 - **Progress tracking**: Real-time upload progress

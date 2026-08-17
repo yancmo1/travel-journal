@@ -8,7 +8,7 @@ export default function MemoryPlaceDetails({ memory, className = '' }) {
 
   return (
     <div className={`space-y-1 ${className}`.trim()}>
-      {placeName && <p className="text-sm font-medium text-ocean-dark">{placeName}</p>}
+      {placeName && <p className="text-sm font-medium text-brand-forest-800">{placeName}</p>}
       {formattedAddress && <p className="text-sm text-gray-500">{formattedAddress}</p>}
     </div>
   );

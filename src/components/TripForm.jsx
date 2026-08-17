@@ -534,7 +534,7 @@ export default function TripForm({ trip, onClose, onboardingMode = false, onSave
     >
       <div className={`memory-form-shell bg-white rounded-xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-auto ${onboardingMode ? 'memory-form-onboarding' : ''}`}>
         {/* Header */}
-        <div className="p-6 bg-gradient-to-r from-ocean-blue to-ocean-dark rounded-t-xl">
+        <div className="p-6 bg-gradient-to-r from-brand-terracotta-500 to-brand-forest-800 rounded-t-xl">
           <div className="flex items-center justify-between">
             <h2 id="memory-form-title" className="text-xl font-bold text-white">
               {trip ? 'Edit Memory' : onboardingMode ? 'Add your first memory' : 'Add a Memory'}
@@ -565,13 +565,13 @@ export default function TripForm({ trip, onClose, onboardingMode = false, onSave
                 autoComplete="off"
                 aria-autocomplete="list"
                 aria-expanded={activeSearchField === 'locationName' && searchResults.length > 0}
-                className="flex-1 px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-ocean-teal focus:border-transparent"
+                className="flex-1 px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-brand-forest-700 focus:border-transparent"
               />
               <button
                 type="button"
                 onClick={handleSearch}
                 disabled={searching}
-                className="px-4 py-2.5 bg-ocean-teal text-white rounded-lg hover:bg-teal-600 transition-colors disabled:opacity-50"
+                className="px-4 py-2.5 bg-brand-forest-700 text-white rounded-lg hover:bg-brand-forest-800 transition-colors disabled:opacity-50"
               >
                 {searching ? '...' : '🔍'}
               </button>
@@ -588,8 +588,8 @@ export default function TripForm({ trip, onClose, onboardingMode = false, onSave
             )}
 
             {(form.placeName || form.formattedAddress) && (
-              <div className="mt-3 rounded-lg border border-ocean-teal/15 bg-ocean-teal/5 px-4 py-3">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-ocean-teal">Selected place</p>
+              <div className="mt-3 rounded-lg border border-brand-forest-700/15 bg-brand-forest-700/5 px-4 py-3">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-brand-forest-700">Selected place</p>
                 <MemoryPlaceDetails memory={form} className="mt-1" />
               </div>
             )}
@@ -607,7 +607,7 @@ export default function TripForm({ trip, onClose, onboardingMode = false, onSave
                 autoComplete="off"
                 aria-autocomplete="list"
                 aria-expanded={activeSearchField === 'city' && searchResults.length > 0}
-                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-ocean-teal"
+                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-brand-forest-700"
               />
               {renderSearchResults('city', 'City suggestions')}
             </div>
@@ -622,7 +622,7 @@ export default function TripForm({ trip, onClose, onboardingMode = false, onSave
                 autoComplete="off"
                 aria-autocomplete="list"
                 aria-expanded={activeSearchField === 'state' && searchResults.length > 0}
-                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-ocean-teal"
+                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-brand-forest-700"
               />
               {renderSearchResults('state', 'State or region suggestions')}
             </div>
@@ -634,7 +634,7 @@ export default function TripForm({ trip, onClose, onboardingMode = false, onSave
                 value={form.country}
                 onChange={handleChange}
                 placeholder="Country"
-                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-ocean-teal"
+                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-brand-forest-700"
               />
             </div>
           </div>
@@ -645,13 +645,13 @@ export default function TripForm({ trip, onClose, onboardingMode = false, onSave
               name="datePrecision"
               value={form.datePrecision}
               onChange={handleChange}
-              className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-ocean-teal"
+              className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-brand-forest-700"
             >
               <option value="exact">Exact date</option>
               <option value="year">Year or approximate date</option>
               <option value="unknown">Unknown for now</option>
             </select>
-            {photoDateApplied && <p className="mt-1 text-xs text-ocean-teal">Date found in the photo and applied. You can change it below.</p>}
+            {photoDateApplied && <p className="mt-1 text-xs text-brand-forest-700">Date found in the photo and applied. You can change it below.</p>}
           </div>
 
           {form.datePrecision === 'exact' && (
@@ -674,7 +674,7 @@ export default function TripForm({ trip, onClose, onboardingMode = false, onSave
                 value={form.dateLabel}
                 onChange={handleChange}
                 placeholder={form.datePrecision === 'year' ? '2004 or around 1999' : 'We’ll fill this in later'}
-                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-ocean-teal"
+                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-brand-forest-700"
               />
             </div>
           )}
@@ -688,7 +688,7 @@ export default function TripForm({ trip, onClose, onboardingMode = false, onSave
               name="tripType"
               value={form.tripType}
               onChange={handleChange}
-              className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-ocean-teal"
+              className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-brand-forest-700"
             >
               {TRIP_TYPES.map(type => (
                 <option key={type} value={type}>{type}</option>
@@ -709,7 +709,7 @@ export default function TripForm({ trip, onClose, onboardingMode = false, onSave
                   onClick={() => handleTravelerToggle(t.id)}
                   className={`px-3 py-1.5 rounded-full text-sm transition-colors ${
                     form.travelerIds.includes(t.id)
-                      ? 'bg-ocean-teal text-white'
+                      ? 'bg-brand-forest-700 text-white'
                       : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                   }`}
                 >
@@ -721,7 +721,7 @@ export default function TripForm({ trip, onClose, onboardingMode = false, onSave
                 <button
                   type="button"
                   onClick={() => setShowAllTravelers(current => !current)}
-                  className="px-3 py-1.5 rounded-full text-sm font-semibold text-ocean-blue bg-ocean-blue/5 hover:bg-ocean-blue/10 transition-colors"
+                  className="px-3 py-1.5 rounded-full text-sm font-semibold text-brand-terracotta-500 bg-brand-terracotta-500/5 hover:bg-brand-terracotta-500/10 transition-colors"
                   aria-expanded={showAllTravelers}
                 >
                   {showAllTravelers ? 'Show fewer' : `Show all ${selectableTravelers.length} people`}
@@ -730,7 +730,7 @@ export default function TripForm({ trip, onClose, onboardingMode = false, onSave
               <button
                 type="button"
                 onClick={() => setShowNewTraveler(true)}
-                className="px-3 py-1.5 rounded-full text-sm bg-sunset-orange/10 text-sunset-orange hover:bg-sunset-orange/20 transition-colors"
+                className="px-3 py-1.5 rounded-full text-sm bg-brand-terracotta-500/10 text-brand-terracotta-500 hover:bg-brand-terracotta-500/20 transition-colors"
               >
                 + Add
               </button>
@@ -758,14 +758,14 @@ export default function TripForm({ trip, onClose, onboardingMode = false, onSave
                 <button
                   type="button"
                   onClick={handleAddTraveler}
-                  className="min-h-[44px] px-4 py-2 bg-ocean-teal text-white rounded-lg text-sm font-semibold hover:brightness-95 focus:outline-none focus:ring-2 focus:ring-ocean-teal/30"
+                  className="min-h-[44px] px-4 py-2 bg-brand-forest-700 text-white rounded-lg text-sm font-semibold hover:brightness-95 focus:outline-none focus:ring-2 focus:ring-brand-forest-700/30"
                 >
                   Add
                 </button>
                 <button
                   type="button"
                   onClick={() => setShowNewTraveler(false)}
-                  className="min-h-[44px] px-4 py-2 rounded-lg border border-gray-300 bg-white text-sm font-semibold text-gray-700 hover:bg-gray-50 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-ocean-teal/30"
+                  className="min-h-[44px] px-4 py-2 rounded-lg border border-gray-300 bg-white text-sm font-semibold text-gray-700 hover:bg-gray-50 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-forest-700/30"
                 >
                   Cancel
                 </button>
@@ -783,7 +783,7 @@ export default function TripForm({ trip, onClose, onboardingMode = false, onSave
               multiple
               accept="image/*,.heic,.heif"
               onChange={handlePhotoSelection}
-              className="block w-full text-sm text-gray-600 file:mr-3 file:rounded-lg file:border-0 file:bg-ocean-blue/10 file:px-4 file:py-2 file:font-medium file:text-ocean-blue hover:file:bg-ocean-blue/20"
+              className="block w-full text-sm text-gray-600 file:mr-3 file:rounded-lg file:border-0 file:bg-brand-terracotta-500/10 file:px-4 file:py-2 file:font-medium file:text-brand-terracotta-500 hover:file:bg-brand-terracotta-500/20"
             />
             <p className="mt-1 text-xs text-gray-500">
               {photoFiles.length > 0
@@ -792,13 +792,13 @@ export default function TripForm({ trip, onClose, onboardingMode = false, onSave
             </p>
 
             {checkingPhotoMetadata && (
-              <div className="mt-3 rounded-lg border border-ocean-blue/20 bg-ocean-blue/5 p-3 text-sm text-ocean-dark">
+              <div className="mt-3 rounded-lg border border-brand-terracotta-500/20 bg-brand-terracotta-500/5 p-3 text-sm text-brand-forest-800">
                 Checking photo dates and locations…
               </div>
             )}
 
             {photoMetadata && !checkingPhotoMetadata && (
-              <div className="mt-3 rounded-lg border border-ocean-teal/30 bg-teal-50 p-3 text-sm">
+              <div className="mt-3 rounded-lg border border-brand-forest-700/30 bg-brand-paper-200 p-3 text-sm">
                 {(photoMetadata.photosWithDate > 0 || photoMetadata.photosWithGPS > 0) ? (
                   <>
                     <p className="font-semibold text-gray-800">Photo details found</p>
@@ -833,7 +833,7 @@ export default function TripForm({ trip, onClose, onboardingMode = false, onSave
                         <button
                           type="button"
                           onClick={applyPhotoDates}
-                          className="rounded-md bg-white px-3 py-1.5 font-medium text-ocean-blue shadow-sm ring-1 ring-gray-200 hover:bg-gray-50"
+                          className="rounded-md bg-white px-3 py-1.5 font-medium text-brand-terracotta-500 shadow-sm ring-1 ring-gray-200 hover:bg-gray-50"
                         >
                           Apply date
                         </button>
@@ -842,7 +842,7 @@ export default function TripForm({ trip, onClose, onboardingMode = false, onSave
                         <button
                           type="button"
                           onClick={applyPhotoPlace}
-                          className="rounded-md bg-white px-3 py-1.5 font-medium text-ocean-blue shadow-sm ring-1 ring-gray-200 hover:bg-gray-50"
+                          className="rounded-md bg-white px-3 py-1.5 font-medium text-brand-terracotta-500 shadow-sm ring-1 ring-gray-200 hover:bg-gray-50"
                         >
                           Apply location
                         </button>
@@ -851,7 +851,7 @@ export default function TripForm({ trip, onClose, onboardingMode = false, onSave
                         <button
                           type="button"
                           onClick={applyAllPhotoMetadata}
-                          className="rounded-md bg-ocean-teal px-3 py-1.5 font-medium text-white hover:bg-teal-600"
+                          className="rounded-md bg-brand-forest-700 px-3 py-1.5 font-medium text-white hover:bg-brand-forest-800"
                         >
                           Apply both
                         </button>
@@ -884,7 +884,7 @@ export default function TripForm({ trip, onClose, onboardingMode = false, onSave
               onChange={handleChange}
               rows={3}
               placeholder="What made this memory special?"
-              className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-ocean-teal resize-none"
+              className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-brand-forest-700 resize-none"
             />
           </div>
 
@@ -961,7 +961,7 @@ export default function TripForm({ trip, onClose, onboardingMode = false, onSave
             <button
               type="submit"
               disabled={saving || deleting || checkingPhotoMetadata}
-              className="flex-1 py-3 bg-gradient-to-r from-sunset-orange to-coral-pink text-white font-semibold rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
+              className="flex-1 py-3 bg-gradient-to-r from-brand-terracotta-500 to-brand-terracotta-600 text-white font-semibold rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
             >
               {saving
                 ? 'Saving...'

@@ -189,7 +189,7 @@ export default function CleanupPage() {
         <p className="memory-eyebrow">Tidy the collection</p>
         <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
           <div>
-            <h1 className="text-3xl font-bold text-ocean-dark">Memory cleanup</h1>
+            <h1 className="text-3xl font-bold text-brand-forest-800">Memory cleanup</h1>
             <p className="text-gray-600 mt-1">
               Scan everything in one place. Nothing is deleted without a final confirmation.
             </p>
@@ -232,7 +232,7 @@ export default function CleanupPage() {
               value={search}
               onChange={event => setSearch(event.target.value)}
               placeholder="Search locations, notes, journeys, or people…"
-              className="flex-1 px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-ocean-teal"
+              className="flex-1 px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-brand-forest-700"
             />
             <select
               value={filter}
@@ -257,7 +257,7 @@ export default function CleanupPage() {
           <div className="flex items-center justify-between text-sm text-gray-500">
             <span>{visibleTrips.length} of {trips.length} memories</span>
             {selected.size > 0 && (
-              <button type="button" onClick={() => setSelected(new Set())} className="text-ocean-blue">
+              <button type="button" onClick={() => setSelected(new Set())} className="text-brand-terracotta-500">
                 Clear selection
               </button>
             )}
@@ -268,8 +268,8 @@ export default function CleanupPage() {
           <p className="p-10 text-center text-gray-500">Loading memories…</p>
         ) : visibleTrips.length === 0 ? (
           <div className="p-10 text-center">
-            <CheckCircle2 className="mb-2 text-ocean-teal" size={30} aria-hidden="true" />
-            <h2 className="font-semibold text-ocean-dark">Nothing to clean up here</h2>
+            <CheckCircle2 className="mb-2 text-brand-forest-700" size={30} aria-hidden="true" />
+            <h2 className="font-semibold text-brand-forest-800">Nothing to clean up here</h2>
             <p className="text-sm text-gray-500 mt-1">Try another filter or search.</p>
           </div>
         ) : (
@@ -297,7 +297,7 @@ export default function CleanupPage() {
                 {visibleTrips.map(trip => {
                   const flags = getFlags(trip, duplicateIds);
                   return (
-                    <tr key={trip.id} className={selected.has(trip.id) ? 'bg-blue-50/60' : 'hover:bg-gray-50'}>
+                    <tr key={trip.id} className={selected.has(trip.id) ? 'bg-brand-paper-100/60' : 'hover:bg-gray-50'}>
                       <td className="px-4 py-3 align-top">
                         <input
                           type="checkbox"
@@ -307,7 +307,7 @@ export default function CleanupPage() {
                         />
                       </td>
                       <td className="px-4 py-3 align-top">
-                        <strong className="block text-ocean-dark">{trip.location_name || 'Unknown location'}</strong>
+                        <strong className="block text-brand-forest-800">{trip.location_name || 'Unknown location'}</strong>
                         <span className="block max-w-xs truncate text-xs text-gray-500">
                           {[trip.city, trip.state, trip.country].filter(Boolean).join(', ') || trip.notes || 'No details yet'}
                         </span>
@@ -317,7 +317,7 @@ export default function CleanupPage() {
                         {trip.journey_title || <span className="text-gray-400">Unassigned</span>}
                       </td>
                       <td className="px-4 py-3 align-top text-sm">
-                        <button type="button" onClick={() => setPhotoTrip(trip)} className="text-ocean-teal hover:underline">
+                        <button type="button" onClick={() => setPhotoTrip(trip)} className="text-brand-forest-700 hover:underline">
                           {trip.photos?.length || 0} {trip.photos?.length === 1 ? 'photo' : 'photos'}
                         </button>
                       </td>
@@ -334,7 +334,7 @@ export default function CleanupPage() {
                       </td>
                       <td className="px-4 py-3 align-top">
                         <div className="flex justify-end gap-2">
-                          <button type="button" onClick={() => setEditTrip(trip)} className="px-3 py-1.5 text-sm text-ocean-blue hover:bg-blue-50 rounded">
+                          <button type="button" onClick={() => setEditTrip(trip)} className="px-3 py-1.5 text-sm text-brand-terracotta-500 hover:bg-brand-paper-100 rounded">
                             Edit
                           </button>
                           <button type="button" onClick={() => setDeleteCandidates([trip])} className="px-3 py-1.5 text-sm text-red-500 hover:bg-red-50 rounded">
@@ -408,7 +408,7 @@ function IssueCard({ label, count, onClick }) {
       onClick={onClick}
       className="bg-white rounded-xl shadow p-4 text-left hover:shadow-md hover:-translate-y-0.5 transition"
     >
-      <strong className="block text-2xl text-ocean-dark">{count}</strong>
+      <strong className="block text-2xl text-brand-forest-800">{count}</strong>
       <span className="text-sm text-gray-600">{label}</span>
     </button>
   );

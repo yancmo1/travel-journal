@@ -218,7 +218,7 @@ function JourneyDetail({ journey, onClose, onEdit, onDelete, onPhotos, onPrint }
                 {memory.photos?.length > 0 && (
                   <div className="journey-photo-strip">
                     {memory.photos.slice(0, 4).map(photo => (
-                      getPhotoPreviewPath(photo) ? <img key={photo.id} src={`/photos/${getPhotoPreviewPath(photo)}`} alt={photo.caption || photo.filename} width={photo.width || 320} height={photo.height || 320} style={getPhotoImageStyle(photo)} /> : <div key={photo.id} className="flex aspect-square items-center justify-center rounded-lg bg-slate-100 text-xs text-slate-500">Processing</div>
+                      getPhotoPreviewPath(photo) ? <img key={photo.id} src={`/photos/${getPhotoPreviewPath(photo)}`} alt={photo.caption || photo.filename} width={photo.width || 320} height={photo.height || 320} style={getPhotoImageStyle(photo)} /> : <div key={photo.id} className="flex aspect-square items-center justify-center rounded-lg bg-brand-paper-200 text-xs text-brand-forest-500">Processing</div>
                     ))}
                   </div>
                 )}
@@ -233,7 +233,7 @@ function JourneyDetail({ journey, onClose, onEdit, onDelete, onPhotos, onPrint }
 
         <div className="border-t border-gray-100 px-5 py-4">
           <div className="flex flex-wrap items-center gap-2">
-            <button type="button" onClick={createShareLink} disabled={sharing} className="rounded-lg bg-ocean-teal px-3 py-2 text-sm font-semibold text-white disabled:opacity-50">
+            <button type="button" onClick={createShareLink} disabled={sharing} className="rounded-lg bg-brand-forest-700 px-3 py-2 text-sm font-semibold text-white disabled:opacity-50">
               {sharing ? 'Working…' : shareLink ? 'Regenerate private link' : 'Create private link'}
             </button>
             {shareLink && <button type="button" onClick={copyShareLink} className="rounded-lg border border-gray-200 px-3 py-2 text-sm font-semibold text-gray-600">Copy link</button>}

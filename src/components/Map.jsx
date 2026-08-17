@@ -5,6 +5,7 @@ import { Maximize2, Minimize2 } from 'lucide-react';
 import { formatDateOnly } from '../utils/format';
 import { useAuth } from '../context/AuthContext';
 import { HOME_ICONS, homeBadgeHtml } from '../utils/homeIcons';
+import { getBrandColor } from '../utils/brandTokens';
 
 // Default home base used until a user saves one in Settings (Oklahoma City).
 const DEFAULT_HOME = { latitude: 35.4676, longitude: -97.5164, label: 'Oklahoma City, OK' };
@@ -39,15 +40,6 @@ function distanceFromHome(homeLat, homeLon, latitude, longitude) {
   const value = Math.sin(dLat / 2) ** 2 + Math.cos(radians(aLat)) * Math.cos(radians(bLat)) * Math.sin(dLon / 2) ** 2;
   return 2 * 3958.8 * Math.asin(Math.sqrt(value));
 }
-
-// Color mapping for trip types
-const tripTypeColors = {
-  'Road Trip': '#10B981', // green
-  'Flight': '#3B82F6', // blue
-  'Cruise': '#8B5CF6', // purple
-  'Day Trip': '#F59E0B', // amber
-  'Other': '#6B7280', // gray
-};
 
 export default function MapView({ trips = [], onSelectTrip, showRoutes = false, compact = false }) {
   const mapRef = useRef(null);
@@ -174,12 +166,12 @@ export default function MapView({ trips = [], onSelectTrip, showRoutes = false, 
 
     // Add markers
     tripsWithCoords.forEach((trip, index) => {
-      const color = '#b95835';
+      const color = getBrandColor('--brand-terracotta-500');
       
       const icon = L.divIcon({
         className: 'custom-marker',
-        html: `<div style="background: ${color}; width: 25px; height: 25px; border-radius: 50%; border: 3px solid #fff9ec; box-shadow: 0 2px 6px rgba(18,57,47,0.28); display: flex; align-items: center; justify-content: center; cursor: pointer;">
-          <span style="color: #fff9ec; font-size: 12px; font-weight: bold;">${index + 1}</span>
+        html: `<div style="background: ${color}; width: 25px; height: 25px; border-radius: 50%; border: 3px solid var(--brand-paper-50); box-shadow: var(--brand-shadow-marker); display: flex; align-items: center; justify-content: center; cursor: pointer;">
+          <span style="color: var(--brand-paper-50); font-size: 12px; font-weight: bold;">${index + 1}</span>
         </div>`,
         iconSize: [24, 24],
         iconAnchor: [12, 12],
@@ -193,22 +185,22 @@ export default function MapView({ trips = [], onSelectTrip, showRoutes = false, 
         : '';
       const placeLine = trip.place_name || trip.formatted_address
         ? `
-          ${trip.place_name ? `<div style="margin-top: 4px; font-size: 12px; color: #444; font-weight: 600;">${trip.place_name}</div>` : ''}
-          ${trip.formatted_address ? `<div style="margin-top: 2px; font-size: 11px; color: #666;">${trip.formatted_address}</div>` : ''}
+          ${trip.place_name ? `<div style="margin-top: 4px; font-size: 12px; color: var(--brand-forest-700); font-weight: 600;">${trip.place_name}</div>` : ''}
+          ${trip.formatted_address ? `<div style="margin-top: 2px; font-size: 11px; color: var(--brand-ink-muted);">${trip.formatted_address}</div>` : ''}
         `
         : '';
 
       const displayedHomeDistance = distanceFromHome(homeLatitude, homeLongitude, trip.latitude, trip.longitude);
       marker.bindPopup(`
         <div style="min-width: 180px;">
-          <strong style="font-size: 14px; color: #1E3A8A;">${trip.location_name}</strong>
+          <strong style="font-size: 14px; color: var(--brand-forest-800);">${trip.location_name}</strong>
           ${placeLine}
-          <div style="color: #666; font-size: 12px; margin-top: 4px;">${dateStr}${endStr}</div>
+          <div style="color: var(--brand-ink-muted); font-size: 12px; margin-top: 4px;">${dateStr}${endStr}</div>
           <div style="margin-top: 6px;">
-            <span style="background: ${color}; color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px;">${trip.trip_type}</span>
+            <span style="background: ${color}; color: var(--brand-paper-50); padding: 2px 8px; border-radius: 12px; font-size: 11px;">${trip.trip_type}</span>
           </div>
-          ${trip.notes ? `<div style="margin-top: 8px; font-size: 12px; color: #555;">${trip.notes.substring(0, 100)}${trip.notes.length > 100 ? '...' : ''}</div>` : ''}
-          ${displayedHomeDistance != null ? `<div style="margin-top: 6px; font-size: 11px; color: #888;">📍 ${Math.round(displayedHomeDistance).toLocaleString()} miles from home</div>` : ''}
+          ${trip.notes ? `<div style="margin-top: 8px; font-size: 12px; color: var(--brand-ink-muted);">${trip.notes.substring(0, 100)}${trip.notes.length > 100 ? '...' : ''}</div>` : ''}
+          ${displayedHomeDistance != null ? `<div style="margin-top: 6px; font-size: 11px; color: var(--brand-forest-500);">📍 ${Math.round(displayedHomeDistance).toLocaleString()} miles from home</div>` : ''}
         </div>
       `);
 
@@ -224,7 +216,7 @@ export default function MapView({ trips = [], onSelectTrip, showRoutes = false, 
       const routeCoords = tripsWithCoords.map(t => [t.latitude, t.longitude]);
       
       const polyline = L.polyline(routeCoords, {
-        color: '#FB923C',
+        color: getBrandColor('--brand-brass-500'),
         weight: 2,
         opacity: 0.7,
         dashArray: '10, 5',

@@ -114,7 +114,7 @@ export default function TripsPage({ initialTravelerFilter = 'all' }) {
     <div className="memories-page space-y-6">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <h1 className="memories-page-title text-2xl font-bold text-ocean-dark flex items-center gap-2">
+        <h1 className="memories-page-title text-2xl font-bold text-brand-forest-800 flex items-center gap-2">
           <span><span className="memory-eyebrow">The collection</span>Our memories</span>
           <span className="text-base font-normal text-gray-500">
             ({filteredTrips.length})
@@ -158,7 +158,7 @@ export default function TripsPage({ initialTravelerFilter = 'all' }) {
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Search places, people, or notes..."
-              className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-ocean-teal focus:border-transparent"
+              className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-brand-forest-700 focus:border-transparent"
             />
           </div>
 
@@ -170,7 +170,7 @@ export default function TripsPage({ initialTravelerFilter = 'all' }) {
                 onClick={() => setFilter(type)}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                   filter === type
-                    ? 'bg-ocean-blue text-white'
+                    ? 'bg-brand-terracotta-500 text-white'
                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 }`}
               >
@@ -183,7 +183,7 @@ export default function TripsPage({ initialTravelerFilter = 'all' }) {
           <select
             value={sort}
             onChange={e => setSort(e.target.value)}
-            className="px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-ocean-teal"
+            className="px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-brand-forest-700"
           >
             <option value="date-desc">Newest First</option>
             <option value="date-asc">Oldest First</option>
@@ -195,7 +195,7 @@ export default function TripsPage({ initialTravelerFilter = 'all' }) {
             value={travelerFilter}
             onChange={e => setTravelerFilter(e.target.value)}
             aria-label="Filter memories by person"
-            className="px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-ocean-teal"
+            className="px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-brand-forest-700"
           >
             <option value="all">Everyone</option>
             {sortTravelers(travelers).map(traveler => (
@@ -226,7 +226,7 @@ export default function TripsPage({ initialTravelerFilter = 'all' }) {
             <img className="memory-art-action-image" src={addMemoryButton} alt="" aria-hidden="true" width="2172" height="724" />
             <span className="memory-art-action-label">Add Your First Memory</span>
           </button>
-          <button type="button" className="mt-4 text-sm font-semibold text-ocean-blue underline underline-offset-4" onClick={() => window.dispatchEvent(new Event('postcards-open-getting-started'))}>Need help getting started?</button>
+          <button type="button" className="mt-4 text-sm font-semibold text-brand-terracotta-500 underline underline-offset-4" onClick={() => window.dispatchEvent(new Event('postcards-open-getting-started'))}>Need help getting started?</button>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -289,11 +289,11 @@ export default function TripsPage({ initialTravelerFilter = 'all' }) {
 
 function TripCard({ trip, onEdit, onPhotos, onDelete }) {
   const typeColors = {
-    'Road Trip': 'bg-green-500',
-    'Flight': 'bg-blue-500',
-    'Cruise': 'bg-purple-500',
-    'Day Trip': 'bg-yellow-500',
-    'Other': 'bg-gray-500',
+    'Road Trip': 'bg-brand-forest-700',
+    'Flight': 'bg-brand-terracotta-500',
+    'Cruise': 'bg-brand-brass-700',
+    'Day Trip': 'bg-brand-brass-500',
+    'Other': 'bg-brand-forest-500',
   };
 
   return (
@@ -304,7 +304,7 @@ function TripCard({ trip, onEdit, onPhotos, onDelete }) {
       <div className="p-5">
         <div className="flex items-start justify-between mb-3">
           <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-ocean-dark truncate text-lg">
+            <h3 className="font-semibold text-brand-forest-800 truncate text-lg">
               {trip.location_name}
             </h3>
             <MemoryPlaceDetails memory={trip} className="mt-1" />
@@ -340,7 +340,7 @@ function TripCard({ trip, onEdit, onPhotos, onDelete }) {
             </span>
           )}
           {trip.home_distance_miles && (
-            <span className="text-xs px-2 py-1 bg-ocean-teal/10 text-ocean-teal rounded">
+            <span className="text-xs px-2 py-1 bg-brand-forest-700/10 text-brand-forest-700 rounded">
               {Math.round(trip.home_distance_miles).toLocaleString()} mi
             </span>
           )}
@@ -350,7 +350,7 @@ function TripCard({ trip, onEdit, onPhotos, onDelete }) {
         {trip.travelers && trip.travelers.length > 0 && (
           <div className="flex flex-wrap gap-1 mb-4">
             {trip.travelers.slice(0, 4).map(t => (
-              <span key={t.id} className="text-xs px-2 py-1 bg-sunset-orange/10 text-sunset-orange rounded">
+              <span key={t.id} className="text-xs px-2 py-1 bg-brand-terracotta-500/10 text-brand-terracotta-500 rounded">
                 {t.name}
               </span>
             ))}
@@ -366,13 +366,13 @@ function TripCard({ trip, onEdit, onPhotos, onDelete }) {
         <div className="flex gap-2 pt-3 border-t border-gray-100">
           <button
             onClick={onPhotos}
-            className="flex-1 py-2 text-sm text-ocean-teal hover:bg-ocean-teal/5 rounded-lg transition-colors"
+            className="flex-1 py-2 text-sm text-brand-forest-700 hover:bg-brand-forest-700/5 rounded-lg transition-colors"
           >
             Photos{trip.photos?.length ? ` (${trip.photos.length})` : ''}
           </button>
           <button
             onClick={onEdit}
-            className="flex-1 py-2 text-sm text-ocean-blue hover:bg-ocean-blue/5 rounded-lg transition-colors"
+            className="flex-1 py-2 text-sm text-brand-terracotta-500 hover:bg-brand-terracotta-500/5 rounded-lg transition-colors"
           >
             Edit
           </button>

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { ArrowRight, Camera, Check, Image, MapPin, Menu, Navigation, Settings, X } from 'lucide-react';
 import stampLogo from '../../assets/postcards-of-us-stamp.webp';
 import './StyleGuidePage.css';
@@ -7,31 +7,42 @@ const colorGroups = [
   {
     label: 'Forest',
     colors: [
-      ['--brand-forest-950', '#0f3028', 'Deep navigation contrast'],
-      ['--brand-forest-900', '#12392f', 'Sidebar and dark surfaces'],
-      ['--brand-forest-800', '#173c31', 'Headings and primary text'],
-      ['--brand-forest-700', '#23493b', 'Logo and supporting surfaces'],
+      ['--brand-forest-950', 'Deep navigation contrast'],
+      ['--brand-forest-900', 'Sidebar and dark surfaces'],
+      ['--brand-forest-800', 'Headings and primary text'],
+      ['--brand-forest-700', 'Logo and supporting surfaces'],
     ],
   },
   {
     label: 'Paper',
     colors: [
-      ['--brand-paper-50', '#fffdf5', 'High-contrast paper'],
-      ['--brand-paper-100', '#f8efd9', 'Stamp and active navigation'],
-      ['--brand-paper-200', '#f7f1e5', 'Main application canvas'],
-      ['--brand-paper-300', '#e8dfc9', 'Map surround and empty states'],
+      ['--brand-paper-50', 'High-contrast paper'],
+      ['--brand-paper-100', 'Stamp and active navigation'],
+      ['--brand-paper-200', 'Main application canvas'],
+      ['--brand-paper-300', 'Map surround and empty states'],
     ],
   },
   {
     label: 'Accent',
     colors: [
-      ['--brand-terracotta-500', '#b95835', 'Primary action and links'],
-      ['--brand-terracotta-700', '#8e3d23', 'Pressed state and borders'],
-      ['--brand-brass-700', '#8e6a32', 'Map and statistic icons'],
-      ['--brand-brass-500', '#bfa477', 'Fine borders and details'],
+      ['--brand-terracotta-500', 'Primary action and links'],
+      ['--brand-terracotta-700', 'Pressed state and borders'],
+      ['--brand-brass-700', 'Map and statistic icons'],
+      ['--brand-brass-500', 'Fine borders and details'],
+    ],
+  },
+  {
+    label: 'Semantic roles',
+    colors: [
+      ['--brand-canvas', 'Default application canvas'],
+      ['--brand-surface', 'Primary paper surface'],
+      ['--brand-ink-muted', 'Supporting copy and metadata'],
+      ['--brand-danger', 'Destructive and error states'],
     ],
   },
 ];
+
+const colorTokens = colorGroups.flatMap(group => group.colors.map(([token]) => token));
 
 const tokenRows = [
   ['--brand-font-display', "'Playfair Display', Georgia, serif", 'Editorial headlines and meaningful numbers'],
@@ -39,7 +50,7 @@ const tokenRows = [
   ['--brand-radius-sm', '4px', 'Tight cards and small controls'],
   ['--brand-radius-md', '7px', 'Buttons, nav items, and cards'],
   ['--brand-radius-lg', '9px', 'Map frame and feature surfaces'],
-  ['--brand-shadow', '0 8px 22px rgba(42, 69, 57, .10)', 'Lifted interactive surfaces'],
+  ['--brand-shadow', 'Defined in canonical tokens', 'Lifted interactive surfaces'],
   ['--brand-shadow-paper', '7px paper edge + soft shadow', 'Atlas/map framing'],
 ];
 
@@ -53,7 +64,36 @@ const spacingRows = [
   ['--brand-space-7', '48px'],
 ];
 
+const layoutRows = [
+  ['--brand-shell-sidebar-width', '224px', 'Desktop navigation reservation'],
+  ['--brand-shell-sidebar-width-compact', '188px', 'Tablet navigation reservation'],
+  ['--brand-shell-gutter', 'clamp(24px, 4vw, 64px)', 'Equal desktop page gutters'],
+  ['--brand-shell-top', '24px', 'Authenticated page start'],
+  ['--brand-shell-bottom', '84px', 'Scroll-safe page end'],
+  ['--brand-control-height', '44px', 'Minimum interactive control height'],
+  ['--brand-control-height-compact', '40px', 'Compact non-touch control height'],
+];
+
+const guideTokens = [...new Set([
+  ...colorTokens,
+  ...tokenRows.map(([token]) => token),
+  ...layoutRows.map(([token]) => token),
+])];
+
+function useTokenValues(tokens) {
+  const [values, setValues] = useState({});
+
+  useEffect(() => {
+    const styles = getComputedStyle(document.documentElement);
+    setValues(Object.fromEntries(tokens.map(token => [token, styles.getPropertyValue(token).trim()])));
+  }, [tokens]);
+
+  return values;
+}
+
 export default function StyleGuidePage() {
+  const tokenValues = useTokenValues(guideTokens);
+
   return (
     <div className="brand-guide">
       <header className="brand-guide-hero">
@@ -87,12 +127,12 @@ export default function StyleGuidePage() {
               <div className="brand-guide-color-group" key={group.label}>
                 <h4>{group.label}</h4>
                 <div className="brand-guide-swatches">
-                  {group.colors.map(([token, value, description]) => (
+                  {group.colors.map(([token, description]) => (
                     <div className="brand-guide-swatch" key={token}>
                       <span className="brand-guide-swatch-color" style={{ background: `var(${token})` }} />
                       <div>
                         <strong>{token}</strong>
-                        <code>{value}</code>
+                        <code>{tokenValues[token] || 'Resolving token…'}</code>
                         <small>{description}</small>
                       </div>
                     </div>
@@ -136,7 +176,7 @@ export default function StyleGuidePage() {
               {tokenRows.map(([token, value, use]) => (
                 <div className="brand-guide-token-row" key={token}>
                   <code>{token}</code>
-                  <span>{value}</span>
+                  <span>{tokenValues[token] || value}</span>
                   <small>{use}</small>
                 </div>
               ))}
@@ -153,6 +193,16 @@ export default function StyleGuidePage() {
                 ))}
               </div>
               <p className="brand-guide-note"><strong>Rule of thumb:</strong> use the smallest spacing for relationships and the larger steps to separate stories.</p>
+            </div>
+            <div className="brand-guide-token-card brand-guide-token-card-wide">
+              <h4>Layout and controls</h4>
+              {layoutRows.map(([token, value, use]) => (
+                <div className="brand-guide-token-row" key={token}>
+                  <code>{token}</code>
+                  <span>{tokenValues[token] || value}</span>
+                  <small>{use}</small>
+                </div>
+              ))}
             </div>
           </div>
         </section>

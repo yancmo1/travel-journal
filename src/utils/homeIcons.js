@@ -2,8 +2,8 @@
 // home badge (dark green circle with a cream glyph), shared between the map
 // (Map.jsx) and the Settings picker so previews always match the marker.
 
-const BADGE_BG = '#12392f';
-const BADGE_FG = '#fff9ec';
+const BADGE_BG = 'var(--brand-forest-900)';
+const BADGE_FG = 'var(--brand-paper-50)';
 
 export const HOME_ICONS = {
   h: {
@@ -45,5 +45,5 @@ export const HOME_ICON_IDS = Object.keys(HOME_ICONS);
 // The full circular badge used as the map's home marker (and its Settings preview).
 export function homeBadgeHtml(iconId) {
   const icon = HOME_ICONS[iconId] || HOME_ICONS.h;
-  return `<div style="background: ${BADGE_BG}; width: 22px; height: 22px; border-radius: 50%; border: 3px solid ${BADGE_FG}; box-shadow: 0 2px 6px rgba(18,57,47,0.28); display: flex; align-items: center; justify-content: center;">${icon.glyph}</div>`;
+  return `<div style="background: ${BADGE_BG}; width: 22px; height: 22px; border-radius: 50%; border: 3px solid ${BADGE_FG}; box-shadow: var(--brand-shadow-marker); display: flex; align-items: center; justify-content: center;">${icon.glyph}</div>`;
 }

@@ -167,8 +167,8 @@ export default function PhotoUploader({ tripId, onUploadComplete, showAnalyzer =
           border-2 border-dashed rounded-lg transition-all
           ${showAnalyzer ? 'p-8 text-center' : 'flex items-center gap-3 px-4 py-3 text-left'}
           ${isDragging 
-            ? 'border-ocean-teal bg-ocean-teal/10' 
-            : 'border-gray-300 bg-gray-50/60 hover:border-ocean-blue hover:bg-ocean-blue/5'
+            ? 'border-brand-forest-700 bg-brand-forest-700/10'
+            : 'border-gray-300 bg-gray-50/60 hover:border-brand-terracotta-500 hover:bg-brand-terracotta-500/5'
           }
           ${uploading ? 'opacity-50 pointer-events-none' : 'cursor-pointer'}
         `}
@@ -192,7 +192,7 @@ export default function PhotoUploader({ tripId, onUploadComplete, showAnalyzer =
         />
 
         <Upload className={`${showAnalyzer ? 'mx-auto mb-3 h-12 w-12' : 'h-6 w-6 shrink-0'} ${
-          isDragging ? 'text-ocean-teal' : 'text-gray-400'
+          isDragging ? 'text-brand-forest-700' : 'text-gray-400'
         }`} />
 
         <div className="min-w-0">
@@ -203,7 +203,7 @@ export default function PhotoUploader({ tripId, onUploadComplete, showAnalyzer =
             {showAnalyzer ? 'or click to browse' : 'Drop here or click to choose'} • JPEG, PNG, HEIC
           </p>
           {showAnalyzer && (
-            <p className="mt-2 text-xs text-ocean-blue">
+            <p className="mt-2 text-xs text-brand-terracotta-500">
               Photos with GPS data will be analyzed for location
             </p>
           )}
@@ -212,7 +212,7 @@ export default function PhotoUploader({ tripId, onUploadComplete, showAnalyzer =
               type="button"
               onClick={() => cameraInputRef.current?.click()}
               disabled={uploading}
-              className="min-h-11 rounded-lg border border-ocean-teal/30 bg-white px-3 py-2 text-xs font-semibold text-ocean-dark hover:bg-ocean-teal/5 disabled:opacity-50"
+              className="min-h-11 rounded-lg border border-brand-forest-700/30 bg-white px-3 py-2 text-xs font-semibold text-brand-forest-800 hover:bg-brand-forest-700/5 disabled:opacity-50"
             >
               Take a photo
             </button>
@@ -220,7 +220,7 @@ export default function PhotoUploader({ tripId, onUploadComplete, showAnalyzer =
               type="button"
               onClick={() => fileInputRef.current?.click()}
               disabled={uploading}
-              className="min-h-11 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-700 hover:border-ocean-blue hover:text-ocean-dark disabled:opacity-50"
+              className="min-h-11 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-700 hover:border-brand-terracotta-500 hover:text-brand-forest-800 disabled:opacity-50"
             >
               Choose from library
             </button>
@@ -278,7 +278,7 @@ export default function PhotoUploader({ tripId, onUploadComplete, showAnalyzer =
                     className="w-full h-24 object-cover rounded-lg border border-gray-200"
                   />
                 ) : (
-                  <div className="flex h-24 w-full flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-ocean-teal/40 bg-ocean-teal/10 px-2 text-center text-ocean-dark">
+                  <div className="flex h-24 w-full flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-brand-forest-700/40 bg-brand-forest-700/10 px-2 text-center text-brand-forest-800">
                     <ImageIcon className="h-6 w-6" aria-hidden="true" />
                     <span className="text-[10px] font-semibold uppercase tracking-wide">HEIC</span>
                     <span className="text-[9px] leading-tight">Converts to JPEG on upload</span>
@@ -309,7 +309,7 @@ export default function PhotoUploader({ tripId, onUploadComplete, showAnalyzer =
         <button
           type="button"
           onClick={uploadPhotos}
-          className="w-full bg-ocean-blue hover:bg-ocean-blue/90 text-white 
+          className="w-full bg-brand-terracotta-500 hover:bg-brand-terracotta-500/90 text-white
                    font-medium px-6 py-3 rounded-lg transition-colors
                    flex items-center justify-center gap-2"
         >
@@ -332,7 +332,7 @@ export default function PhotoUploader({ tripId, onUploadComplete, showAnalyzer =
           </div>
           <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
             <div 
-              className="h-full bg-ocean-blue transition-all duration-300"
+              className="h-full bg-brand-terracotta-500 transition-all duration-300"
               style={{ width: `${progress}%` }}
             />
           </div>

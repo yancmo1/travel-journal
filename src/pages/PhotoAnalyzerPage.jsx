@@ -150,12 +150,12 @@ export default function PhotoAnalyzerPage({ setPage }) {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-orange-50 py-8">
+    <div className="min-h-screen bg-brand-canvas py-8">
       <div className="max-w-6xl mx-auto px-4">
         {/* Header */}
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-3 mb-4">
-            <Sparkles className="h-10 w-10 text-ocean-blue" />
+            <Sparkles className="h-10 w-10 text-brand-terracotta-500" />
             <h1 className="text-4xl font-bold text-gray-900">Photo Intelligence</h1>
           </div>
           <p className="text-lg text-gray-600">
@@ -180,7 +180,7 @@ export default function PhotoAnalyzerPage({ setPage }) {
         {/* Analyzing State */}
         {analyzing && (
           <div className="bg-white rounded-xl shadow-lg p-12 text-center">
-            <div className="animate-spin rounded-full h-16 w-16 border-4 border-ocean-blue border-t-transparent mx-auto mb-4"></div>
+            <div className="animate-spin rounded-full h-16 w-16 border-4 border-brand-terracotta-500 border-t-transparent mx-auto mb-4"></div>
             <h3 className="text-xl font-bold text-gray-900">Analyzing Photos...</h3>
             <p className="text-gray-600 mt-2">Extracting GPS data, dates, and clustering memories</p>
           </div>
@@ -194,27 +194,27 @@ export default function PhotoAnalyzerPage({ setPage }) {
               <h2 className="text-2xl font-bold text-gray-900 mb-4">Analysis Results</h2>
               
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="bg-blue-50 rounded-lg p-4">
-                  <Image className="h-8 w-8 text-ocean-blue mb-2" />
-                  <div className="text-3xl font-bold text-ocean-blue">{analysisResults.totalPhotos}</div>
+                <div className="bg-brand-paper-100 rounded-lg p-4">
+                  <Image className="h-8 w-8 text-brand-terracotta-500 mb-2" />
+                  <div className="text-3xl font-bold text-brand-terracotta-500">{analysisResults.totalPhotos}</div>
                   <div className="text-sm text-gray-600">Total Photos</div>
                 </div>
 
-                <div className="bg-green-50 rounded-lg p-4">
-                  <MapPin className="h-8 w-8 text-green-600 mb-2" />
-                  <div className="text-3xl font-bold text-green-600">{analysisResults.validPhotos}</div>
+                <div className="bg-brand-paper-100 rounded-lg p-4">
+                  <MapPin className="h-8 w-8 text-brand-success mb-2" />
+                  <div className="text-3xl font-bold text-brand-success">{analysisResults.validPhotos}</div>
                   <div className="text-sm text-gray-600">With GPS Data</div>
                 </div>
 
-                <div className="bg-purple-50 rounded-lg p-4">
-                  <Sparkles className="h-8 w-8 text-purple-600 mb-2" />
-                  <div className="text-3xl font-bold text-purple-600">{analysisResults.suggestedTrips.length}</div>
+                <div className="bg-brand-paper-100 rounded-lg p-4">
+                  <Sparkles className="h-8 w-8 text-brand-brass-700 mb-2" />
+                  <div className="text-3xl font-bold text-brand-brass-700">{analysisResults.suggestedTrips.length}</div>
                     <div className="text-sm text-gray-600">Suggested Memories</div>
                 </div>
 
-                <div className="bg-orange-50 rounded-lg p-4">
-                  <AlertTriangle className="h-8 w-8 text-orange-600 mb-2" />
-                  <div className="text-3xl font-bold text-orange-600">{analysisResults.photosWithoutMetadata}</div>
+                <div className="bg-brand-paper-100 rounded-lg p-4">
+                  <AlertTriangle className="h-8 w-8 text-brand-terracotta-700 mb-2" />
+                  <div className="text-3xl font-bold text-brand-terracotta-700">{analysisResults.photosWithoutMetadata}</div>
                   <div className="text-sm text-gray-600">Missing Data</div>
                 </div>
               </div>
@@ -232,7 +232,7 @@ export default function PhotoAnalyzerPage({ setPage }) {
                       onClick={() => toggleSuggestion(index)}
                       className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
                         selectedSuggestions.includes(index)
-                          ? 'border-ocean-blue bg-blue-50'
+                          ? 'border-brand-terracotta-500 bg-brand-paper-100'
                           : 'border-gray-200 hover:border-gray-300'
                       }`}
                     >
@@ -257,16 +257,16 @@ export default function PhotoAnalyzerPage({ setPage }) {
                                 type="text"
                                 value={editedSuggestions[index]?.locationName ?? suggestion.suggestedLocation}
                                 onChange={(e) => setEditField(index, 'locationName', e.target.value)}
-                                className="text-lg font-bold text-gray-900 bg-transparent border-b border-gray-200 focus:outline-none focus:border-ocean-blue"
+                                className="text-lg font-bold text-gray-900 bg-transparent border-b border-gray-200 focus:outline-none focus:border-brand-terracotta-500"
                               />
                               <span className={`px-2 py-1 rounded text-xs font-medium ${
                                 suggestion.confidence >= 80 ? 'bg-green-100 text-green-700' :
-                                suggestion.confidence >= 60 ? 'bg-yellow-100 text-yellow-700' :
+                                suggestion.confidence >= 60 ? 'bg-brand-paper-100 text-brand-brass-700' :
                                 'bg-gray-100 text-gray-700'
                               }`}>
                                 {suggestion.confidence}% Confidence
                               </span>
-                              <span className="px-2 py-1 rounded text-xs font-medium bg-ocean-blue/10 text-ocean-blue">
+                              <span className="px-2 py-1 rounded text-xs font-medium bg-brand-terracotta-500/10 text-brand-terracotta-500">
                                 {suggestion.suggestedTripType}
                               </span>
                             </div>
@@ -312,7 +312,7 @@ export default function PhotoAnalyzerPage({ setPage }) {
                         <div className="ml-4">
                           <div className={`w-6 h-6 rounded border-2 flex items-center justify-center ${
                             selectedSuggestions.includes(index)
-                              ? 'bg-ocean-blue border-ocean-blue'
+                              ? 'bg-brand-terracotta-500 border-brand-terracotta-500'
                               : 'border-gray-300'
                           }`}>
                             {selectedSuggestions.includes(index) && (
@@ -330,7 +330,7 @@ export default function PhotoAnalyzerPage({ setPage }) {
                   <button
                     onClick={createTripsFromSuggestions}
                     disabled={selectedSuggestions.length === 0 || creatingTrips}
-                    className="flex-1 bg-ocean-blue hover:bg-ocean-blue/90 disabled:bg-gray-300 
+                    className="flex-1 bg-brand-terracotta-500 hover:bg-brand-terracotta-500/90 disabled:bg-gray-300
                              text-white font-medium px-6 py-3 rounded-lg transition-colors
                              flex items-center justify-center gap-2"
                   >
@@ -363,8 +363,8 @@ export default function PhotoAnalyzerPage({ setPage }) {
 
             {/* No Suggestions */}
             {analysisResults.suggestedTrips.length === 0 && (
-              <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-8 text-center">
-                <AlertTriangle className="mx-auto h-12 w-12 text-yellow-600 mb-3" />
+              <div className="bg-brand-paper-100 border border-yellow-200 rounded-xl p-8 text-center">
+                <AlertTriangle className="mx-auto h-12 w-12 text-brand-brass-700 mb-3" />
               <h3 className="text-xl font-bold text-gray-900 mb-2">No Memories Detected</h3>
                 <p className="text-gray-600">
                   Photos need GPS coordinates and date/time data for automatic memory detection.

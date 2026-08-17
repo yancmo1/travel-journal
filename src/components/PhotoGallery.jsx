@@ -96,7 +96,7 @@ export default function PhotoGallery({ photos = [], onDelete, onUpdate, onReorde
         {onReorder ? 'Drag photos to reorder them. The cover photo appears first.' : 'Select a photo to view it full-screen.'}
       </p>
       {onUpdate && (
-        <div className="mb-3 rounded-xl border border-ocean-teal/15 bg-ocean-teal/5 p-3">
+        <div className="mb-3 rounded-xl border border-brand-forest-700/15 bg-brand-forest-700/5 p-3">
           <div className="flex flex-wrap items-center gap-2 text-sm">
             <button type="button" onClick={() => setSelectedIds(selectedIds.size === photos.length ? new Set() : new Set(photos.map(photo => photo.id)))} className="rounded-lg border border-gray-200 bg-white px-3 py-2 font-semibold text-gray-700">
               {selectedIds.size === photos.length ? 'Clear selection' : 'Select all'}
@@ -111,7 +111,7 @@ export default function PhotoGallery({ photos = [], onDelete, onUpdate, onReorde
           {bulkCaptionOpen && selectedIds.size > 0 && (
             <div className="mt-3 flex flex-col gap-2 sm:flex-row">
               <input value={bulkCaption} onChange={event => setBulkCaption(event.target.value)} placeholder="Caption for every selected photo" maxLength={2000} className="min-w-0 flex-1 rounded-lg border border-gray-200 px-3 py-2" />
-              <button type="button" onClick={saveBulkCaption} disabled={bulkWorking} className="rounded-lg bg-ocean-blue px-3 py-2 font-semibold text-white disabled:opacity-50">{bulkWorking ? 'Saving…' : 'Apply caption'}</button>
+              <button type="button" onClick={saveBulkCaption} disabled={bulkWorking} className="rounded-lg bg-brand-terracotta-500 px-3 py-2 font-semibold text-white disabled:opacity-50">{bulkWorking ? 'Saving…' : 'Apply caption'}</button>
             </div>
           )}
         </div>
@@ -132,7 +132,7 @@ export default function PhotoGallery({ photos = [], onDelete, onUpdate, onReorde
             <button
               type="button"
               onClick={() => openLightbox(index)}
-              className="relative block aspect-square w-full cursor-pointer group overflow-hidden hover:border-ocean-blue"
+              className="relative block aspect-square w-full cursor-pointer group overflow-hidden hover:border-brand-terracotta-500"
               aria-label={`Open ${photo.filename || `photo ${index + 1}`}`}
             >
               {getPhotoPreviewPath(photo) ? (
@@ -145,7 +145,7 @@ export default function PhotoGallery({ photos = [], onDelete, onUpdate, onReorde
                   className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                 />
               ) : (
-                <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-slate-100 px-3 text-center text-xs font-semibold text-slate-600">
+                <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-brand-paper-200 px-3 text-center text-xs font-semibold text-brand-forest-500">
                   <span aria-hidden="true">◌</span>
                   <span>{photo.processing_status === 'processing_failed' ? 'Processing failed' : 'Processing pending'}</span>
                 </div>
@@ -164,7 +164,7 @@ export default function PhotoGallery({ photos = [], onDelete, onUpdate, onReorde
               )}
 
               {photo.latitude !== null && photo.latitude !== undefined && photo.longitude !== null && photo.longitude !== undefined && (
-                <span className="absolute right-2 top-2 rounded-full bg-ocean-teal p-1 text-white">
+                <span className="absolute right-2 top-2 rounded-full bg-brand-forest-700 p-1 text-white">
                   <MapPin className="h-3 w-3" />
                 </span>
               )}
@@ -224,7 +224,7 @@ export default function PhotoGallery({ photos = [], onDelete, onUpdate, onReorde
                 <button
                   type="button"
                   onClick={() => onUpdate(photo.id, { rotation: nextPhotoRotation(photo) })}
-                  className="flex items-center gap-1 rounded px-1.5 py-1 text-[10px] font-medium text-gray-500 hover:text-ocean-blue"
+                  className="flex items-center gap-1 rounded px-1.5 py-1 text-[10px] font-medium text-gray-500 hover:text-brand-terracotta-500"
                   aria-label={`Rotate ${photo.filename || `photo ${index + 1}`}`}
                 >
                   <RotateCw className="h-3 w-3" /> Rotate

@@ -122,7 +122,7 @@ function SettingsOverview() {
     <div className="settings-overview space-y-6">
       <header className="flex flex-col gap-2">
         <p className="memory-eyebrow">Your settings</p>
-        <h1 className="text-3xl font-semibold text-ocean-dark sm:text-4xl">Keep your family story organized</h1>
+        <h1 className="text-3xl font-semibold text-brand-forest-800 sm:text-4xl">Keep your family story organized</h1>
         <p className="text-gray-600">Manage your home base, plan, backups, and app details in one place.</p>
       </header>
 
@@ -136,12 +136,12 @@ function SettingsOverview() {
         <p className="memory-eyebrow">About this app</p>
         <div className="mt-3 flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h2 className="text-xl font-semibold text-ocean-dark">Postcards of Us</h2>
+            <h2 className="text-xl font-semibold text-brand-forest-800">Postcards of Us</h2>
             <p className="mt-1 text-sm text-gray-600">Private family travel memories, available offline.</p>
           </div>
           <div className="rounded-xl bg-gray-50 px-4 py-3 text-right">
             <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400">App version</p>
-            <p className="mt-1 font-mono text-sm font-semibold text-ocean-dark">v{APP_VERSION}</p>
+            <p className="mt-1 font-mono text-sm font-semibold text-brand-forest-800">v{APP_VERSION}</p>
           </div>
         </div>
       </section>
@@ -154,23 +154,23 @@ function PlanCard() {
   const plan = String(user?.household_plan || 'free').toLowerCase();
   const isBeta = plan === 'beta';
   return (
-    <section className="rounded-2xl border border-ocean-teal/20 bg-gradient-to-br from-white to-sky-50 p-5 shadow-sm" aria-labelledby="plan-heading">
+    <section className="rounded-2xl border border-brand-forest-700/20 bg-gradient-to-br from-white to-brand-paper-100 p-5 shadow-sm" aria-labelledby="plan-heading">
       <p className="memory-eyebrow">Your plan</p>
       <div className="mt-3 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h2 id="plan-heading" className="text-xl font-semibold text-ocean-dark">{isBeta ? 'Founding beta access' : 'Free plan'}</h2>
+          <h2 id="plan-heading" className="text-xl font-semibold text-brand-forest-800">{isBeta ? 'Founding beta access' : 'Free plan'}</h2>
           <p className="mt-1 max-w-2xl text-sm text-gray-600">
             {isBeta
               ? 'You have expanded beta access while we learn what families need. If you need more room, ask us directly.'
               : 'Start with three journeys and approximately 150 photos or 250 MB. Your stories remain available when you reach a limit.'}
           </p>
         </div>
-        <span className="rounded-full bg-ocean-teal/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-ocean-dark">
+        <span className="rounded-full bg-brand-forest-700/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-brand-forest-800">
           {isBeta ? 'Beta' : 'Free'}
         </span>
       </div>
       {!isBeta && (
-        <div className="mt-4 rounded-xl border border-dashed border-ocean-teal/30 bg-white/70 p-3 text-sm text-gray-700">
+        <div className="mt-4 rounded-xl border border-dashed border-brand-forest-700/30 bg-white/70 p-3 text-sm text-gray-700">
           <strong>Need more room later?</strong> Plus will add more storage, journeys, sharing, and support. You’ll be able to upgrade when it becomes useful—not before.
         </div>
       )}
@@ -300,7 +300,7 @@ function HomeBaseCard() {
     <section className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
       <p className="memory-eyebrow">Home base</p>
       <div className="mt-3">
-        <h2 className="text-xl font-semibold text-ocean-dark">Where is home?</h2>
+        <h2 className="text-xl font-semibold text-brand-forest-800">Where is home?</h2>
         <p className="mt-1 text-sm text-gray-600">
           This pins the home marker on your map. A full street address places it exactly; a city or
           zip code gets you close. We need at least a city or zip code.
@@ -316,7 +316,7 @@ function HomeBaseCard() {
           onChange={event => handleQueryChange(event.target.value)}
           onBlur={() => setTimeout(() => setResults([]), 150)}
           placeholder="e.g. 123 Main St, Edmond, OK 73003  or  73112"
-          className="mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-800 focus:border-ocean-teal focus:outline-none focus:ring-2 focus:ring-ocean-teal/20"
+          className="mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-800 focus:border-brand-forest-700 focus:outline-none focus:ring-2 focus:ring-brand-forest-700/20"
           autoComplete="off"
         />
         {results.length > 0 && (
@@ -327,7 +327,7 @@ function HomeBaseCard() {
                 type="button"
                 role="option"
                 onMouseDown={() => pickResult(result)}
-                className="block w-full px-4 py-2 text-left text-sm text-ocean-dark hover:bg-blue-50 border-b last:border-b-0"
+                className="block w-full px-4 py-2 text-left text-sm text-brand-forest-800 hover:bg-brand-paper-100 border-b last:border-b-0"
               >
                 {result.display_name}
               </button>
@@ -357,7 +357,7 @@ function HomeBaseCard() {
                 onClick={() => { setIcon(iconId); setSaved(false); }}
                 aria-pressed={isActive}
                 className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-sm transition-colors ${
-                  isActive ? 'border-ocean-teal bg-ocean-teal/10 text-ocean-dark' : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+                  isActive ? 'border-brand-forest-700 bg-brand-forest-700/10 text-brand-forest-800' : 'border-gray-200 text-gray-600 hover:bg-gray-50'
                 }`}
               >
                 <span dangerouslySetInnerHTML={{ __html: homeBadgeHtml(iconId) }} />
@@ -373,7 +373,7 @@ function HomeBaseCard() {
           type="button"
           onClick={handleSave}
           disabled={saving}
-          className="rounded-lg bg-ocean-teal px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-teal-600 disabled:opacity-50"
+          className="rounded-lg bg-brand-forest-700 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-forest-800 disabled:opacity-50"
         >
           {saving ? 'Saving…' : 'Save home base'}
         </button>

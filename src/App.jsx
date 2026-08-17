@@ -45,8 +45,8 @@ function AppContent() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-sky-100 via-blue-50 to-orange-50 flex items-center justify-center">
-        <div className="text-ocean-blue text-xl">Loading...</div>
+      <div className="min-h-screen bg-brand-paper-200 flex items-center justify-center">
+        <div className="text-brand-terracotta-500 text-xl">Loading...</div>
       </div>
     );
   }

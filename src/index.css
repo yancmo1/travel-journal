@@ -14,6 +14,8 @@ body {
   color: #23302c;
   font-family: 'DM Sans', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   overflow-x: hidden;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 .bug-reporter-trigger {
@@ -444,7 +446,6 @@ body {
   font-size: 14px;
 }
 
-.memory-nav button:hover,
 .memory-nav button.is-active {
   color: white;
   background: rgba(255,255,255,.1);
@@ -1687,7 +1688,7 @@ body {
 .settings-content h1,
 .settings-content h2,
 .settings-content h3,
-.settings-content .text-ocean-dark {
+.settings-content .text-brand-forest-800 {
   color: var(--brand-forest-800) !important;
   font-family: var(--brand-font-display);
 }
@@ -1718,29 +1719,29 @@ body {
   box-shadow: none !important;
 }
 
-.settings-content .bg-ocean-blue,
-.settings-content .bg-sunset-orange,
+.settings-content .bg-brand-terracotta-500,
+.settings-content .bg-brand-terracotta-500,
 .settings-content .bg-amber-700 {
   color: var(--brand-paper-50) !important;
   background: var(--brand-terracotta-500) !important;
 }
 
-.settings-content .bg-ocean-blue:hover,
-.settings-content .bg-sunset-orange:hover,
+.settings-content .bg-brand-terracotta-500:hover,
+.settings-content .bg-brand-terracotta-500:hover,
 .settings-content .bg-amber-700:hover {
   background: var(--brand-terracotta-600) !important;
 }
 
-.settings-content .border-ocean-blue,
-.settings-content .text-ocean-blue,
-.settings-content .border-ocean-teal,
-.settings-content .text-ocean-teal {
+.settings-content .border-brand-terracotta-500,
+.settings-content .text-brand-terracotta-500,
+.settings-content .border-brand-forest-700,
+.settings-content .text-brand-forest-700 {
   color: var(--brand-forest-700) !important;
   border-color: rgba(35, 73, 59, .38) !important;
 }
 
-.settings-content .border-ocean-blue:hover,
-.settings-content .border-ocean-teal:hover {
+.settings-content .border-brand-terracotta-500:hover,
+.settings-content .border-brand-forest-700:hover {
   color: var(--brand-forest-800) !important;
   border-color: var(--brand-terracotta-500) !important;
   background: var(--brand-paper-100) !important;
@@ -1792,12 +1793,12 @@ body {
   box-shadow: 0 12px 24px rgba(42, 69, 57, .12) !important;
 }
 
-.settings-people .bg-ocean-teal\/10 {
+.settings-people .bg-brand-forest-700\/10 {
   color: var(--brand-forest-700) !important;
   background: rgba(220, 236, 227, .85) !important;
 }
 
-.settings-people .bg-sunset-orange {
+.settings-people .bg-brand-terracotta-500 {
   background: var(--brand-terracotta-500) !important;
 }
 
@@ -1835,7 +1836,7 @@ body {
 }
 
 .settings-cleanup table tbody tr:hover,
-.settings-cleanup table tbody tr.bg-blue-50\/60 {
+.settings-cleanup table tbody tr.bg-brand-paper-100\/60 {
   background: rgba(240, 215, 174, .25) !important;
 }
 
@@ -1929,18 +1930,18 @@ body {
   box-shadow: none !important;
 }
 
-.memories-page > .bg-white .bg-ocean-blue,
+.memories-page > .bg-white .bg-brand-terracotta-500,
 .memories-page > .bg-white .bg-gray-100 {
   color: var(--brand-forest-700) !important;
   background: var(--brand-paper-100) !important;
 }
 
-.memories-page > .bg-white .bg-ocean-blue {
+.memories-page > .bg-white .bg-brand-terracotta-500 {
   color: var(--brand-paper-50) !important;
   background: var(--brand-terracotta-500) !important;
 }
 
-.memories-page > .bg-white .bg-ocean-blue:hover { background: var(--brand-terracotta-600) !important; }
+.memories-page > .bg-white .bg-brand-terracotta-500:hover { background: var(--brand-terracotta-600) !important; }
 
 .memories-page .location-backfill-card {
   color: var(--brand-forest-800);
@@ -1973,17 +1974,17 @@ body {
 }
 
 .memories-page > .grid > .bg-white h3,
-.memories-page > .grid > .bg-white .text-ocean-dark {
+.memories-page > .grid > .bg-white .text-brand-forest-800 {
   color: var(--brand-forest-800) !important;
   font-family: var(--brand-font-display);
 }
 
 .memories-page > .grid > .bg-white .border-t { border-color: var(--brand-border) !important; }
-.memories-page > .grid > .bg-white .text-ocean-teal,
-.memories-page > .grid > .bg-white .text-ocean-blue { color: var(--brand-forest-700) !important; }
+.memories-page > .grid > .bg-white .text-brand-forest-700,
+.memories-page > .grid > .bg-white .text-brand-terracotta-500 { color: var(--brand-forest-700) !important; }
 .memories-page > .grid > .bg-white .text-red-500 { color: var(--brand-terracotta-700) !important; }
-.memories-page > .grid > .bg-white .bg-ocean-teal\/10,
-.memories-page > .grid > .bg-white .bg-sunset-orange\/10 { background: rgba(240, 215, 174, .5) !important; color: var(--brand-terracotta-700) !important; }
+.memories-page > .grid > .bg-white .bg-brand-forest-700\/10,
+.memories-page > .grid > .bg-white .bg-brand-terracotta-500\/10 { background: rgba(240, 215, 174, .5) !important; color: var(--brand-terracotta-700) !important; }
 
 .memories-page > .bg-white.p-12 {
   min-height: 280px;
@@ -1993,7 +1994,7 @@ body {
 }
 
 .memories-page > .bg-white.p-12 h3 { color: var(--brand-forest-800) !important; font-family: var(--brand-font-display); }
-.memories-page > .bg-white.p-12 .bg-sunset-orange { background: var(--brand-terracotta-500) !important; }
+.memories-page > .bg-white.p-12 .bg-brand-terracotta-500 { background: var(--brand-terracotta-500) !important; }
 
 @media (max-width: 920px) {
   .memories-page > .bg-white > .flex {
@@ -2056,22 +2057,22 @@ body {
   box-shadow: none !important;
 }
 
-.memory-form-shell .bg-ocean-teal,
-.memory-form-shell .bg-ocean-blue,
+.memory-form-shell .bg-brand-forest-700,
+.memory-form-shell .bg-brand-terracotta-500,
 .memory-form-shell .bg-gradient-to-r {
   color: var(--brand-paper-50) !important;
   background: var(--brand-terracotta-500) !important;
   background-image: none !important;
 }
 
-.memory-form-shell .bg-ocean-teal:hover,
-.memory-form-shell .bg-ocean-blue:hover { background: var(--brand-terracotta-600) !important; }
+.memory-form-shell .bg-brand-forest-700:hover,
+.memory-form-shell .bg-brand-terracotta-500:hover { background: var(--brand-terracotta-600) !important; }
 .memory-form-shell .bg-gray-100,
 .memory-form-shell .bg-gray-50 { background: var(--brand-paper-100) !important; }
-.memory-form-shell .text-ocean-blue,
-.memory-form-shell .text-ocean-teal { color: var(--brand-forest-700) !important; }
-.memory-form-shell .border-ocean-blue\/20,
-.memory-form-shell .border-ocean-teal\/30 { border-color: rgba(191, 164, 119, .55) !important; }
+.memory-form-shell .text-brand-terracotta-500,
+.memory-form-shell .text-brand-forest-700 { color: var(--brand-forest-700) !important; }
+.memory-form-shell .border-brand-terracotta-500\/20,
+.memory-form-shell .border-brand-forest-700\/30 { border-color: rgba(191, 164, 119, .55) !important; }
 
 .memory-photos-shell .photo-modal-heading {
   color: var(--brand-paper-50);
@@ -2092,7 +2093,7 @@ body {
 
 .memory-detail-modal h2,
 .trip-delete-modal h3 { color: var(--brand-forest-800) !important; font-family: var(--brand-font-display); }
-.memory-detail-modal .bg-ocean-teal\/10 { color: var(--brand-forest-700) !important; background: rgba(220, 236, 227, .8) !important; }
+.memory-detail-modal .bg-brand-forest-700\/10 { color: var(--brand-forest-700) !important; background: rgba(220, 236, 227, .8) !important; }
 .trip-delete-modal .bg-red-500 { background: var(--brand-terracotta-700) !important; }
 .trip-delete-modal button:not(.bg-red-500) { border-color: var(--brand-brass-500); color: var(--brand-forest-700); }
 
@@ -2161,19 +2162,19 @@ body {
 .journey-stop-copy > p,
 .journey-stop-copy > button { color: var(--brand-terracotta-600); }
 
-.memory-photos-shell .bg-ocean-blue,
-.memory-photos-shell .bg-ocean-teal {
+.memory-photos-shell .bg-brand-terracotta-500,
+.memory-photos-shell .bg-brand-forest-700 {
   background: var(--brand-terracotta-500) !important;
 }
 
-.memory-photos-shell .bg-ocean-blue:hover,
-.memory-photos-shell .bg-ocean-teal:hover { background: var(--brand-terracotta-600) !important; }
+.memory-photos-shell .bg-brand-terracotta-500:hover,
+.memory-photos-shell .bg-brand-forest-700:hover { background: var(--brand-terracotta-600) !important; }
 .memory-photos-shell .bg-white { background: var(--brand-paper-50) !important; }
 .memory-photos-shell .border-gray-100 { border-color: var(--brand-border) !important; }
-.memory-photos-shell .border-ocean-teal\/15 { border-color: rgba(191, 164, 119, .45) !important; }
-.memory-photos-shell .bg-ocean-teal\/5 { background: rgba(220, 236, 227, .68) !important; }
-.memory-photos-shell .text-ocean-blue,
-.memory-photos-shell .text-ocean-teal { color: var(--brand-forest-700) !important; }
+.memory-photos-shell .border-brand-forest-700\/15 { border-color: rgba(191, 164, 119, .45) !important; }
+.memory-photos-shell .bg-brand-forest-700\/5 { background: rgba(220, 236, 227, .68) !important; }
+.memory-photos-shell .text-brand-terracotta-500,
+.memory-photos-shell .text-brand-forest-700 { color: var(--brand-forest-700) !important; }
 .memory-photos-shell .bg-gray-50 { background: var(--brand-paper-100) !important; }
 
 .timeline-page {
@@ -2208,11 +2209,11 @@ body {
   box-shadow: var(--brand-shadow) !important;
 }
 
-.timeline-page > section.border-l-2 > button .bg-ocean-teal {
+.timeline-page > section.border-l-2 > button .bg-brand-forest-700 {
   background: var(--brand-terracotta-500) !important;
 }
 
-.timeline-page .bg-orange-50\/70 {
+.timeline-page .bg-brand-paper-100\/70 {
   background: rgba(240, 215, 174, .42) !important;
   border-color: rgba(191, 164, 119, .55) !important;
 }
@@ -2223,8 +2224,8 @@ body {
 }
 
 .timeline-page > button:hover { background: var(--brand-terracotta-600) !important; }
-.timeline-page .text-ocean-teal { color: var(--brand-forest-700) !important; }
-.timeline-page .text-sunset-orange { color: var(--brand-terracotta-500) !important; }
+.timeline-page .text-brand-forest-700 { color: var(--brand-forest-700) !important; }
+.timeline-page .text-brand-terracotta-500 { color: var(--brand-terracotta-500) !important; }
 
 /* Compact page starts: keep the paper canvas present without wasting the
    first viewport on empty space. */
@@ -2252,11 +2253,12 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-ocean-teal/50 rounded-full;
+  @apply rounded-full;
+  background: rgba(35, 73, 59, .5);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  @apply bg-ocean-teal;
+  @apply bg-brand-forest-700;
 }
 
 /* Map popup customization */
@@ -2291,7 +2293,8 @@ input:focus,
 select:focus, 
 textarea:focus,
 button:focus {
-  @apply outline-none ring-2 ring-ocean-teal ring-offset-1;
+  outline: 2px solid var(--brand-forest-700);
+  outline-offset: 1px;
 }
 
 /* Line clamp utility */
@@ -3702,7 +3705,6 @@ button:focus {
   stroke-width: 1.6;
 }
 
-.memory-nav button:hover,
 .memory-nav button.is-active {
   color: #18352d;
   background: #f7ecd5;
@@ -4422,11 +4424,20 @@ body {
   border-radius: var(--brand-radius-md);
 }
 
-.memory-nav button:hover,
 .memory-nav button.is-active {
   color: var(--brand-forest-800);
   background: var(--brand-paper-100);
   border-color: var(--brand-paper-100);
+}
+
+/* Hover is a pointer-only enhancement. iOS can retain touch hover states,
+   which otherwise makes previously visited mobile nav buttons look active. */
+@media (hover: hover) and (pointer: fine) {
+  .memory-nav button:hover {
+    color: var(--brand-forest-800);
+    background: var(--brand-paper-100);
+    border-color: var(--brand-paper-100);
+  }
 }
 
 .dashboard-intro h1,
@@ -4858,7 +4869,7 @@ body {
 .people-row-copy span { color: var(--brand-forest-500); font-size: 12px; }
 .people-row-copy small { color: var(--brand-terracotta-700); font-size: 11px; font-weight: 700; }
 .people-status { padding: 4px 7px; color: var(--brand-forest-500); background: var(--brand-paper-100); border-radius: 999px; font-size: 10px; font-weight: 700; }
-.people-more { display: grid; width: 30px; height: 30px; flex: 0 0 auto; place-items: center; color: var(--brand-forest-600); background: transparent; border: 1px solid transparent; border-radius: 7px; }
+.people-more { display: grid; width: 30px; height: 30px; flex: 0 0 auto; place-items: center; color: var(--brand-forest-500); background: transparent; border: 1px solid transparent; border-radius: 7px; }
 .people-more:hover { color: var(--brand-forest-800); background: var(--brand-paper-100); border-color: var(--brand-border); }
 .people-row-organize { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 0 10px 43px; }
 .people-order-label { color: var(--brand-forest-500); font-size: 11px; }
@@ -4909,6 +4920,12 @@ body {
 }
 
 @media (max-width: 760px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+
   :root {
     --mobile-gutter: 16px;
     --mobile-nav-height: 74px;
@@ -4948,7 +4965,15 @@ body {
   .memory-main {
     width: 100%;
     margin: 0;
+    box-sizing: border-box;
     padding: 18px var(--mobile-gutter) calc(var(--mobile-nav-height) + env(safe-area-inset-bottom) + 24px);
+  }
+
+  /* Keep page content on one shared reading edge. Full-bleed surfaces such as
+     the mobile nav and modal shells remain outside this page-content rule. */
+  .memory-main > * {
+    width: 100%;
+    box-sizing: border-box;
   }
 
   .memory-nav-mobile {
@@ -4962,6 +4987,16 @@ body {
     background: rgba(18, 57, 47, .98);
     border-top: 1px solid rgba(255, 248, 228, .18);
     box-shadow: 0 -10px 24px rgba(18, 57, 47, .14);
+  }
+
+  /* Let the bottom bar span the visual viewport instead of stopping at the
+     layout viewport's scrollbar gutter. This keeps page scrollbars above the
+     bar's edge on browsers that reserve scrollbar width. */
+  .memory-nav-mobile {
+    left: 50%;
+    right: auto;
+    width: 100vw;
+    transform: translateX(-50%);
   }
 
   .memory-nav-mobile button {
@@ -5121,36 +5156,6 @@ body {
   .dashboard-stat-copy strong { font-size: 20px; }
   .dashboard-stat-copy span { font-size: 10px; }
   .memory-nav-mobile button { font-size: 9px; }
-}
-
-/* Desktop shell: reserve the fixed sidebar first, then center each page
-   surface inside the remaining viewport with fluid gutters. */
-@media (min-width: 921px) {
-  .memory-main {
-    width: calc(100% - 224px);
-    margin-left: 224px;
-    padding: clamp(32px, 4vw, 56px) clamp(24px, 4vw, 64px) 84px;
-    box-sizing: border-box;
-  }
-
-  .memory-main > * {
-    width: min(100%, 1220px);
-    margin-inline: auto;
-  }
-}
-
-@media (min-width: 761px) and (max-width: 920px) {
-  .memory-main {
-    width: calc(100% - 188px);
-    margin-left: 188px;
-    padding: 32px 20px 84px;
-    box-sizing: border-box;
-  }
-
-  .memory-main > * {
-    width: 100%;
-    margin-inline: auto;
-  }
 }
 
 @media (min-width: 761px) {
@@ -5361,7 +5366,7 @@ body {
 }
 
 .landing-brand-tagline {
-  color: var(--brand-forest-600);
+  color: var(--brand-forest-500);
 }
 
 .memory-login-tagline {
@@ -5843,7 +5848,7 @@ body {
   line-height: 1.55;
 }
 
-.landing-plan-card-free .landing-plan-intro { color: var(--brand-forest-600); }
+.landing-plan-card-free .landing-plan-intro { color: var(--brand-forest-500); }
 .landing-plan-card-plus .landing-plan-intro { color: var(--brand-paper-200); }
 
 .landing-plan-list {
@@ -6181,4 +6186,58 @@ body {
   .getting-started-primary, .getting-started-secondary { width: 100%; }
   .getting-started-sample { grid-template-columns: 1fr; }
   .getting-started-sample > svg { transform: rotate(90deg); justify-self: center; }
+}
+
+/* Canonical page lane: this is intentionally the final shell rule so older
+   responsive experiments cannot reintroduce per-page centering or a larger
+   first-viewport gap. */
+@media (min-width: 921px) {
+  .memory-main {
+    width: calc(100% - var(--brand-shell-sidebar-width));
+    margin-left: var(--brand-shell-sidebar-width);
+    padding: var(--brand-shell-top) var(--brand-shell-gutter) var(--brand-shell-bottom) !important;
+    box-sizing: border-box;
+  }
+
+  .memory-main > * {
+    width: 100%;
+    max-width: none;
+    margin-inline: 0;
+  }
+
+  .memory-main > .dashboard-sample {
+    width: 100%;
+    max-width: none;
+    margin-inline: 0;
+  }
+
+  .memory-main > .dashboard-sample .dashboard-intro,
+  .memory-main > .journeys-page .journeys-hero {
+    padding-top: 0;
+  }
+}
+
+@media (min-width: 761px) and (max-width: 920px) {
+  .memory-main {
+    width: calc(100% - var(--brand-shell-sidebar-width-compact));
+    margin-left: var(--brand-shell-sidebar-width-compact);
+    padding: var(--brand-shell-top) 20px var(--brand-shell-bottom) !important;
+    box-sizing: border-box;
+  }
+
+  .memory-main > * {
+    width: 100%;
+    max-width: none;
+    margin-inline: 0;
+  }
+
+  .memory-main > .dashboard-sample {
+    max-width: none;
+    margin-inline: 0;
+  }
+
+  .memory-main > .dashboard-sample .dashboard-intro,
+  .memory-main > .journeys-page .journeys-hero {
+    padding-top: 0;
+  }
 }

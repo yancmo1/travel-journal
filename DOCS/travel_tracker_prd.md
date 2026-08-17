@@ -108,25 +108,22 @@ The app should allow easy bulk import or have sample data for testing. Initial t
 - **Containerization**: Docker + Docker Compose
 - **Reverse Proxy**: Nginx (optional, for HTTPS)
 
-### Design System - Ocean Sunset Theme
+### Design System - Forest, Paper, and Terracotta
 **Color Palette:**
-- **Primary**: Deep Ocean Blue `#1E3A8A` (sky blue at dusk)
-- **Secondary**: Sunset Orange `#FB923C` (warm sunset glow)
-- **Accent**: Coral Pink `#F472B6` (sunset reflections)
-- **Sunrise Yellow**: `#FCD34D` (morning sun)
-- **Ocean Teal**: `#14B8A6` (tropical waters)
-- **Sky Gradient**: `#60A5FA` to `#3B82F6` (clear blue sky)
-- **Neutral**: Soft Sand `#F5F5F4` (beach sand)
-- **Dark**: Deep Navy `#0F172A` (night sky)
-- **Success**: Ocean Green `#10B981`
+- **Forest**: Deep navigation and structural contrast, defined by the `--brand-forest-*` tokens
+- **Paper**: Warm canvas and surfaces, defined by the `--brand-paper-*` tokens
+- **Terracotta**: Primary actions, links, and emphasis, defined by the `--brand-terracotta-*` tokens
+- **Brass**: Fine borders, map accents, and archival details, defined by the `--brand-brass-*` tokens
+- **Display**: Playfair Display for editorial headings and meaningful numbers
+- **Body**: DM Sans for navigation, labels, controls, and body copy
 
 **Usage:**
-- Headers/Navigation: Deep Ocean Blue with Sunset Orange accents
-- Buttons: Gradient from Sunset Orange to Coral Pink
+- Headers/Navigation: Forest with Paper active states and Terracotta accents
+- Buttons: Terracotta primary actions with quiet Paper/Forest secondary actions
 - Map pins: Color-coded by trip type using palette
-- Cards: White/Sand with subtle Ocean Teal borders
-- Analytics charts: Multi-color using full palette
-- Background: Subtle gradient from Sky Blue to Soft Sand
+- Cards: Paper with Brass or Forest borders
+- Analytics charts: Forest, Terracotta, and Brass series
+- Background: Subtle Paper gradient with Forest and Terracotta atmosphere
 
 ### Data Schema (PostgreSQL)
 
@@ -231,13 +228,13 @@ CREATE TABLE photos (
    - Fun facts (furthest trip, most visited place, etc.)
 
 ### Design Guidelines
-- Ocean sunset theme with warm, inviting colors
+- Forest, Paper, and Terracotta theme with warm, inviting colors
 - Clean, modern interface suitable for a couple tracking memories
 - Easy to use on desktop and mobile devices
 - Large, readable fonts
 - Intuitive navigation
 - Photo-centric design showcasing travel memories
-- Gradient backgrounds evoking sunrise/sunset over ocean
+- Gradient backgrounds evoking paper, foliage, and warm terracotta light
 
 ## Functional Requirements
 
@@ -352,7 +349,7 @@ CREATE TABLE photos (
 ## Success Criteria
 - User can add all historical trips in under 30 minutes
 - Bulk photo upload suggests trips automatically
-- Map displays all locations accurately with beautiful ocean-themed markers
+- Map displays all locations accurately with beautiful brand-themed markers
 - Analytics calculate correctly with fun insights
 - Site loads in under 3 seconds
 - Works on mobile Safari and Chrome
@@ -387,7 +384,7 @@ travel-tracker/
 ├── frontend/
 │   ├── src/
 │   │   ├── components/
-│   │   │   ├── Map.jsx (interactive map with ocean theme)
+│   │   │   ├── Map.jsx (interactive map with the Forest/Paper/Terracotta theme)
 │   │   │   ├── TripForm.jsx (add/edit trip form)
 │   │   │   ├── TripList.jsx (list/grid view)
 │   │   │   ├── Analytics.jsx (dashboard with fun stats)
@@ -408,7 +405,7 @@ travel-tracker/
 │   │   │   └── auth.js (JWT token management)
 │   │   ├── App.jsx
 │   │   ├── main.jsx
-│   │   └── index.css (Tailwind + custom ocean theme)
+│   │   └── index.css (Tailwind + custom brand theme)
 │   ├── package.json
 │   └── vite.config.js
 │
@@ -507,7 +504,7 @@ PHOTO_STORAGE_PATH=/path/to/external/drive/travel-photos
 ## Questions for User (to refine before build)
 
 **ANSWERED:**
-- ✅ Preferred color scheme or theme? **Ocean sunset palette (blues, oranges, corals, teals)**
+- ✅ Preferred color scheme or theme? **Forest/Paper/Terracotta palette with Brass details**
 - ✅ Any specific analytics you want to see? **Duration, miles from home, trips per year/decade, fun analytics**
 - ✅ Do you want to track who went on each trip? **YES - track couple vs. family trips**
 

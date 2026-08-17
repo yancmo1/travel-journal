@@ -49,19 +49,19 @@ export default function Dashboard({ setPage }) {
           icon={<Image aria-hidden="true" />}
           label="memories"
           value={summary.totalTrips || 0}
-          color="ocean"
+          color="forest"
         />
         <StatCard
           icon={<MapPin aria-hidden="true" />}
           label="places"
           value={summary.uniqueLocations || 0}
-          color="teal"
+          color="terracotta"
         />
         <StatCard
           icon={<Navigation aria-hidden="true" />}
           label="miles"
           value={summary.totalMiles?.toLocaleString() || 0}
-          color="sunset"
+          color="brass"
         />
       </div>
 
@@ -151,7 +151,7 @@ function TripDetailModal({ trip, onClose, onEdit }) {
         <div className="p-6">
           <div className="flex items-start justify-between mb-4">
             <div>
-              <h2 className="text-xl font-bold text-ocean-dark">
+              <h2 className="text-xl font-bold text-brand-forest-800">
                 {trip.location_name}
               </h2>
               <MemoryPlaceDetails memory={trip} className="mt-2" />
@@ -165,7 +165,7 @@ function TripDetailModal({ trip, onClose, onEdit }) {
               {onEdit && (
                 <button
                   onClick={onEdit}
-                  className="px-3 py-1.5 text-sm font-medium text-ocean-blue hover:bg-blue-50 rounded-lg transition-colors"
+                  className="px-3 py-1.5 text-sm font-medium text-brand-terracotta-500 hover:bg-brand-paper-100 rounded-lg transition-colors"
                   aria-label="Edit this memory"
                 >
                   Edit
@@ -212,7 +212,7 @@ function TripDetailModal({ trip, onClose, onEdit }) {
                 <h4 className="font-medium text-gray-700 mb-2">Travelers</h4>
                 <div className="flex flex-wrap gap-2">
                   {trip.travelers.map(t => (
-                    <span key={t.id} className="px-3 py-1 bg-ocean-teal/10 text-ocean-teal rounded-full text-sm">
+                    <span key={t.id} className="px-3 py-1 bg-brand-forest-700/10 text-brand-forest-700 rounded-full text-sm">
                       {t.name}
                     </span>
                   ))}
@@ -234,11 +234,11 @@ function formatDate(dateStr) {
 
 function getTripTypeColor(type) {
   const colors = {
-    'Road Trip': 'bg-green-100 text-green-700',
-    'Flight': 'bg-blue-100 text-blue-700',
-    'Cruise': 'bg-purple-100 text-purple-700',
-    'Day Trip': 'bg-yellow-100 text-yellow-700',
-    'Other': 'bg-gray-100 text-gray-700',
+    'Road Trip': 'bg-brand-paper-100 text-brand-forest-700',
+    'Flight': 'bg-brand-paper-100 text-brand-forest-700',
+    'Cruise': 'bg-brand-paper-100 text-brand-terracotta-700',
+    'Day Trip': 'bg-brand-paper-100 text-brand-brass-700',
+    'Other': 'bg-brand-paper-100 text-brand-forest-500',
   };
   return colors[type] || colors['Other'];
 }

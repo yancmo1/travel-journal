@@ -24,26 +24,26 @@ export default function TimelinePage({ setPage }) {
     <div className="timeline-page space-y-7">
       <header>
         <p className="memory-eyebrow">The long view</p>
-        <h1 className="mt-2 text-3xl font-semibold text-ocean-dark sm:text-4xl">Our timeline</h1>
+        <h1 className="mt-2 text-3xl font-semibold text-brand-forest-800 sm:text-4xl">Our timeline</h1>
         <p className="mt-2 text-gray-600">A gentle way to wander through the years, with today’s memories waiting at the top.</p>
       </header>
 
       {onThisDay.length > 0 && (
-        <section className="rounded-2xl border border-sunset-orange/20 bg-orange-50/70 p-5 shadow-sm">
+        <section className="rounded-2xl border border-brand-terracotta-500/20 bg-brand-paper-100/70 p-5 shadow-sm">
           <p className="memory-eyebrow">On this day</p>
-          <h2 className="mt-1 text-2xl font-semibold text-ocean-dark">{formatDateOnly(today, { month: 'long', day: 'numeric' })}</h2>
+          <h2 className="mt-1 text-2xl font-semibold text-brand-forest-800">{formatDateOnly(today, { month: 'long', day: 'numeric' })}</h2>
           <div className="mt-4 grid gap-3 md:grid-cols-2">
             {onThisDay.map(memory => <TimelineCard key={memory.id} memory={memory} onEdit={setEditingTrip} />)}
           </div>
         </section>
       )}
 
-      <section className="relative border-l-2 border-ocean-teal/20 pl-5 sm:pl-8">
+      <section className="relative border-l-2 border-brand-forest-700/20 pl-5 sm:pl-8">
         {timeline.map(memory => <TimelineCard key={memory.id} memory={memory} timeline onEdit={setEditingTrip} />)}
         {!timeline.length && <div className="memory-empty -ml-5">Add a memory to begin the timeline.</div>}
       </section>
 
-      <button type="button" onClick={() => setPage('trips')} className="rounded-full bg-ocean-blue px-5 py-3 font-semibold text-white hover:bg-ocean-dark">
+      <button type="button" onClick={() => setPage('trips')} className="rounded-full bg-brand-terracotta-500 px-5 py-3 font-semibold text-white hover:bg-brand-forest-800">
         Add or edit memories
       </button>
 
@@ -64,19 +64,19 @@ function TimelineCard({ memory, timeline = false, onEdit }) {
     <button
       type="button"
       onClick={() => onEdit(memory)}
-      className="relative mb-5 block w-full rounded-2xl border border-gray-100 bg-white p-4 text-left shadow-sm transition hover:border-ocean-teal/40 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-ocean-teal focus:ring-offset-2"
+      className="relative mb-5 block w-full rounded-2xl border border-gray-100 bg-white p-4 text-left shadow-sm transition hover:border-brand-forest-700/40 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-brand-forest-700 focus:ring-offset-2"
       aria-label={`Edit memory at ${memory.location_name}`}
     >
-      {timeline && <span className="absolute -left-[2.05rem] top-5 h-4 w-4 rounded-full border-4 border-[#f5f0e8] bg-ocean-teal sm:-left-[2.55rem]" aria-hidden="true" />}
+      {timeline && <span className="absolute -left-[2.05rem] top-5 h-4 w-4 rounded-full border-4 border-brand-canvas bg-brand-forest-700 sm:-left-[2.55rem]" aria-hidden="true" />}
       <div className="flex gap-4">
         {photo && <img src={`/photos/${photo.thumbnail_path || photo.file_path}`} alt={photo.caption || memory.location_name} width={photo.width || 96} height={photo.height || 96} style={getPhotoImageStyle(photo)} className="h-20 w-20 shrink-0 rounded-xl object-cover sm:h-24 sm:w-24" />}
         <div className="min-w-0">
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-sunset-orange">{formatMemoryDate(memory)}</p>
-          <h3 className="mt-1 text-xl font-semibold text-ocean-dark">{memory.location_name}</h3>
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-terracotta-500">{formatMemoryDate(memory)}</p>
+          <h3 className="mt-1 text-xl font-semibold text-brand-forest-800">{memory.location_name}</h3>
           <MemoryPlaceDetails memory={memory} className="mt-1" />
           <p className="text-sm text-gray-500">{[memory.city, memory.state, memory.country].filter(Boolean).join(', ') || memory.trip_type}</p>
           {memory.notes && <p className="mt-2 line-clamp-2 text-sm text-gray-600">{memory.notes}</p>}
-          {memory.travelers?.length > 0 && <p className="mt-2 text-xs text-ocean-teal">With {memory.travelers.map(person => person.name).join(', ')}</p>}
+          {memory.travelers?.length > 0 && <p className="mt-2 text-xs text-brand-forest-700">With {memory.travelers.map(person => person.name).join(', ')}</p>}
         </div>
       </div>
     </button>

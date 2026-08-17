@@ -166,11 +166,15 @@ npm run dev
 
 ## Theme
 
-The app uses an **Ocean Sunset** color palette:
-- 🔵 Ocean Blue (#1E3A8A) - Headers, buttons
-- 🟠 Sunset Orange (#FB923C) - Accents, Road Trip markers
-- 🩷 Coral Pink (#F472B6) - Hover states
-- 🩵 Ocean Teal (#14B8A6) - Flight markers
+The app uses the **Newer Forest / Paper / Terracotta** system:
+- Forest — navigation, structure, and primary text
+- Paper — canvas, surfaces, and active navigation
+- Terracotta — primary actions, links, and attention states
+- Brass — fine borders, map/stat accents, and archival details
+
+The implementation contract lives in `DOCS/DESIGN_SYSTEM.md`; the canonical
+values live in `src/styles/brand-tokens.css` and are exposed to Tailwind via
+`tailwind.config.cjs`.
 
 ## Production Deployment
 

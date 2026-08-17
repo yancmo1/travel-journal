@@ -43,12 +43,12 @@ export default function BetaTesterInvitePanel() {
     <div className="settings-section-stack settings-beta-testers space-y-6">
       <section className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
         <div className="flex items-start gap-4">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-ocean-blue/10 text-ocean-blue" aria-hidden="true">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-terracotta-500/10 text-brand-terracotta-500" aria-hidden="true">
             <MailPlus size={22} strokeWidth={1.8} />
           </div>
           <div className="min-w-0 flex-1">
             <p className="memory-eyebrow">Private beta</p>
-            <h2 className="mt-1 text-xl font-semibold text-ocean-dark">Invite a beta tester</h2>
+            <h2 className="mt-1 text-xl font-semibold text-brand-forest-800">Invite a beta tester</h2>
             <p className="mt-2 max-w-none text-sm leading-6 text-gray-600">
               Send someone a private invitation to try Postcards of Us. They’ll receive a secure link to create an account and start their own memory site.
             </p>
@@ -98,7 +98,7 @@ export default function BetaTesterInvitePanel() {
               </label>
               <button
                 type="submit"
-                className="inline-flex items-center justify-center gap-2 rounded-lg bg-ocean-blue px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex items-center justify-center gap-2 rounded-lg bg-brand-terracotta-500 px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
                 disabled={working}
               >
                 <Send size={16} aria-hidden="true" />
@@ -115,12 +115,12 @@ export default function BetaTesterInvitePanel() {
           </div>
         )}
         {message && fallbackLink && (
-          <div className="mt-4 rounded-xl border border-ocean-blue/20 bg-ocean-blue/5 p-4 text-sm text-ocean-dark">
+          <div className="mt-4 rounded-xl border border-brand-terracotta-500/20 bg-brand-terracotta-500/5 p-4 text-sm text-brand-forest-800">
             <p className="font-semibold">Email service accepted the invitation.</p>
             <p className="mt-1 text-xs leading-5">The email may still take a moment to arrive. This private link expires in 7 days. Only send it to the invited person.</p>
             <div className="mt-3 flex flex-col gap-2 sm:flex-row">
               <input value={fallbackLink} readOnly aria-label="Fallback invitation link" className="min-w-0 flex-1 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs" />
-              <button type="button" className="rounded-lg border border-ocean-blue px-3 py-2 text-xs font-semibold text-ocean-blue" onClick={async () => { await navigator.clipboard?.writeText(fallbackLink); setCopied(true); }}>{copied ? 'Copied' : 'Copy private link'}</button>
+              <button type="button" className="rounded-lg border border-brand-terracotta-500 px-3 py-2 text-xs font-semibold text-brand-terracotta-500" onClick={async () => { await navigator.clipboard?.writeText(fallbackLink); setCopied(true); }}>{copied ? 'Copied' : 'Copy private link'}</button>
             </div>
           </div>
         )}

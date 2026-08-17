@@ -10,10 +10,10 @@ export default function TripList({ trips = [], onEdit, onDelete }) {
           <div key={t.id} className="p-2 border rounded flex justify-between items-start">
             <div>
               <div className="font-semibold">{t.location?.name || 'Unknown'}</div>
-              <div className="text-sm text-slate-600">{t.startDate ? formatDateDisplay(t.startDate) : 'Date TBD'}</div>
+              <div className="text-sm text-brand-forest-500">{t.startDate ? formatDateDisplay(t.startDate) : 'Date TBD'}</div>
             </div>
             <div className="flex flex-col gap-2">
-              <button onClick={() => onEdit && onEdit(t)} className="text-sm text-blue-600">Edit</button>
+              <button onClick={() => onEdit && onEdit(t)} className="text-sm text-brand-terracotta-500">Edit</button>
               <button onClick={() => onDelete && onDelete(t.id)} className="text-sm text-red-600">Delete</button>
             </div>
           </div>

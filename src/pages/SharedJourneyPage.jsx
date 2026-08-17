@@ -12,22 +12,22 @@ export default function SharedJourneyPage({ token }) {
     api.getSharedJourney(token).then(setJourney).catch(err => setError(err.message || 'This private link is unavailable.'));
   }, [token]);
 
-  if (error) return <main className="flex min-h-screen items-center justify-center bg-[#f5f0e8] p-6"><div className="rounded-2xl bg-white p-8 text-center shadow-sm"><h1 className="text-2xl font-semibold text-ocean-dark">Private journey unavailable</h1><p className="mt-2 text-gray-600">{error}</p><a className="mt-5 inline-block font-semibold text-ocean-teal" href="/">Open Postcards of Us</a></div></main>;
-  if (!journey) return <main className="flex min-h-screen items-center justify-center bg-[#f5f0e8] text-ocean-dark">Loading private journey…</main>;
+  if (error) return <main className="flex min-h-screen items-center justify-center bg-brand-canvas p-6"><div className="rounded-2xl bg-brand-surface p-8 text-center shadow-sm"><h1 className="text-2xl font-semibold text-brand-forest-800">Private journey unavailable</h1><p className="mt-2 text-brand-ink-muted">{error}</p><a className="mt-5 inline-block font-semibold text-brand-forest-700" href="/">Open Postcards of Us</a></div></main>;
+  if (!journey) return <main className="flex min-h-screen items-center justify-center bg-brand-canvas text-brand-forest-800">Loading private journey…</main>;
 
   return (
-    <main className="mx-auto min-h-screen max-w-5xl bg-[#fffdf9] px-5 py-8 text-[#23302c] sm:px-10 sm:py-12">
-      <header className="border-b border-ocean-teal/10 pb-8">
+    <main className="mx-auto min-h-screen max-w-5xl bg-brand-surface px-5 py-8 text-brand-ink sm:px-10 sm:py-12">
+      <header className="border-b border-brand-forest-700/10 pb-8">
         <p className="memory-eyebrow">A private family story</p>
-        <h1 className="mt-2 text-4xl font-semibold text-ocean-dark sm:text-6xl">{journey.title}</h1>
+        <h1 className="mt-2 text-4xl font-semibold text-brand-forest-800 sm:text-6xl">{journey.title}</h1>
         <p className="mt-3 text-gray-600">{formatJourneyDate(journey)}</p>
         {journey.summary && <p className="mt-4 max-w-2xl text-lg leading-relaxed text-gray-700">{journey.summary}</p>}
       </header>
       <div className="mt-8 space-y-10">
         {journey.memories.map((memory, index) => (
           <article key={memory.id} className="border-b border-gray-100 pb-8">
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-sunset-orange">Stop {index + 1} · {formatMemoryDate(memory)}</p>
-            <h2 className="mt-2 text-3xl font-semibold text-ocean-dark">{memory.location_name}</h2>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-brand-terracotta-500">Stop {index + 1} · {formatMemoryDate(memory)}</p>
+            <h2 className="mt-2 text-3xl font-semibold text-brand-forest-800">{memory.location_name}</h2>
             <MemoryPlaceDetails memory={memory} className="mt-2" />
             <p className="mt-1 text-gray-500">{[memory.city, memory.state, memory.country].filter(Boolean).join(', ')}</p>
             {memory.notes && <p className="mt-4 max-w-3xl whitespace-pre-wrap leading-relaxed text-gray-700">{memory.notes}</p>}
