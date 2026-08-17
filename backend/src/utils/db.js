@@ -185,6 +185,18 @@ export async function initDatabase() {
   await query('ALTER TABLE photos ADD COLUMN IF NOT EXISTS is_cover BOOLEAN NOT NULL DEFAULT false');
   await query('ALTER TABLE photos ADD COLUMN IF NOT EXISTS rotation INTEGER NOT NULL DEFAULT 0');
   await query(`
+    CREATE TABLE IF NOT EXISTS password_reset_tokens (
+      id UUID PRIMARY KEY,
+      user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      token_hash VARCHAR(64) NOT NULL UNIQUE,
+      expires_at TIMESTAMP NOT NULL,
+      used_at TIMESTAMP,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+  await query('CREATE INDEX IF NOT EXISTS idx_password_reset_user_id ON password_reset_tokens(user_id)');
+  await query('CREATE INDEX IF NOT EXISTS idx_password_reset_expires_at ON password_reset_tokens(expires_at)');
+  await query(`
     WITH ranked AS (
       SELECT id, ROW_NUMBER() OVER (PARTITION BY trip_id ORDER BY uploaded_at NULLS LAST, id) - 1 AS position
       FROM photos
