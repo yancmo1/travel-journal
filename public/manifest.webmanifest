@@ -12,13 +12,13 @@
   "categories": ["lifestyle", "photo", "travel"],
   "prefer_related_applications": false,
   "background_color": "#f5f0e8",
-  "theme_color": "#1e3730",
+  "theme_color": "#12392f",
   "icons": [
     {
       "src": "/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any"
+      "purpose": "any maskable"
     },
     {
       "src": "/icon-512.png",

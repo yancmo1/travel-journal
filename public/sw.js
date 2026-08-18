@@ -1,5 +1,5 @@
-const CACHE_NAME = 'postcards-of-us-shell-v4';
-const SHELL_FILES = ['/', '/index.html', '/manifest.webmanifest', '/icon.svg', '/icon-192.png', '/icon-512.png'];
+const CACHE_NAME = 'postcards-of-us-shell-v7';
+const SHELL_FILES = ['/', '/index.html', '/manifest.webmanifest', '/icon-192.png', '/icon-512.png'];
 
 self.addEventListener('message', event => {
   if (event.data?.type === 'SKIP_WAITING') self.skipWaiting();

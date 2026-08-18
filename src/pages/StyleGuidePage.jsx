@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { ArrowRight, Camera, Check, Image, MapPin, Menu, Navigation, Settings, X } from 'lucide-react';
-import stampLogo from '../../assets/postcards-of-us-stamp.webp';
+import logo from '../../assets/postcards-of-us-logo.png';
 import './StyleGuidePage.css';
 
 const colorGroups = [
@@ -104,7 +104,7 @@ export default function StyleGuidePage() {
             This is the living visual reference for the product. The examples below use the same CSS custom properties that power the site.
           </p>
         </div>
-        <img className="brand-guide-logo" src={stampLogo} alt="Postcards of Us stamp logo" />
+        <img className="brand-guide-logo" src={logo} alt="Postcards of Us logo" />
       </header>
 
       <nav className="brand-guide-index" aria-label="Style guide sections">

@@ -1,6 +1,6 @@
 import React from 'react';
 import { BookOpen, Camera, MapPin, Milestone, Share2 } from 'lucide-react';
-import stampLogo from '../../assets/postcards-of-us-stamp.webp';
+import logo from '../../assets/postcards-of-us-logo.png';
 import postmark from '../../assets/postmark.webp';
 import travelPaperBackground from '../../assets/travel-paper-background.webp';
 import alaskaPostcard from '../../assets/alaska-postcard.webp';
@@ -36,8 +36,7 @@ export default function LandingPage() {
     <main className="landing-page" style={{ '--landing-paper-art': `url(${travelPaperBackground})` }}>
       <nav className="landing-nav" aria-label="Public navigation">
         <a className="landing-brand" href="/" aria-label="Postcards of Us home">
-          <span className="landing-brand-stamp" aria-hidden="true"><img src={stampLogo} alt="" width="1122" height="1402" /></span>
-          <span className="landing-brand-tagline">Our story, one memory at a time</span>
+          <span className="landing-brand-stamp"><img src={logo} alt="Postcards of Us" width="1254" height="1584" /></span>
         </a>
         <div className="landing-nav-actions">
           <span className="landing-beta-label">Free to begin</span>

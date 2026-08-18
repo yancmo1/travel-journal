@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
+import logo from '../../assets/postcards-of-us-logo.png';
 
 export default function InvitationPage({ token }) {
   const { user, registerInvitation } = useAuth();
@@ -41,7 +42,7 @@ export default function InvitationPage({ token }) {
   return (
     <main className="memory-login">
       <section className="memory-login-story">
-        <a className="memory-login-brand" href="/"><span className="memory-brand-mark">P</span><span>Postcards of Us</span></a>
+        <a className="memory-login-brand" href="/"><img className="memory-login-logo" src={logo} alt="Postcards of Us" /></a>
         <div><p className="memory-eyebrow">You’re invited</p><h1>A family story has a place for you.</h1><p>Join their memories—and keep the freedom to begin a story of your own.</p></div>
         <p className="memory-login-footnote">One account. Every family site you belong to.</p>
       </section>

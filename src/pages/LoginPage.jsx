@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
-import stampLogo from '../../assets/postcards-of-us-stamp.webp';
+import logo from '../../assets/postcards-of-us-logo.png';
 import travelPaperBackground from '../../assets/travel-paper-background.webp';
 
 export default function LoginPage() {
@@ -49,8 +49,7 @@ export default function LoginPage() {
     <main className="memory-login" style={{ '--login-paper-art': `url(${travelPaperBackground})` }}>
       <section className="memory-login-story">
         <a className="memory-login-brand" href="/" aria-label="Postcards of Us home">
-          <span className="memory-login-stamp" aria-hidden="true"><img src={stampLogo} alt="" width="1122" height="1402" /></span>
-          <span className="memory-login-tagline">Our story, one memory at a time</span>
+          <span className="memory-login-stamp"><img src={logo} alt="Postcards of Us" width="1254" height="1584" /></span>
         </a>
         <div>
           <p className="memory-eyebrow">A life traveled together</p>

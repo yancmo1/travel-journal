@@ -5217,7 +5217,7 @@ body {
 }
 
 .landing-brand-stamp {
-  width: 82px;
+  width: 122px;
   height: auto;
   transform: rotate(-2deg);
 }
@@ -5350,9 +5350,16 @@ body {
 }
 
 .memory-login-stamp {
-  width: 96px;
+  width: 126px;
   height: auto;
   transform: rotate(-2deg);
+}
+
+.memory-login-logo {
+  display: block;
+  width: 150px;
+  max-width: 100%;
+  height: auto;
 }
 
 .landing-brand-tagline,

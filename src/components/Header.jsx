@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Briefcase, CalendarDays, Compass, Home, Image, Settings, ShieldCheck } from 'lucide-react';
-import stampLogo from '../../assets/postcards-of-us-stamp.webp';
+import logo from '../../assets/postcards-of-us-logo.png';
 import api from '../utils/api';
 
 const navItems = [
@@ -44,10 +44,9 @@ export default function Header({ currentPage, setPage }) {
             onClick={() => setPage('dashboard')}
             aria-label="Go to memories"
           >
-            <span className="memory-brand-stamp" aria-hidden="true">
-              <img src={stampLogo} alt="" width="1122" height="1402" />
+            <span className="memory-brand-stamp">
+              <img src={logo} alt="Postcards of Us" width="1254" height="1584" />
             </span>
-            <span className="memory-brand-subtitle">our story, one memory at a time</span>
           </button>
 
           <nav className="memory-nav hidden md:flex" aria-label="Main navigation">
