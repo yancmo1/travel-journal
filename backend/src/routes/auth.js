@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import { ensureUserHousehold, query } from '../utils/db.js';
 import { createSession, destroySession, getSessionUser } from '../utils/sessions.js';
@@ -197,6 +198,101 @@ router.post('/logout', async (req, res, next) => {
   try {
     await destroySession(req, res);
     res.json({ ok: true });
+  } catch (err) {
+    next(err);
+  }
+});
+
+function hashToken(token) {
+  return crypto.createHash('sha256').update(token).digest('hex');
+}
+
+async function sendPasswordResetEmail(email, resetUrl) {
+  if (!process.env.RESEND_API_KEY || !process.env.EMAIL_FROM) return;
+
+  const subject = 'Reset your Postcards of Us password';
+  const text = [
+    'Hi,',
+    '',
+    'We received a request to reset the password for your Postcards of Us account.',
+    '',
+    `Open this link to choose a new password (valid for 1 hour):`,
+    resetUrl,
+    '',
+    'If you did not request a password reset, you can safely ignore this email.',
+    '',
+    '— Postcards of Us',
+  ].join('\n');
+  const safeUrl = String(resetUrl).replace(/[&<>'"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[c]);
+  const html = `<p>Hi,</p><p>We received a request to reset the password for your Postcards of Us account.</p><p><a href="${safeUrl}">Reset your password</a> (link valid for 1 hour)</p><p>If you did not request a password reset, you can safely ignore this email.</p><p>— Postcards of Us</p>`;
+
+  const response = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      authorization: `******
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify({ from: process.env.EMAIL_FROM, to: [email], subject, text, html }),
+  });
+  if (!response.ok) throw new Error(`Password reset email failed with status ${response.status}`);
+}
+
+// Request password reset
+router.post('/forgot-password', async (req, res, next) => {
+  const GENERIC_MESSAGE = 'If an account with that email exists, a reset link has been sent.';
+  try {
+    const email = normalizeEmail(req.body.email);
+    if (!validEmail(email)) return res.json({ message: GENERIC_MESSAGE });
+
+    const result = await query('SELECT id FROM users WHERE email = $1', [email]);
+    if (result.rows.length === 0) return res.json({ message: GENERIC_MESSAGE });
+
+    const userId = result.rows[0].id;
+    const rawToken = crypto.randomBytes(32).toString('hex');
+    const tokenHash = hashToken(rawToken);
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+    await query(
+      `INSERT INTO password_reset_tokens (id, user_id, token_hash, expires_at)
+       VALUES ($1, $2, $3, $4)`,
+      [crypto.randomUUID(), userId, tokenHash, expiresAt.toISOString()],
+    );
+
+    const appUrl = String(process.env.APP_URL || 'https://postcardsofus.com').replace(/\/$/, '');
+    const resetUrl = `${appUrl}/?reset=${rawToken}`;
+    await sendPasswordResetEmail(email, resetUrl);
+
+    return res.json({ message: GENERIC_MESSAGE });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Complete password reset
+router.post('/reset-password', async (req, res, next) => {
+  try {
+    const { token, password } = req.body || {};
+    if (!token || !password) return res.status(400).json({ error: 'Token and password are required.' });
+    if (typeof password !== 'string' || password.length < 12) {
+      return res.status(400).json({ error: 'Password must be at least 12 characters.' });
+    }
+    if (password.length > 128) return res.status(400).json({ error: 'Password must be 128 characters or fewer.' });
+
+    const tokenHash = hashToken(String(token));
+    const result = await query(
+      `SELECT id, user_id FROM password_reset_tokens
+       WHERE token_hash = $1 AND used_at IS NULL AND expires_at > NOW()`,
+      [tokenHash],
+    );
+    if (result.rows.length === 0) return res.status(400).json({ error: 'This reset link is invalid or has expired.' });
+
+    const { id: tokenId, user_id: userId } = result.rows[0];
+    const passwordHash = await bcrypt.hash(password, 10);
+
+    await query('UPDATE users SET password_hash = $1 WHERE id = $2', [passwordHash, userId]);
+    await query('UPDATE password_reset_tokens SET used_at = NOW() WHERE id = $1', [tokenId]);
+
+    return res.json({ message: 'Your password has been updated. You can now sign in.' });
   } catch (err) {
     next(err);
   }
