@@ -5192,7 +5192,11 @@ body {
 }
 
 .landing-nav {
-  min-height: 94px;
+  /* The standalone iOS PWA draws beneath the translucent status bar. Keep
+     the brand and primary account action inside the usable top safe area. */
+  min-height: calc(94px + env(safe-area-inset-top));
+  padding-top: env(safe-area-inset-top);
+  box-sizing: border-box;
   border-bottom: 1px solid rgba(34, 69, 57, .18);
 }
 
@@ -5421,7 +5425,7 @@ body {
 
 @media (max-width: 820px) {
   .landing-page { background-attachment: scroll; }
-  .landing-nav { min-height: 78px; }
+  .landing-nav { min-height: calc(78px + env(safe-area-inset-top)); }
   .landing-hero { padding-top: 48px; }
 }
 
