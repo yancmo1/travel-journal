@@ -143,15 +143,15 @@ export default function AnalyticsPage() {
           <div className="grid grid-cols-2 gap-4">
             <div className="p-4 bg-gradient-to-br from-brand-terracotta-500/10 to-transparent rounded-lg">
               <div className="text-2xl font-bold text-brand-forest-800">{distance.totalMiles?.toLocaleString()}</div>
-              <div className="text-sm text-gray-500">Miles All Time</div>
+              <div className="text-sm text-gray-500">Estimated Miles All Time</div>
             </div>
             <div className="p-4 bg-gradient-to-br from-brand-forest-700/10 to-transparent rounded-lg">
               <div className="text-2xl font-bold text-brand-forest-800">{distance.milesThisYear?.toLocaleString()}</div>
-              <div className="text-sm text-gray-500">Miles This Year</div>
+              <div className="text-sm text-gray-500">Estimated Miles This Year</div>
             </div>
             <div className="p-4 bg-gradient-to-br from-brand-terracotta-500/10 to-transparent rounded-lg">
               <div className="text-2xl font-bold text-brand-forest-800">{distance.milesThisDecade?.toLocaleString()}</div>
-              <div className="text-sm text-gray-500">Miles This Decade</div>
+              <div className="text-sm text-gray-500">Estimated Miles This Decade</div>
             </div>
             <div className="p-4 bg-gradient-to-br from-brand-terracotta-600/10 to-transparent rounded-lg">
               <div className="text-2xl font-bold text-brand-forest-800">{distance.furthestFromHome?.miles?.toLocaleString() || 0}</div>
@@ -163,6 +163,11 @@ export default function AnalyticsPage() {
               Furthest destination: <strong>{distance.furthestFromHome.location}</strong>
             </div>
           )}
+          <p className="mt-4 text-sm text-gray-500">
+            {distance.homeBaseConfigured === false
+              ? 'Set a home base to calculate estimated round-trip miles.'
+              : `Estimated from home through each standalone memory, or through the ordered stops in a journey. ${distance.mappedMemories ?? summary.totalTrips ?? 0} of ${summary.totalTrips ?? 0} memories have mapped locations.`}
+          </p>
         </div>
       </div>
 

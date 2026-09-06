@@ -1,10 +1,10 @@
 import React from 'react'
-import { totalDistanceMiles } from '../utils/calculations'
+import { buildTravelDistanceSummary } from '../utils/travelDistance'
 
-export default function Analytics({ trips = [] }) {
+export default function Analytics({ trips = [], home = null }) {
   const totalTrips = trips.length
   const uniqueLocations = new Set(trips.map(t => t.location?.name || '')).size
-  const miles = totalDistanceMiles(trips)
+  const distance = buildTravelDistanceSummary(trips, home)
 
   return (
     <div>
@@ -12,7 +12,7 @@ export default function Analytics({ trips = [] }) {
       <div className="text-sm text-slate-700">
         <div>Total memories: <strong>{totalTrips}</strong></div>
         <div>Unique locations: <strong>{uniqueLocations}</strong></div>
-        <div>Total miles (approx): <strong>{Math.round(miles)}</strong></div>
+        <div>Estimated round-trip miles: <strong>{Math.round(distance.totalMiles)}</strong></div>
       </div>
     </div>
   )

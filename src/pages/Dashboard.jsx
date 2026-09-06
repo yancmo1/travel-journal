@@ -62,7 +62,7 @@ export default function Dashboard({ setPage }) {
         />
         <StatCard
           icon={<Navigation aria-hidden="true" />}
-          label="miles"
+          label="estimated miles"
           value={summary.totalMiles?.toLocaleString() || 0}
           color="brass"
         />

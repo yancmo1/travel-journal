@@ -4,6 +4,7 @@ import bcrypt from 'bcryptjs';
 import worker from '../worker/sites-static.js';
 import { createD1Database } from './helpers/d1.js';
 import { MemoryR2 } from './helpers/r2.js';
+import { buildTravelDistanceSummary } from '../src/utils/travelDistance.js';
 
 function context() {
   return { waitUntil() {} };
@@ -88,6 +89,9 @@ test('authenticated route contract returns bounded shapes and security headers',
       assert.equal(body.analytics_scope.total_trips, 1);
       assert.equal(body.analytics_scope.included_trips, 1);
       assert.equal(body.analytics_scope.truncated, false);
+      assert.equal(body.distance.estimateMethod, 'round_trip');
+      assert.equal(body.distance.mappedMemories, 0);
+      assert.equal(body.distance.unmappedMemories, 1);
     }
     if (path === '/api/admin/operations') {
       assert.deepEqual(body.email, { provider: 'resend', sender_configured: false, delivery_configured: false });
@@ -186,6 +190,27 @@ test('Operations access is reserved for yancmo@gmail.com', async () => {
     headers: { cookie: cookieFrom(login) },
   }), { DB, MEDIA }, context());
   assert.equal(operations.status, 403);
+  DB.close();
+});
+
+test('analytics counts standalone round trips and journey routes from home', async () => {
+  const { DB, env, cookie } = await fixture();
+  await DB.batch([
+    DB.prepare('UPDATE users SET home_latitude = ?, home_longitude = ? WHERE id = 1').bind(0, 0),
+    DB.prepare('UPDATE trips SET latitude = ?, longitude = ?, start_date = ?, journey_id = ?, journey_order = ? WHERE id = 1').bind(0, 1, '2024-06-01', 1, 1),
+    DB.prepare('INSERT INTO trips (household_id, location_name, latitude, longitude, start_date, journey_id, journey_order, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?)').bind(1, 'Journey stop 2', 0, 2, '2024-06-02', 1, 2, 1),
+    DB.prepare('INSERT INTO trips (household_id, location_name, latitude, longitude, start_date, created_by) VALUES (?, ?, ?, ?, ?, ?)').bind(1, 'Standalone stop', 0, 3, '2025-06-01', 1),
+  ]);
+
+  const rows = (await DB.prepare('SELECT id, latitude, longitude, start_date, journey_id, journey_order FROM trips WHERE household_id = 1 ORDER BY id').all()).results;
+  const expected = buildTravelDistanceSummary(rows, { latitude: 0, longitude: 0 });
+  const response = await worker.fetch(request('/api/analytics', { headers: { cookie } }), env, context());
+  assert.equal(response.status, 200);
+  const body = await response.json();
+  assert.equal(body.distance.totalMiles, Math.round(expected.totalMiles));
+  assert.equal(body.distance.mappedMemories, 3);
+  assert.equal(body.distance.unmappedMemories, 0);
+  assert.equal(body.distance.estimateMethod, 'round_trip');
   DB.close();
 });
 

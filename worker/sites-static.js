@@ -1,5 +1,6 @@
 import bcrypt from 'bcryptjs';
 import { BACKUP_PREFIX, distinctMediaKeys, isSafeMediaKey, uploadMediaKey } from './lib/media.js';
+import { buildTravelDistanceSummary, haversineDistance, milesForDecade, milesForYear } from '../src/utils/travelDistance.js';
 
 const jsonHeaders = { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' };
 const encoder = new TextEncoder();
@@ -1832,30 +1833,21 @@ function tripDuration(start, end) {
   return Number.isFinite(first) && Number.isFinite(last) ? Math.max(1, Math.round((last - first) / 86400000) + 1) : 0;
 }
 
-function haversine(aLat, aLon, bLat, bLon) {
-  const radius = 3958.8;
-  const radians = value => Number(value) * Math.PI / 180;
-  const dLat = radians(bLat - aLat);
-  const dLon = radians(bLon - aLon);
-  const value = Math.sin(dLat / 2) ** 2 + Math.cos(radians(aLat)) * Math.cos(radians(bLat)) * Math.sin(dLon / 2) ** 2;
-  return 2 * radius * Math.asin(Math.sqrt(value));
-}
-
 function homeDistanceMiles(user, latitude, longitude) {
   if (user?.home_latitude == null || user?.home_longitude == null || latitude == null || longitude == null) return null;
-  const values = [user.home_latitude, user.home_longitude, latitude, longitude].map(Number);
-  if (values.some(value => !Number.isFinite(value))) return null;
-  return haversine(values[0], values[1], values[2], values[3]);
+  return haversineDistance(
+    { latitude: user.home_latitude, longitude: user.home_longitude },
+    { latitude, longitude },
+  );
 }
 
-function analytics(trips, travelers) {
+function analytics(trips, travelers, user) {
   const now = new Date();
   const currentYear = now.getUTCFullYear();
   const currentDecade = `${Math.floor(currentYear / 10) * 10}s`;
   const durations = trips.filter(trip => trip.start_date).map(trip => tripDuration(trip.start_date, trip.end_date));
-  const ordered = trips.filter(trip => trip.latitude != null && trip.longitude != null).sort((a, b) => String(a.start_date || '').localeCompare(String(b.start_date || '')));
-  let totalMiles = 0;
-  for (let index = 1; index < ordered.length; index += 1) totalMiles += haversine(ordered[index - 1].latitude, ordered[index - 1].longitude, ordered[index].latitude, ordered[index].longitude);
+  const distanceSummary = buildTravelDistanceSummary(trips, user);
+  const totalMiles = distanceSummary.totalMiles;
   const tripsByYear = {};
   const tripsByDecade = {};
   const types = {};
@@ -1883,7 +1875,16 @@ function analytics(trips, travelers) {
   return {
     summary: { totalTrips: trips.length, uniqueLocations: Object.keys(locations).length, countries: new Set(trips.map(t => t.country).filter(Boolean)).size, states: new Set(trips.map(t => t.state).filter(Boolean)).size, totalDaysTraveled: totalDays, totalMiles: Math.round(totalMiles) },
     duration: { avgTripLength: durations.length ? Number((totalDays / durations.length).toFixed(1)) : 0, longestTrip: durations.length ? Math.max(...durations) : 0, shortestTrip: durations.length ? Math.min(...durations) : 0, totalDays },
-    distance: { totalMiles: Math.round(totalMiles), milesThisYear: 0, milesThisDecade: 0, furthestFromHome: furthest ? { location: furthest.location_name, miles: Math.round(furthest.home_distance_miles) } : null },
+    distance: {
+      totalMiles: Math.round(totalMiles),
+      milesThisYear: Math.round(milesForYear(distanceSummary.routes, currentYear)),
+      milesThisDecade: Math.round(milesForDecade(distanceSummary.routes, Math.floor(currentYear / 10) * 10)),
+      furthestFromHome: furthest ? { location: furthest.location_name, miles: Math.round(furthest.home_distance_miles) } : null,
+      estimateMethod: 'round_trip',
+      homeBaseConfigured: distanceSummary.homeBaseConfigured,
+      mappedMemories: distanceSummary.mappedMemoryCount,
+      unmappedMemories: distanceSummary.unmappedMemoryCount,
+    },
     frequency: { tripsByYear, tripsByDecade, tripsThisYear: tripsByYear[currentYear] || 0, tripsThisDecade: tripsByDecade[currentDecade] || 0, busiestYear: years.sort((a, b) => (tripsByYear[b] || 0) - (tripsByYear[a] || 0))[0] || null, travelStreak: 0 },
     types,
     travelers: { breakdown: travelerBreakdown, coupleOnlyTrips: trips.filter(trip => trip.travelers.length === 2 && trip.travelers.some(t => t.relationship === 'husband') && trip.travelers.some(t => t.relationship === 'wife')).length },
@@ -3735,12 +3736,15 @@ async function handleFetch(request, env, ctx) {
       if (url.pathname === '/api/analytics' && request.method === 'GET') {
         const tripData = await analyticsTripRows(env, user.household_id, env.MAX_ANALYTICS_TRIPS);
         const travelerRows = (await env.DB.prepare('SELECT * FROM travelers WHERE household_id = ?').bind(user.household_id).all()).results || [];
+        const analyticsResult = analytics(tripData.trips, travelerRows, user);
         return json({
-          ...analytics(tripData.trips, travelerRows),
+          ...analyticsResult,
           analytics_scope: {
             total_trips: tripData.totalTrips,
             included_trips: tripData.trips.length,
             truncated: tripData.truncated,
+            mapped_memories: analyticsResult.distance.mappedMemories,
+            unmapped_memories: analyticsResult.distance.unmappedMemories,
           },
         });
       }
