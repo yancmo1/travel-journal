@@ -15,12 +15,16 @@ status: active
 - Sessions: JWT signed with `JWT_SECRET` or secure HTTP-only sessions
 - Default JWT lifetime: seven days unless `JWT_EXPIRES_IN` overrides it
 - Sign-in identity: verified email and password
-- Public registration: disabled unless `ALLOW_PUBLIC_REGISTRATION=true`
+- Public registration: disabled unless `ALLOW_PUBLIC_REGISTRATION=true`; when
+  enabled, `MAX_TOTAL_ACCOUNTS` caps all public and invitation-created accounts
+  (15 by default).
 
 ## Beta policy
 
-Keep this flow unchanged for the invite-only beta. Verify existing account and
-invitation behavior before expanding access.
+The current beta uses controlled public registration with a 15-account ceiling.
+Public and invitation-created accounts share the same cap. Keep the site and
+each household's memories private behind sign-in, and verify email delivery
+before treating the flow as fully operational.
 
 ## Reconciliation item
 

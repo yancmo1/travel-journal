@@ -196,6 +196,18 @@ function validEmail(value) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) && value.length <= 254;
 }
 
+const REGISTRATION_FULL_ERROR = 'The limited beta is full. Signups are closed for now.';
+
+function maxTotalAccounts(env) {
+  const configured = Number(env?.MAX_TOTAL_ACCOUNTS);
+  return Number.isInteger(configured) && configured > 0 ? configured : 15;
+}
+
+async function registrationCapacityAvailable(env, maximum) {
+  const row = await env.DB.prepare('SELECT COUNT(*) AS count FROM users').first();
+  return Number(row?.count || 0) < maximum;
+}
+
 function normalizePlaceQuery(value) {
   return String(value || '').replace(/\s+/g, ' ').trim().toLowerCase();
 }
@@ -2110,6 +2122,10 @@ async function handleFetch(request, env, ctx) {
       if (!featureEnabled(env, 'ALLOW_PUBLIC_REGISTRATION', false)) {
         return json({ error: 'An invitation is required to create an account.' }, { status: 403 });
       }
+      const maximumAccounts = maxTotalAccounts(env);
+      if (!(await registrationCapacityAvailable(env, maximumAccounts))) {
+        return json({ error: REGISTRATION_FULL_ERROR }, { status: 409 });
+      }
       const body = await parseJson(request);
       const email = normalizeEmail(body?.email);
       if (!validEmail(email)) return json({ error: 'A valid email address is required.' }, { status: 400 });
@@ -2127,9 +2143,11 @@ async function handleFetch(request, env, ctx) {
       try {
         const createdUser = await env.DB.prepare(`
           INSERT INTO users (username, email, password_hash, password_updated_at, display_name)
-          VALUES (?, ?, ?, CURRENT_TIMESTAMP, ?)
+          SELECT ?, ?, ?, CURRENT_TIMESTAMP, ?
+          WHERE (SELECT COUNT(*) FROM users) < ?
           RETURNING id, email, email_verified_at, site_admin, display_name
-        `).bind(email, email, passwordHash, displayName).first();
+        `).bind(email, email, passwordHash, displayName, maximumAccounts).first();
+        if (!createdUser) return json({ error: REGISTRATION_FULL_ERROR }, { status: 409 });
         userId = Number(createdUser.id);
         const baseSlug = displayName.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'memories';
         const slug = `${baseSlug}-${randomToken(5).toLowerCase()}`;
@@ -2189,6 +2207,11 @@ async function handleFetch(request, env, ctx) {
         await releaseIdempotency(env, idempotency);
         return json({ error: 'An account already uses this email. Sign in to accept the invitation.' }, { status: 409 });
       }
+      const maximumAccounts = maxTotalAccounts(env);
+      if (!(await registrationCapacityAvailable(env, maximumAccounts))) {
+        await releaseIdempotency(env, idempotency);
+        return json({ error: REGISTRATION_FULL_ERROR }, { status: 409 });
+      }
       if (!(await rateLimit(env, 'register-invite', requestFingerprint(request, invitation.email), 8, 60 * 60))) {
         await releaseIdempotency(env, idempotency);
         return json({ error: 'Too many account creation attempts. Please wait before trying again.' }, { status: 429 });
@@ -2205,10 +2228,16 @@ async function handleFetch(request, env, ctx) {
       }
       const passwordHash = await hashPassword(body.password);
       try {
-        await env.DB.prepare(`
+        const createdUser = await env.DB.prepare(`
           INSERT INTO users (username, email, email_verified_at, password_hash, password_updated_at, display_name)
-          VALUES (?, ?, CURRENT_TIMESTAMP, ?, CURRENT_TIMESTAMP, ?)
-        `).bind(invitation.email, invitation.email, passwordHash, displayName).run();
+          SELECT ?, ?, CURRENT_TIMESTAMP, ?, CURRENT_TIMESTAMP, ?
+          WHERE (SELECT COUNT(*) FROM users) < ?
+          RETURNING id
+        `).bind(invitation.email, invitation.email, passwordHash, displayName, maximumAccounts).first();
+        if (!createdUser) {
+          await releaseIdempotency(env, idempotency);
+          return json({ error: REGISTRATION_FULL_ERROR }, { status: 409 });
+        }
       } catch (error) {
         await releaseIdempotency(env, idempotency);
         console.error('Invited registration failed', error);

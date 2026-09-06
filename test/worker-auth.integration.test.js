@@ -71,6 +71,48 @@ test('public registration creates a Free household with a session', async () => 
   DB.close();
 });
 
+test('public registration stops at the configured total account limit', async () => {
+  const DB = createD1Database();
+  const MEDIA = new MemoryR2();
+  const passwordHash = bcrypt.hashSync('correct horse battery staple', 4);
+  await DB.batch([
+    DB.prepare('INSERT INTO users (username, email, password_hash, display_name) VALUES (?, ?, ?, ?)').bind('existing', 'existing@example.com', passwordHash, 'Existing'),
+    DB.prepare('INSERT INTO households (slug, name) VALUES (?, ?)').bind('existing-family', 'Existing Family'),
+    DB.prepare('INSERT INTO household_members (household_id, user_id, role) VALUES (1, 1, ?)').bind('owner'),
+  ]);
+  const response = await worker.fetch(request('/api/auth/register', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ email: 'full@example.com', displayName: 'Full Beta', password: 'another secure phrase' }),
+  }), { DB, MEDIA, ALLOW_PUBLIC_REGISTRATION: 'true', MAX_TOTAL_ACCOUNTS: '1' }, context());
+  assert.equal(response.status, 409);
+  assert.equal((await response.json()).error, 'The limited beta is full. Signups are closed for now.');
+  assert.equal(Number((await DB.prepare('SELECT COUNT(*) AS count FROM users').first()).count), 1);
+  DB.close();
+});
+
+test('invited registration also respects the total account limit', async () => {
+  const DB = createD1Database();
+  const MEDIA = new MemoryR2();
+  const passwordHash = bcrypt.hashSync('correct horse battery staple', 4);
+  const rawToken = 'capacity-invitation-token';
+  await DB.batch([
+    DB.prepare('INSERT INTO users (username, email, password_hash, display_name) VALUES (?, ?, ?, ?)').bind('existing', 'existing@example.com', passwordHash, 'Existing'),
+    DB.prepare('INSERT INTO households (slug, name) VALUES (?, ?)').bind('existing-family', 'Existing Family'),
+    DB.prepare('INSERT INTO household_members (household_id, user_id, role) VALUES (1, 1, ?)').bind('owner'),
+    DB.prepare('INSERT INTO invitations (id, household_id, email, token_hash, role, invited_by, expires_at) VALUES (?, 1, ?, ?, ?, 1, datetime(\'now\', \'+1 day\'))').bind('capacity-invite-1', 'new@example.com', await tokenHash(rawToken), 'member'),
+  ]);
+  const response = await worker.fetch(request('/api/auth/register-invite', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', 'idempotency-key': 'capacity-register-1' },
+    body: JSON.stringify({ token: rawToken, displayName: 'New Member', password: 'another secure phrase' }),
+  }), { DB, MEDIA, MAX_TOTAL_ACCOUNTS: '1' }, context());
+  assert.equal(response.status, 409);
+  assert.equal((await response.json()).error, 'The limited beta is full. Signups are closed for now.');
+  assert.equal(Number((await DB.prepare('SELECT COUNT(*) AS count FROM users').first()).count), 1);
+  DB.close();
+});
+
 test('invited account creation replays safely after a client retry', async () => {
   const DB = createD1Database();
   const MEDIA = new MemoryR2();

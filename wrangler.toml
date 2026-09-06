@@ -27,6 +27,7 @@ bucket_name = "postcards-of-us-beta-media"
 
 [vars]
 ALLOW_PUBLIC_REGISTRATION = "true"
+MAX_TOTAL_ACCOUNTS = "15"
 EMAIL_FROM = "Postcards of Us <postcards@mail.postcardsofus.com>"
 BUG_REPORT_TO = "bugs@postcardsofus.com"
 GITHUB_REPOSITORY = "yancmo1/travel-journal"
