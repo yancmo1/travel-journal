@@ -71,6 +71,42 @@ test('public registration creates a Free household with a session', async () => 
   DB.close();
 });
 
+test('public registration queues an owner signup notification', async () => {
+  const DB = createD1Database();
+  const MEDIA = new MemoryR2();
+  const emailRequests = [];
+  const pending = [];
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (_url, options) => {
+    emailRequests.push(JSON.parse(options.body));
+    return new Response(JSON.stringify({ id: `email-${emailRequests.length}` }), { status: 200, headers: { 'content-type': 'application/json' } });
+  };
+  try {
+    const response = await worker.fetch(request('/api/auth/register', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ email: 'new-subscriber@example.com', displayName: 'New Subscriber', password: 'another secure phrase' }),
+    }), {
+      DB,
+      MEDIA,
+      ALLOW_PUBLIC_REGISTRATION: 'true',
+      RESEND_API_KEY: 'test-key',
+      EMAIL_FROM: 'postcards@example.com',
+      SIGNUP_NOTIFICATION_TO: 'owner@example.com',
+    }, { waitUntil(promise) { pending.push(promise); } });
+    assert.equal(response.status, 201);
+    await Promise.all(pending);
+    const notification = emailRequests.find(email => email.to?.includes('owner@example.com'));
+    assert.ok(notification);
+    assert.equal(notification.subject, 'New Postcards of Us beta signup');
+    assert.match(notification.text, /new-subscriber@example\.com/);
+    assert.match(notification.text, /New Subscriber/);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+  DB.close();
+});
+
 test('public registration stops at the configured total account limit', async () => {
   const DB = createD1Database();
   const MEDIA = new MemoryR2();

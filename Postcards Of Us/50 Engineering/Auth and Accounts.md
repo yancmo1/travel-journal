@@ -18,6 +18,10 @@ status: active
 - Public registration: disabled unless `ALLOW_PUBLIC_REGISTRATION=true`; when
   enabled, `MAX_TOTAL_ACCOUNTS` caps all public and invitation-created accounts
   (15 by default).
+- Public signup notifications: `SIGNUP_NOTIFICATION_TO` receives an email after
+  each successful public account creation; delivery uses the configured Resend
+  sender and must remain non-blocking so a notification failure cannot undo an
+  account signup.
 
 ## Beta policy
 

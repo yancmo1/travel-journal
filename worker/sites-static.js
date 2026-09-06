@@ -788,6 +788,28 @@ async function sendVerificationEmail(env, request, user, rawToken, tokenId) {
   });
 }
 
+async function sendSignupNotification(env, { email, displayName, householdId }) {
+  const recipient = String(env.SIGNUP_NOTIFICATION_TO || '').trim();
+  if (!recipient) return;
+  const name = String(displayName || '').trim() || 'Not provided';
+  const household = String(householdId || '').trim() || 'Not available';
+  return sendEmail(env, {
+    to: recipient,
+    subject: 'New Postcards of Us beta signup',
+    text: [
+      'A new account joined the Postcards of Us limited beta.',
+      '',
+      `Name: ${name}`,
+      `Email: ${email}`,
+      `Household ID: ${household}`,
+      '',
+      'The account was created successfully. No password or private memories are included in this notification.',
+    ].join('\n'),
+    html: `<p>A new account joined the Postcards of Us limited beta.</p><p><strong>Name:</strong> ${escapeHtml(name)}<br /><strong>Email:</strong> ${escapeHtml(email)}<br /><strong>Household ID:</strong> ${escapeHtml(household)}</p><p>The account was created successfully. No password or private memories are included in this notification.</p>`,
+    idempotencyKey: `postcards-signup-notification-${household}`,
+  });
+}
+
 const backupPrefix = BACKUP_PREFIX;
 // Durable content and operation state belong in the recovery snapshot. Session,
 // password-token, verification-token, rate-limit, and upload-reservation rows
@@ -2163,6 +2185,9 @@ async function handleFetch(request, env, ctx) {
         ctx.waitUntil(sendVerificationEmail(env, request, user, rawToken, tokenId).catch(async error => {
           console.error('Public registration verification email failed', error);
           await env.DB.prepare('DELETE FROM email_verification_tokens WHERE id = ?').bind(tokenId).run();
+        }));
+        ctx.waitUntil(sendSignupNotification(env, { email, displayName, householdId }).catch(error => {
+          console.error('Public registration signup notification failed', error);
         }));
         ctx.waitUntil(recordAudit(env, { userId, householdId, action: 'auth.public_registered', resourceType: 'household', resourceId: householdId, metadata: { plan: 'free' } }));
         return json(responseBody, { status: 201, headers: { 'set-cookie': sessionCookie(session.token) } });
