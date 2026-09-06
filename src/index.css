@@ -6199,6 +6199,121 @@ body {
   .getting-started-sample > svg { transform: rotate(90deg); justify-self: center; }
 }
 
+.signup-welcome-page {
+  min-height: 100dvh;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  display: grid;
+  align-items: center;
+  background:
+    linear-gradient(rgba(247, 241, 229, .78), rgba(247, 241, 229, .78)),
+    var(--paper-background-art),
+    var(--brand-canvas);
+  background-position: center;
+  background-size: cover;
+}
+
+.signup-welcome-shell { max-width: 760px; }
+
+.signup-welcome-steps {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--brand-space-3);
+  margin-top: var(--brand-space-6);
+  padding: var(--brand-space-3);
+  background: var(--brand-success-surface);
+  border: 1px solid var(--brand-border-subtle);
+  border-radius: var(--brand-radius-lg);
+}
+
+.signup-welcome-steps > div {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: var(--brand-space-2);
+  align-items: start;
+}
+
+.signup-welcome-steps span {
+  display: grid;
+  grid-row: span 2;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  color: var(--brand-paper-50);
+  background: var(--brand-action);
+  border-radius: 50%;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.signup-welcome-steps strong { color: var(--brand-ink-strong); font-size: 13px; line-height: 1.25; }
+.signup-welcome-steps small { color: var(--brand-ink-muted); font-size: 12px; line-height: 1.4; }
+
+.signup-welcome-verification {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--brand-space-3);
+  margin-top: var(--brand-space-5);
+  padding: var(--brand-space-4);
+  color: var(--brand-ink-strong);
+  background: rgba(240, 215, 174, .42);
+  border: 1px solid rgba(191, 164, 119, .48);
+  border-radius: var(--brand-radius-md);
+}
+
+.signup-welcome-verification.is-verified { background: var(--brand-success-surface); border-color: var(--brand-border); }
+.signup-welcome-verification-icon { display: grid; flex: 0 0 auto; place-items: center; width: 32px; height: 32px; color: var(--brand-action-strong); background: var(--brand-paper-50); border-radius: 50%; }
+.signup-welcome-verification-icon svg { width: 17px; height: 17px; }
+.signup-welcome-verification strong { display: block; color: var(--brand-ink-strong); font-size: 14px; }
+.signup-welcome-verification p { margin: 4px 0 0; color: var(--brand-ink-muted); font-size: 13px; line-height: 1.5; }
+.signup-welcome-resend { margin-top: var(--brand-space-2); color: var(--brand-action-strong); font-size: 13px; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
+.signup-welcome-resend:disabled { cursor: wait; opacity: .65; }
+.signup-welcome-message, .signup-welcome-error { margin-top: var(--brand-space-3); font-size: 13px; line-height: 1.5; }
+.signup-welcome-message { color: var(--brand-success); }
+.signup-welcome-error { color: var(--brand-danger); }
+.signup-welcome-actions { margin-top: var(--brand-space-6); }
+
+.beta-feedback-card {
+  display: grid;
+  gap: var(--brand-space-3);
+  margin: var(--brand-space-5) 0;
+  padding: var(--brand-space-5);
+  color: var(--brand-ink-strong);
+  background: rgba(255, 253, 245, .82);
+  border: 1px solid var(--brand-border);
+  border-radius: var(--brand-radius-lg);
+  box-shadow: var(--brand-shadow);
+}
+
+.beta-feedback-heading { display: flex; align-items: flex-start; gap: var(--brand-space-3); }
+.beta-feedback-heading h2 { margin: 2px 0 0; color: var(--brand-ink-strong); font-family: var(--brand-font-display); font-size: clamp(21px, 3vw, 28px); line-height: 1.1; }
+.beta-feedback-icon { display: grid; flex: 0 0 auto; place-items: center; width: 38px; height: 38px; color: var(--brand-paper-50); background: var(--brand-action); border-radius: 50%; }
+.beta-feedback-icon svg { width: 18px; height: 18px; }
+.beta-feedback-dismiss { display: grid; flex: 0 0 auto; place-items: center; width: var(--brand-control-height-compact); height: var(--brand-control-height-compact); margin-left: auto; color: var(--brand-ink-muted); border-radius: 50%; }
+.beta-feedback-dismiss:hover, .beta-feedback-dismiss:focus-visible { color: var(--brand-ink-strong); background: var(--brand-surface-soft); }
+.beta-feedback-dismiss svg { width: 18px; height: 18px; }
+.beta-feedback-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--brand-space-2); margin: 0; padding: 0; border: 0; }
+.beta-feedback-option { min-height: var(--brand-control-height); padding: var(--brand-space-2) var(--brand-space-3); color: var(--brand-ink); background: var(--brand-surface); border: 1px solid var(--brand-border); border-radius: var(--brand-radius-md); font-size: 13px; font-weight: 600; text-align: left; }
+.beta-feedback-option:hover, .beta-feedback-option:focus-visible { border-color: var(--brand-action); background: var(--brand-surface-soft); }
+.beta-feedback-option.is-selected { color: var(--brand-ink-strong); background: rgba(240, 215, 174, .58); border-color: var(--brand-action); box-shadow: 0 0 0 2px rgba(185, 88, 53, .14); }
+.beta-feedback-actions { display: flex; align-items: center; gap: var(--brand-space-3); }
+.beta-feedback-submit { min-height: var(--brand-control-height); padding: 0 var(--brand-space-4); color: var(--brand-paper-50); background: var(--brand-action); border-radius: var(--brand-radius-md); font-size: 13px; font-weight: 700; }
+.beta-feedback-submit:hover, .beta-feedback-submit:focus-visible { background: var(--brand-action-strong); }
+.beta-feedback-submit:disabled { cursor: not-allowed; opacity: .55; }
+.beta-feedback-later { min-height: var(--brand-control-height); padding: 0 var(--brand-space-3); color: var(--brand-ink-muted); font-size: 13px; font-weight: 700; }
+.beta-feedback-later:hover, .beta-feedback-later:focus-visible { color: var(--brand-ink-strong); text-decoration: underline; text-underline-offset: 3px; }
+.beta-feedback-success p { margin: 0; color: var(--brand-ink-muted); font-size: 14px; line-height: 1.55; }
+.beta-feedback-error { margin: 0; color: var(--brand-danger); font-size: 13px; }
+
+@media (max-width: 640px) {
+  .signup-welcome-page { padding-top: var(--brand-space-5); padding-bottom: var(--brand-space-5); }
+  .signup-welcome-steps { grid-template-columns: 1fr; }
+  .beta-feedback-options { grid-template-columns: 1fr; }
+  .beta-feedback-actions { align-items: stretch; flex-direction: column; }
+  .beta-feedback-submit, .beta-feedback-later { width: 100%; }
+}
+
 /* Canonical page lane: this is intentionally the final shell rule so older
    responsive experiments cannot reintroduce per-page centering or a larger
    first-viewport gap. */

@@ -18,13 +18,20 @@ import PwaStatus from './components/PwaStatus';
 import PullToRefresh from './components/PullToRefresh';
 import BugReporter from './components/BugReporter';
 import GettingStarted from './components/GettingStarted';
+import SignupWelcome from './components/SignupWelcome';
 import api from './utils/api';
 import paperBackground from '../assets/travel-paper-background.webp';
 
 function AppContent() {
-  const { user, loading } = useAuth();
+  const { user, loading, newlyRegistered, dismissNewlyRegistered } = useAuth();
   const [page, setPage] = useState('dashboard');
   const [travelerFilter, setTravelerFilter] = useState('all');
+
+  function leaveSignupWelcome(nextPage) {
+    dismissNewlyRegistered();
+    api.updateOnboarding('welcome').catch(() => {});
+    setPage(nextPage);
+  }
 
   useEffect(() => {
     if (!user) return;
@@ -62,24 +69,33 @@ function AppContent() {
         className="min-h-screen app-shell"
         style={{ '--paper-background-art': `url(${paperBackground})` }}
       >
-        <Header currentPage={page} setPage={setPage} />
-        <PwaStatus />
-        <PullToRefresh />
-        <BugReporter />
-        <main className="memory-main">
-          {page === 'dashboard' && <Dashboard setPage={setPage} />}
-          {page === 'journeys' && <JourneysPage />}
-          {page === 'timeline' && <TimelinePage setPage={setPage} />}
-          {page === 'trips' && <TripsPage initialTravelerFilter={travelerFilter} />}
-          {page === 'settings' && (
-            <SettingsPage
-              setPage={setPage}
-              setTravelerFilter={setTravelerFilter}
-            />
-          )}
-          {page === 'getting-started' && <GettingStarted page onNavigate={setPage} />}
-          {page === 'operations' && user.site_admin && <OperationsPage />}
-        </main>
+        {newlyRegistered ? (
+          <SignupWelcome
+            onStart={() => leaveSignupWelcome('getting-started')}
+            onExplore={() => leaveSignupWelcome('dashboard')}
+          />
+        ) : (
+          <>
+            <Header currentPage={page} setPage={setPage} />
+            <PwaStatus />
+            <PullToRefresh />
+            <BugReporter />
+            <main className="memory-main">
+              {page === 'dashboard' && <Dashboard setPage={setPage} />}
+              {page === 'journeys' && <JourneysPage />}
+              {page === 'timeline' && <TimelinePage setPage={setPage} />}
+              {page === 'trips' && <TripsPage initialTravelerFilter={travelerFilter} />}
+              {page === 'settings' && (
+                <SettingsPage
+                  setPage={setPage}
+                  setTravelerFilter={setTravelerFilter}
+                />
+              )}
+              {page === 'getting-started' && <GettingStarted page onNavigate={setPage} />}
+              {page === 'operations' && user.site_admin && <OperationsPage />}
+            </main>
+          </>
+        )}
       </div>
     </DataProvider>
   );

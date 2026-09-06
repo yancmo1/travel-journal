@@ -7,6 +7,13 @@ const passwordIterations = 100000;
 const placesCache = new Map();
 const locationCache = new Map();
 const GITHUB_LABEL = 'Bug Report';
+const BETA_FEEDBACK_RESPONSES = new Set([
+  'I knew exactly where to start',
+  'I was not sure where to start',
+  'Adding a memory took too long',
+  'I wanted to do something else',
+  'Something did not work',
+]);
 const onboardingTableReady = new WeakMap();
 
 async function ensureOnboardingTable(env) {
@@ -807,6 +814,27 @@ async function sendSignupNotification(env, { email, displayName, householdId }) 
     ].join('\n'),
     html: `<p>A new account joined the Postcards of Us limited beta.</p><p><strong>Name:</strong> ${escapeHtml(name)}<br /><strong>Email:</strong> ${escapeHtml(email)}<br /><strong>Household ID:</strong> ${escapeHtml(household)}</p><p>The account was created successfully. No password or private memories are included in this notification.</p>`,
     idempotencyKey: `postcards-signup-notification-${household}`,
+  });
+}
+
+async function sendBetaFeedbackNotification(env, { response, user, feedbackId }) {
+  const recipient = String(env.BETA_FEEDBACK_TO || env.SIGNUP_NOTIFICATION_TO || '').trim();
+  if (!recipient) return;
+  const answer = String(response || '').trim();
+  const account = String(user?.email || user?.display_name || `user ${user?.id || 'unknown'}`).trim();
+  return sendEmail(env, {
+    to: recipient,
+    subject: `[Postcards of Us] Beta feedback: ${answer}`,
+    text: [
+      'A beta tester answered the first-memory feedback question.',
+      '',
+      `Answer: ${answer}`,
+      `Tester: ${account}`,
+      `Household ID: ${user?.household_id || 'Not available'}`,
+      `Feedback ID: ${feedbackId}`,
+    ].join('\n'),
+    html: `<p>A beta tester answered the first-memory feedback question.</p><p><strong>Answer:</strong> ${escapeHtml(answer)}<br /><strong>Tester:</strong> ${escapeHtml(account)}<br /><strong>Household ID:</strong> ${escapeHtml(user?.household_id || 'Not available')}<br /><strong>Feedback ID:</strong> ${escapeHtml(feedbackId)}</p>`,
+    idempotencyKey: `postcards-beta-feedback-${feedbackId}`,
   });
 }
 
@@ -2565,6 +2593,42 @@ async function handleFetch(request, env, ctx) {
         return json({ id: reportId, message: 'Thanks — your report was saved.' }, { status: 201 });
       }
 
+      if (url.pathname === '/api/feedback/beta' && request.method === 'POST') {
+        if (!(await rateLimit(env, 'beta-feedback', requestFingerprint(request, String(user.id)), 5, 24 * 60 * 60))) {
+          return json({ error: 'You have sent several answers recently. Please try again later.' }, { status: 429 });
+        }
+        const body = await parseJson(request);
+        const response = String(body?.response || '').trim();
+        if (!BETA_FEEDBACK_RESPONSES.has(response)) return json({ error: 'Choose one of the available answers.' }, { status: 400 });
+        const feedbackId = crypto.randomUUID();
+        await recordAudit(env, {
+          userId: user.id,
+          householdId: user.household_id,
+          action: 'beta.feedback.submitted',
+          resourceType: 'beta_feedback',
+          resourceId: feedbackId,
+          metadata: {
+            prompt: 'What almost stopped you today?',
+            response,
+          },
+        });
+        const feedbackRecipient = String(env.BETA_FEEDBACK_TO || env.SIGNUP_NOTIFICATION_TO || '').trim();
+        if (feedbackRecipient) {
+          ctx.waitUntil(sendBetaFeedbackNotification(env, { response, user, feedbackId }).catch(async error => {
+            console.error('Postcards beta feedback email failed', error);
+            await recordOperationalEvent(env, {
+              action: 'email_failed',
+              requestId: feedbackId,
+              route: '/api/feedback/beta',
+              userId: user.id,
+              householdId: user.household_id,
+              metadata: { kind: 'beta_feedback', recipient: feedbackRecipient.slice(0, 254) },
+            });
+          }));
+        }
+        return json({ id: feedbackId, message: 'Thanks — your answer was saved.' }, { status: 201 });
+      }
+
       const githubIssueMatch = url.pathname.match(/^\/api\/admin\/bug-reports\/([A-Za-z0-9-]+)\/github-issue$/);
       if (githubIssueMatch && request.method === 'POST') {
         const denied = siteAdminRequired(user);
@@ -2851,6 +2915,24 @@ async function handleFetch(request, env, ctx) {
             ...metadata,
           };
         });
+        const feedbackRows = (await env.DB.prepare(`
+          SELECT id, user_id, household_id, resource_id, metadata, created_at
+          FROM audit_events
+          WHERE action = 'beta.feedback.submitted'
+          ORDER BY created_at DESC
+          LIMIT 50
+        `).all()).results || [];
+        const betaFeedback = feedbackRows.map(row => {
+          const metadata = parseAuditMetadata(row.metadata);
+          return {
+            id: row.id,
+            feedback_id: row.resource_id,
+            user_id: row.user_id,
+            household_id: row.household_id,
+            created_at: row.created_at,
+            ...metadata,
+          };
+        });
         const operational = Object.fromEntries(operationalRows.map(row => [row.action.replace(/^ops\./, ''), {
           count: Number(row.count || 0),
           latest_at: row.latest_at,
@@ -2909,6 +2991,7 @@ async function handleFetch(request, env, ctx) {
             quota_risk_sites: sites.filter(site => site.quota_risk).length,
           },
           sites,
+          betaFeedback,
           backup: backupStatus(latest),
           jobs: Object.fromEntries(jobCounts.map(row => [row.status, Number(row.count || 0)])),
           observability: {

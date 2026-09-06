@@ -4,6 +4,7 @@ import MapView from '../components/Map';
 import TripForm from '../components/TripForm';
 import StatCard from '../components/StatCard';
 import MemoryPlaceDetails from '../components/MemoryPlaceDetails';
+import BetaFeedbackPrompt from '../components/BetaFeedbackPrompt';
 import { ArrowUpRight, Camera, Image, MapPin, Navigation, X } from 'lucide-react';
 import postmark from '../../assets/postmark.webp';
 import addMemoryButton from '../../assets/add-memory-button.webp';
@@ -43,6 +44,8 @@ export default function Dashboard({ setPage }) {
         </div>
         <button type="button" onClick={() => setPage?.('getting-started')}>Open Getting Started <ArrowUpRight aria-hidden="true" /></button>
       </section>
+
+      <BetaFeedbackPrompt memoryCount={trips.length} />
 
       <div className="dashboard-stat-strip" aria-label="Travel summary">
         <StatCard

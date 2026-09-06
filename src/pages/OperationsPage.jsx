@@ -250,7 +250,22 @@ export default function OperationsPage() {
 
           <section className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
             <p className="memory-eyebrow">Feedback inbox</p>
-            <h2 className="mt-2 text-xl font-semibold text-brand-forest-800">Recent bug reports</h2>
+            <h2 className="mt-2 text-xl font-semibold text-brand-forest-800">First-memory feedback</h2>
+            <p className="mt-1 text-sm text-gray-600">One-question beta answers from users who have created a memory.</p>
+            {operations?.betaFeedback?.length ? (
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                {operations.betaFeedback.map(feedback => (
+                  <article key={feedback.id} className="rounded-xl border border-gray-100 bg-gray-50 p-4">
+                    <p className="font-semibold text-brand-forest-800">{feedback.response}</p>
+                    <time className="mt-1 block text-xs text-gray-500">{formatStatusDate(feedback.created_at)}</time>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <p className="mt-4 rounded-xl bg-gray-50 p-4 text-sm text-gray-500">No beta feedback yet.</p>
+            )}
+
+            <h2 className="mt-6 text-xl font-semibold text-brand-forest-800">Recent bug reports</h2>
             <p className="mt-1 text-sm text-gray-600">Reports include the user’s description plus a request reference and browser context when available.</p>
             {operations?.bugReports?.length ? (
               <div className="mt-4 space-y-3">

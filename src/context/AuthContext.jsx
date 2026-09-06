@@ -9,6 +9,7 @@ export function AuthProvider({ children }) {
   const [households, setHouseholds] = useState([]);
   const [activeHouseholdId, setActiveHouseholdId] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [newlyRegistered, setNewlyRegistered] = useState(() => sessionStorage.getItem('postcards-show-signup-welcome') === '1');
   const [offline, setOffline] = useState(!navigator.onLine);
 
   useEffect(() => {
@@ -79,6 +80,8 @@ export function AuthProvider({ children }) {
 
   async function register(email, password, displayName) {
     const data = await api.register(email, password, displayName);
+    sessionStorage.setItem('postcards-show-signup-welcome', '1');
+    setNewlyRegistered(true);
     setUser(data.user);
     setOffline(false);
     await Promise.all([saveSnapshot(data.user.id, { user: data.user }), saveSnapshot('last-user', { user: data.user })]);
@@ -88,6 +91,8 @@ export function AuthProvider({ children }) {
 
   async function registerInvitation(token, displayName, password) {
     const data = await api.registerInvitation(token, displayName, password);
+    sessionStorage.setItem('postcards-show-signup-welcome', '1');
+    setNewlyRegistered(true);
     setUser(data.user);
     setHouseholds(data.households || []);
     setActiveHouseholdId(data.active_household_id || null);
@@ -123,14 +128,21 @@ export function AuthProvider({ children }) {
   function logout() {
     const currentUser = user;
     api.logout();
+    sessionStorage.removeItem('postcards-show-signup-welcome');
+    setNewlyRegistered(false);
     setUser(null);
     setHouseholds([]);
     setActiveHouseholdId(null);
     if (currentUser) clearOfflineData(currentUser.id);
   }
 
+  function dismissNewlyRegistered() {
+    sessionStorage.removeItem('postcards-show-signup-welcome');
+    setNewlyRegistered(false);
+  }
+
   return (
-    <AuthContext.Provider value={{ user, households, activeHouseholdId, loading, offline, login, register, registerInvitation, refreshAuth, updateHome, switchHousehold, logout }}>
+    <AuthContext.Provider value={{ user, households, activeHouseholdId, loading, offline, newlyRegistered, dismissNewlyRegistered, login, register, registerInvitation, refreshAuth, updateHome, switchHousehold, logout }}>
       {children}
     </AuthContext.Provider>
   );

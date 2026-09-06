@@ -40,7 +40,7 @@ export default function TripForm({ trip, onClose, onboardingMode = false, onSave
     startDate: '',
     endDate: '',
     dateLabel: '',
-    datePrecision: 'exact',
+    datePrecision: onboardingMode ? 'unknown' : 'exact',
     tripType: 'Other',
     notes: '',
     travelerIds: [],
@@ -563,6 +563,7 @@ export default function TripForm({ trip, onClose, onboardingMode = false, onSave
                 onChange={handleChange}
                 placeholder="Start typing a city or landmark"
                 autoComplete="off"
+                autoFocus={onboardingMode}
                 aria-autocomplete="list"
                 aria-expanded={activeSearchField === 'locationName' && searchResults.length > 0}
                 className="flex-1 px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-brand-forest-700 focus:border-transparent"

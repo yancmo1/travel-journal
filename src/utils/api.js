@@ -635,6 +635,13 @@ class ApiClient {
     });
   }
 
+  async submitBetaFeedback(response) {
+    return this.request('/feedback/beta', {
+      method: 'POST',
+      body: JSON.stringify({ response }),
+    });
+  }
+
   // Places
   async searchPlaces(query) {
     const cacheKey = normalizePlaceQuery(query);

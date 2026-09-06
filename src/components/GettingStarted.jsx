@@ -8,11 +8,19 @@ import TripForm from './TripForm';
 import JourneyForm from './JourneyForm';
 
 const STEPS = [
-  ['home', 'Set your home base', 'Tell us where home is so we can show distance traveled. A city or ZIP code is fine.'],
-  ['people', 'Add your people', 'Add the people who belong in your travel stories.'],
   ['memory', 'Add a memory', 'Save one place or moment from your travels.'],
-  ['journey', 'Create a journey', 'Bring related memories together into one travel story.'],
+  ['home', 'Set a home base', 'Add a city or ZIP code later if you want distance traveled in your story.'],
+  ['people', 'Add your people', 'Add the people who belong in your travel stories when it helps.'],
+  ['journey', 'Create a journey', 'Bring related memories together after you have a few pages.'],
 ];
+
+function nextOnboardingStage(next) {
+  if (!next?.memory?.complete) return 'memory';
+  if (!next.home?.complete && !next.home?.skipped) return 'home';
+  if (!next.people?.complete && !next.people?.skipped) return 'people';
+  if (!next.journey?.complete) return 'journey';
+  return 'complete';
+}
 
 export default function GettingStarted({ page = false, onNavigate }) {
   const { user, updateHome } = useAuth();
@@ -36,18 +44,14 @@ export default function GettingStarted({ page = false, onNavigate }) {
     try {
       const next = await api.getOnboarding();
       setProgress(next);
-      if (next.completed) setStage('complete');
-      else if (next.home.complete && next.people?.complete && next.memory.complete) setStage('journey');
-      else if (next.home.complete && next.people?.complete) setStage('memory');
-      else if (next.home.complete) setStage('people');
-      else setStage(next.welcomeSeen ? 'home' : 'welcome');
+      setStage(next.completed ? 'complete' : (next.welcomeSeen ? nextOnboardingStage(next) : 'welcome'));
     } catch { /* The app remains usable if onboarding status is temporarily unavailable. */ }
   }
 
   useEffect(() => { if (user) loadProgress(); }, [user?.id, user?.home_latitude, user?.home_longitude]);
   useEffect(() => () => clearTimeout(timer.current), []);
   useEffect(() => {
-    function reopen() { setOpen(true); setStage(progress?.completed ? 'complete' : (progress?.home?.complete ? (progress?.people?.complete ? (progress?.memory?.complete ? 'journey' : 'memory') : 'people') : 'home')); }
+    function reopen() { setOpen(true); setStage(progress?.completed ? 'complete' : (progress?.welcomeSeen ? nextOnboardingStage(progress) : 'welcome')); }
     window.addEventListener('postcards-open-getting-started', reopen);
     return () => window.removeEventListener('postcards-open-getting-started', reopen);
   }, [progress]);
@@ -97,9 +101,12 @@ export default function GettingStarted({ page = false, onNavigate }) {
     } catch (requestError) { setError(requestError.message || 'Your home base could not be saved.'); setWorking(false); }
   }
 
-  function onMemorySaved(saved) {
+  async function onMemorySaved(saved) {
     setShowMemory(false);
-    mark('memory', { memoryId: saved?.id }).catch(() => {});
+    try {
+      await mark('memory', { memoryId: saved?.id });
+      closeGuide();
+    } catch { closeGuide(); /* The memory is already saved; the dashboard remains available. */ }
   }
 
   function onJourneySaved(saved) {
@@ -147,9 +154,9 @@ export default function GettingStarted({ page = false, onNavigate }) {
 
       {stage === 'welcome' && (
         <div className="getting-started-step">
-          <h2>Three simple steps</h2>
-          <p>A <strong>memory</strong> is one place or moment from your travels. A <strong>journey</strong> brings related memories together into one travel story.</p>
-          <div className="getting-started-actions"><button type="button" className="getting-started-primary" onClick={() => { mark('welcome'); setStage(progress?.home?.complete ? 'people' : 'home'); }}>Start here <ArrowRight aria-hidden="true" /></button><button type="button" className="getting-started-secondary" onClick={() => { mark('welcome'); setStage('sample'); }}>Try a sample</button><button type="button" className="getting-started-secondary" onClick={dismissWelcome}>I’ll explore on my own</button></div>
+          <h2>Start with one memory</h2>
+          <p>Save one place or moment first. Add people, a home base, and a journey only when they help tell the story.</p>
+          <div className="getting-started-actions"><button type="button" className="getting-started-primary" onClick={() => { mark('welcome'); setStage('memory'); }}>Add my first memory <ArrowRight aria-hidden="true" /></button><button type="button" className="getting-started-secondary" onClick={() => { mark('welcome'); setStage('sample'); }}>See an example</button><button type="button" className="getting-started-secondary" onClick={dismissWelcome}>I’ll explore on my own</button></div>
         </div>
       )}
 
@@ -162,7 +169,7 @@ export default function GettingStarted({ page = false, onNavigate }) {
             <ArrowRight aria-hidden="true" />
             <div><span>Journey</span><strong>California road trip</strong><small>Several memories from one trip</small></div>
           </div>
-          <div className="getting-started-actions"><button type="button" className="getting-started-primary" onClick={() => { setStage(progress?.home?.complete ? 'people' : 'home'); }}>Use my own memory <ArrowRight aria-hidden="true" /></button><button type="button" className="getting-started-secondary" onClick={() => setStage('welcome')}>Back</button></div>
+          <div className="getting-started-actions"><button type="button" className="getting-started-primary" onClick={() => setStage('memory')}>Add my own memory <ArrowRight aria-hidden="true" /></button><button type="button" className="getting-started-secondary" onClick={() => setStage('welcome')}>Back</button></div>
         </div>
       )}
 
@@ -187,7 +194,7 @@ export default function GettingStarted({ page = false, onNavigate }) {
             <div className="getting-started-person-fields"><input id="getting-started-person" value={person.name} onChange={event => setPerson(current => ({ ...current, name: event.target.value }))} placeholder="Example: Amber" autoFocus /><select value={person.relationship} onChange={event => setPerson(current => ({ ...current, relationship: event.target.value }))}><option value="self">Self</option><option value="partner">Spouse / Partner</option><option value="child">Child</option><option value="parent">Parent</option><option value="sibling">Sibling</option><option value="friend">Friend</option><option value="other">Other</option></select><button type="submit" className="getting-started-primary" disabled={savingPerson}><UserPlus aria-hidden="true" />{savingPerson ? 'Adding…' : 'Add person'}</button></div>
           </form>
           {peopleError && <p className="getting-started-error" role="alert">{peopleError}</p>}
-          <div className="getting-started-actions"><button type="button" className="getting-started-primary" onClick={() => setStage('memory')} disabled={!travelers.length}>Continue to memory <ArrowRight aria-hidden="true" /></button><button type="button" className="getting-started-secondary" onClick={skipStep}>I’ll do this later</button></div>
+          <div className="getting-started-actions"><button type="button" className="getting-started-primary" onClick={() => { if (travelers.length) setStage('home'); else mark('people', { status: 'skipped' }).then(() => setStage('home')).catch(() => {}); }}>{travelers.length ? 'Continue to home base' : 'Continue without people'} <ArrowRight aria-hidden="true" /></button><button type="button" className="getting-started-secondary" onClick={skipStep}>I’ll do this later</button></div>
         </div>
       )}
 
