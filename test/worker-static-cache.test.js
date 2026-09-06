@@ -28,3 +28,15 @@ test('hashed static assets are immutable while the app shell revalidates', async
   assert.equal(shellResponse.status, 200);
   assert.equal(shellResponse.headers.get('cache-control'), 'public, max-age=60, must-revalidate');
 });
+
+test('runtime config exposes the CARTO key without caching or unrelated variables', async () => {
+  const env = {
+    ASSETS: assets(),
+    VITE_CARTO_BASEMAP_KEY: 'carto-test-key',
+    JWT_SECRET: 'must-not-leak',
+  };
+  const response = await worker.fetch(new Request('https://postcards.test/api/runtime-config'), env, context());
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), { cartoBasemapKey: 'carto-test-key' });
+  assert.equal(response.headers.get('cache-control'), 'no-store');
+});

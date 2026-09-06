@@ -6,6 +6,7 @@ import { formatDateOnly } from '../utils/format';
 import { useAuth } from '../context/AuthContext';
 import { HOME_ICONS, homeBadgeHtml } from '../utils/homeIcons';
 import { getBrandColor } from '../utils/brandTokens';
+import { getRuntimeConfig } from '../config/runtime';
 
 // Default home base used until a user saves one in Settings (Oklahoma City).
 const DEFAULT_HOME = { latitude: 35.4676, longitude: -97.5164, label: 'Oklahoma City, OK' };
@@ -74,9 +75,20 @@ export default function MapView({ trips = [], onSelectTrip, showRoutes = false, 
     });
     mapRef.current = map;
 
-    // Free, no-key CARTO Positron tiles keep the map legible and quiet beneath the memories.
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-      attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+    const cartoBasemapKey = getRuntimeConfig().cartoBasemapKey;
+    const cartoTileUrl = 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
+    const tileUrl = cartoBasemapKey
+      ? `${cartoTileUrl}?key=${encodeURIComponent(cartoBasemapKey)}`
+      : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+    const attribution = cartoBasemapKey
+      ? '&copy; OpenStreetMap contributors &copy; CARTO'
+      : '&copy; OpenStreetMap contributors';
+
+    // CARTO keeps the map legible and quiet beneath the memories. If the
+    // production key is ever unavailable, use the keyless OSM fallback rather
+    // than showing CARTO's API-key watermark to visitors.
+    L.tileLayer(tileUrl, {
+      attribution,
       subdomains: 'abcd',
       maxZoom: 19,
     }).addTo(map);

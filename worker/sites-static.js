@@ -2041,6 +2041,15 @@ async function handleFetch(request, env, ctx) {
       }
     }
 
+    if (url.pathname === '/api/runtime-config' && request.method === 'GET') {
+      return json({
+        // The browser must receive this public-facing tile credential to load
+        // CARTO tiles. Keep the source value in the Worker environment rather
+        // than committing it to the repository.
+        cartoBasemapKey: String(env.CARTO_BASEMAP_KEY || env.VITE_CARTO_BASEMAP_KEY || '').trim(),
+      });
+    }
+
     if (url.pathname.startsWith('/api/migration/')) {
       if (!migrationAuthorized(request, env)) return json({ error: 'Not found' }, { status: 404 });
       if (url.pathname === '/api/migration/import' && request.method === 'POST') return importRows(request, env);
@@ -4442,7 +4451,7 @@ function withSecurityHeaders(response, request, requestId) {
     "object-src 'none'",
     "script-src 'self'",
     "style-src 'self' 'unsafe-inline'",
-    "img-src 'self' data: blob: https://*.tile.openstreetmap.org",
+    "img-src 'self' data: blob: https://*.tile.openstreetmap.org https://*.basemaps.cartocdn.com",
     "font-src 'self' data:",
     "connect-src 'self' https://nominatim.openstreetmap.org https://places.googleapis.com",
     "form-action 'self'",

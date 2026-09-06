@@ -1,6 +1,7 @@
 import React from 'react'
 import { createRoot } from 'react-dom/client'
 import App from './App'
+import { loadRuntimeConfig } from './config/runtime'
 import './index.css'
 
 // Keep the development server in control while iterating locally. A stale
@@ -34,8 +35,10 @@ if ('serviceWorker' in navigator && import.meta.env.DEV) {
   });
 }
 
-createRoot(document.getElementById('root')).render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
-)
+loadRuntimeConfig().finally(() => {
+  createRoot(document.getElementById('root')).render(
+    <React.StrictMode>
+      <App />
+    </React.StrictMode>
+  )
+})
