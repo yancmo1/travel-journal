@@ -27,7 +27,10 @@ export default function Header({ currentPage, setPage }) {
     return () => { mounted = false; window.removeEventListener('postcards-onboarding-completed', completed); };
   }, [user?.id]);
   const visibleNavItems = navItems.filter(item => (item.id !== 'getting-started' || !onboardingComplete) && (!item.adminOnly || user?.site_admin));
-  const mobileNavItems = visibleNavItems.filter(item => !item.adminOnly);
+  // Keep the fixed bottom bar to five thumb-sized destinations. Getting
+  // Started remains available from the dashboard refresher and Settings, and
+  // the guide itself opens as the main page during first-run onboarding.
+  const mobileNavItems = visibleNavItems.filter(item => item.id !== 'getting-started' && !item.adminOnly);
 
   function navigate(id) {
     setPage(id);
