@@ -122,6 +122,16 @@ test('onboarding progress is persisted per user and home completion is server-de
   assert.equal(initialBody.home.complete, false);
   assert.equal(initialBody.people.complete, true);
   assert.equal(initialBody.welcomeSeen, false);
+  assert.equal(initialBody.refresherHidden, false);
+
+  const hidden = await worker.fetch(request('/api/onboarding', {
+    method: 'PATCH', headers: { cookie, 'content-type': 'application/json' },
+    body: JSON.stringify({ step: 'refresher', status: 'hidden' }),
+  }), env, context());
+  assert.equal(hidden.status, 200);
+
+  const hiddenProgress = await worker.fetch(request('/api/onboarding', { headers: { cookie } }), env, context());
+  assert.equal((await hiddenProgress.json()).refresherHidden, true);
 
   const skipped = await worker.fetch(request('/api/onboarding', {
     method: 'PATCH', headers: { cookie, 'content-type': 'application/json' },
@@ -139,6 +149,7 @@ test('onboarding progress is persisted per user and home completion is server-de
   const resumedBody = await resumed.json();
   assert.equal(resumedBody.home.complete, true);
   assert.equal(resumedBody.home.skipped, false);
+  assert.equal(resumedBody.refresherHidden, true);
   DB.close();
 });
 

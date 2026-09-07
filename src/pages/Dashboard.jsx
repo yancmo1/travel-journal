@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
 import MapView from '../components/Map';
 import TripForm from '../components/TripForm';
@@ -6,15 +7,45 @@ import StatCard from '../components/StatCard';
 import MemoryPlaceDetails from '../components/MemoryPlaceDetails';
 import BetaFeedbackPrompt from '../components/BetaFeedbackPrompt';
 import { ArrowUpRight, Camera, Image, MapPin, Navigation, X } from 'lucide-react';
+import api from '../utils/api';
 import postmark from '../../assets/postmark.webp';
 import addMemoryButton from '../../assets/add-memory-button.webp';
 import { getPhotoPreviewPath } from '../utils/photos';
 
 export default function Dashboard({ setPage }) {
+  const { user } = useAuth();
   const { trips, analytics, loading } = useData();
   const [showForm, setShowForm] = useState(false);
   const [editTrip, setEditTrip] = useState(null);
   const [selectedTrip, setSelectedTrip] = useState(null);
+  const [onboarding, setOnboarding] = useState(null);
+  const [hidingRefresher, setHidingRefresher] = useState(false);
+  const [refresherError, setRefresherError] = useState('');
+
+  useEffect(() => {
+    let mounted = true;
+    setOnboarding(null);
+    setRefresherError('');
+    if (!user) return undefined;
+    api.getOnboarding()
+      .then(progress => { if (mounted) setOnboarding(progress); })
+      .catch(() => {})
+      .finally(() => { if (mounted) setHidingRefresher(false); });
+    return () => { mounted = false; };
+  }, [user?.id]);
+
+  async function hideRefresher() {
+    setHidingRefresher(true);
+    setRefresherError('');
+    try {
+      await api.updateOnboarding('refresher', { status: 'hidden' });
+      setOnboarding(current => current ? { ...current, refresherHidden: true } : current);
+    } catch {
+      setRefresherError('This reminder could not be hidden. Please try again.');
+    } finally {
+      setHidingRefresher(false);
+    }
+  }
 
   const summary = analytics?.summary || {};
   return (
@@ -36,14 +67,22 @@ export default function Dashboard({ setPage }) {
         </div>
       </section>
 
-      <section className="getting-started-inline" aria-labelledby="refresher-title">
-        <div>
-          <p className="dashboard-kicker">A quick refresher</p>
-          <h2 id="refresher-title">How do memories and journeys fit together?</h2>
-          <p>A memory is one place or moment. A journey brings related memories together into one travel story.</p>
-        </div>
-        <button type="button" onClick={() => setPage?.('getting-started')}>Open Getting Started <ArrowUpRight aria-hidden="true" /></button>
-      </section>
+      {onboarding && !onboarding.completed && !onboarding.refresherHidden && (
+        <section className="getting-started-inline" aria-labelledby="refresher-title">
+          <div>
+            <p className="dashboard-kicker">A quick refresher</p>
+            <h2 id="refresher-title">How do memories and journeys fit together?</h2>
+            <p>A memory is one place or moment. A journey brings related memories together into one travel story.</p>
+            {refresherError && <p className="getting-started-inline-error" role="alert">{refresherError}</p>}
+          </div>
+          <div className="getting-started-inline-actions">
+            <button type="button" onClick={() => setPage?.('getting-started')}>Open Getting Started <ArrowUpRight aria-hidden="true" /></button>
+            <button type="button" className="getting-started-inline-dismiss" onClick={hideRefresher} disabled={hidingRefresher}>
+              <X aria-hidden="true" /> {hidingRefresher ? 'Hiding…' : 'Hide this reminder'}
+            </button>
+          </div>
+        </section>
+      )}
 
       <BetaFeedbackPrompt memoryCount={trips.length} />
 

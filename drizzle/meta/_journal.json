@@ -134,6 +134,13 @@
       "when": 1786917855956,
       "tag": "0018_funny_amphibian",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "6",
+      "when": 1788818302806,
+      "tag": "0019_vengeful_old_lace",
+      "breakpoints": true
     }
   ]
 }

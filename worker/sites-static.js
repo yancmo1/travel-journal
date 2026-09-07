@@ -29,6 +29,7 @@ async function ensureOnboardingTable(env) {
         memory_id INTEGER,
         journey_id INTEGER,
         welcome_seen INTEGER NOT NULL DEFAULT 0,
+        refresher_hidden INTEGER NOT NULL DEFAULT 0,
         completed_at TEXT,
         updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
         PRIMARY KEY (household_id, user_id)
@@ -2420,7 +2421,7 @@ async function handleFetch(request, env, ctx) {
       if (url.pathname === '/api/onboarding' && request.method === 'GET') {
         await ensureOnboardingTable(env);
         const row = await env.DB.prepare(`
-          SELECT home_skipped, people_skipped, memory_id, journey_id, welcome_seen, completed_at
+          SELECT home_skipped, people_skipped, memory_id, journey_id, welcome_seen, refresher_hidden, completed_at
           FROM onboarding_progress WHERE household_id = ? AND user_id = ? LIMIT 1
         `).bind(user.household_id, user.id).first();
         const memory = row?.memory_id
@@ -2442,6 +2443,7 @@ async function handleFetch(request, env, ctx) {
           memory: { complete: memoryComplete, id: memory?.id || row?.memory_id || null, location: memory?.location_name || null },
           journey: { complete: journeyComplete, id: journey?.id || row?.journey_id || null, title: journey?.title || null },
           welcomeSeen: Boolean(row?.welcome_seen),
+          refresherHidden: Boolean(row?.refresher_hidden),
           completed: Boolean(row?.completed_at) || (homeComplete && peopleComplete && memoryComplete && journeyComplete),
         });
       }
@@ -2450,12 +2452,13 @@ async function handleFetch(request, env, ctx) {
         await ensureOnboardingTable(env);
         const body = await parseJson(request);
         const step = String(body?.step || '').trim();
-        const allowedSteps = new Set(['welcome', 'home', 'people', 'memory', 'journey']);
+        const allowedSteps = new Set(['welcome', 'home', 'people', 'memory', 'journey', 'refresher']);
         if (!allowedSteps.has(step)) return json({ error: 'Choose a valid onboarding step.' }, { status: 400 });
         const homeSkipped = step === 'home' && body?.status === 'skipped' ? 1 : 0;
         const peopleSkipped = step === 'people' && body?.status === 'skipped' ? 1 : 0;
         const memoryId = step === 'memory' && Number.isInteger(Number(body?.memoryId)) ? Number(body.memoryId) : null;
         const journeyId = step === 'journey' && Number.isInteger(Number(body?.journeyId)) ? Number(body.journeyId) : null;
+        const refresherHidden = step === 'refresher' && body?.status === 'hidden' ? 1 : 0;
         const [homeUser, memoryCount, journeyCount, peopleCount] = await Promise.all([
           env.DB.prepare('SELECT home_latitude, home_longitude FROM users WHERE id = ? LIMIT 1').bind(user.id).first(),
           env.DB.prepare('SELECT COUNT(*) AS count FROM trips WHERE household_id = ?').bind(user.household_id).first(),
@@ -2465,17 +2468,18 @@ async function handleFetch(request, env, ctx) {
         const onboardingReady = homeUser?.home_latitude != null && homeUser?.home_longitude != null
           && Number(memoryCount?.count || 0) > 0 && Number(journeyCount?.count || 0) > 0 && Number(peopleCount?.count || 0) > 0 ? 1 : 0;
         await env.DB.prepare(`
-          INSERT INTO onboarding_progress (household_id, user_id, home_skipped, people_skipped, memory_id, journey_id, welcome_seen, updated_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+          INSERT INTO onboarding_progress (household_id, user_id, home_skipped, people_skipped, memory_id, journey_id, welcome_seen, refresher_hidden, updated_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
           ON CONFLICT(household_id, user_id) DO UPDATE SET
             home_skipped = CASE WHEN excluded.home_skipped = 1 THEN 1 WHEN ? = 'home' THEN 0 ELSE onboarding_progress.home_skipped END,
             people_skipped = CASE WHEN excluded.people_skipped = 1 THEN 1 WHEN ? = 'people' THEN 0 ELSE onboarding_progress.people_skipped END,
             memory_id = COALESCE(excluded.memory_id, onboarding_progress.memory_id),
             journey_id = COALESCE(excluded.journey_id, onboarding_progress.journey_id),
             welcome_seen = CASE WHEN excluded.welcome_seen = 1 THEN 1 ELSE onboarding_progress.welcome_seen END,
+            refresher_hidden = CASE WHEN excluded.refresher_hidden = 1 THEN 1 ELSE onboarding_progress.refresher_hidden END,
             completed_at = CASE WHEN ? = 'journey' AND ? IS NOT NULL AND ? THEN CURRENT_TIMESTAMP WHEN NOT ? THEN NULL ELSE onboarding_progress.completed_at END,
             updated_at = CURRENT_TIMESTAMP
-        `).bind(user.household_id, user.id, homeSkipped, peopleSkipped, memoryId, journeyId, step === 'welcome' ? 1 : 0, step, step, step, journeyId, onboardingReady, onboardingReady).run();
+        `).bind(user.household_id, user.id, homeSkipped, peopleSkipped, memoryId, journeyId, step === 'welcome' ? 1 : 0, refresherHidden, step, step, step, journeyId, onboardingReady, onboardingReady).run();
         return json({ success: true });
       }
 

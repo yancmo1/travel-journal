@@ -99,6 +99,7 @@ export const onboardingProgress = sqliteTable('onboarding_progress', {
   memoryId: integer('memory_id'),
   journeyId: integer('journey_id'),
   welcomeSeen: integer('welcome_seen', { mode: 'boolean' }).notNull().default(false),
+  refresherHidden: integer('refresher_hidden', { mode: 'boolean' }).notNull().default(false),
   completedAt: text('completed_at'),
   updatedAt: text('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 }, table => [

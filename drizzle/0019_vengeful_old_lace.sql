@@ -1,0 +1,1 @@
+ALTER TABLE `onboarding_progress` ADD `refresher_hidden` integer DEFAULT false NOT NULL;

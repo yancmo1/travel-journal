@@ -124,6 +124,7 @@ CREATE TABLE IF NOT EXISTS onboarding_progress (
   memory_id INT,
   journey_id INT,
   welcome_seen BOOLEAN NOT NULL DEFAULT FALSE,
+  refresher_hidden BOOLEAN NOT NULL DEFAULT FALSE,
   completed_at TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (household_id, user_id)

@@ -6177,7 +6177,13 @@ body {
 .getting-started-inline button { display: inline-flex; flex: 0 0 auto; align-items: center; gap: 7px; min-height: 44px; padding: 0 14px; color: #fff; background: #2c8074; border-radius: 8px; font-size: 13px; font-weight: 700; }
 .getting-started-inline button:hover { background: #246c62; }
 .getting-started-inline button svg { width: 16px; }
-@media (max-width: 640px) { .getting-started-inline { align-items: stretch; flex-direction: column; } .getting-started-inline button { justify-content: center; } }
+.getting-started-inline-actions { display: flex; flex: 0 0 auto; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 10px; }
+.getting-started-inline-dismiss { color: #597066 !important; background: transparent !important; border: 1px solid #cfe2d9; }
+.getting-started-inline-dismiss:hover { color: #18352d !important; background: #fff !important; }
+.getting-started-inline-dismiss:disabled { opacity: .6; cursor: wait; }
+.getting-started-inline-dismiss svg { width: 15px !important; }
+.getting-started-inline-error { margin-top: 8px !important; color: #9a452f !important; font-size: 13px !important; }
+@media (max-width: 640px) { .getting-started-inline { align-items: stretch; flex-direction: column; } .getting-started-inline-actions { align-items: stretch; justify-content: stretch; } .getting-started-inline-actions button { flex: 1 1 100%; justify-content: center; } }
 .memory-form-onboarding .onboarding-advanced { display: none; }
 .password-input-with-action { display: flex; align-items: center; gap: 8px; }
 .password-input-with-action input { flex: 1; }
